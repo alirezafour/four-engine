@@ -32,20 +32,16 @@
 *.app
 
 # visual studio
-.vs/*
+.vs
 
 # nvim
-.cache/*
-
-# bin and intermediates
-bin/*
-bin-Intermediate/*
+.cache
 
 #Cmake
-out/*
-[Bb]uild/*
-[Dd]ebug/*
-CMakeFiles/*
+out
+[Bb]uild
+[Dd]ebug
+CMakeFiles
 
 CMakeLists.txt.user
 CMakeCache.txt
