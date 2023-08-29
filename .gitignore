@@ -34,6 +34,9 @@
 # visual studio
 .vs/*
 
+# nvim
+.cache/*
+
 # bin and intermediates
 bin/*
 bin-Intermediate/*
