@@ -30,3 +30,36 @@
 *.exe
 *.out
 *.app
+
+# visual studio
+.vs/*
+
+# bin and intermediates
+bin/*
+bin-Intermediate/*
+
+#Cmake
+out/*
+[Bb]uild/*
+[Dd]ebug/*
+CMakeFiles/*
+
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+CMakeDoxyfile.in
+CmakeDoxygenDefaults.cmake
+
+# user 
+*.user
+*.sln
+*.vcxproj*
