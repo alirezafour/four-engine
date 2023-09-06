@@ -19,3 +19,5 @@ add_subdirectory(vendor)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
+
+add_subdirectory(test)
