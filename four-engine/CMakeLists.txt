@@ -20,4 +20,13 @@ add_subdirectory(vendor)
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
 
-add_subdirectory(test)
+
+# Test
+option(BUILD_TESTS "Build tests" OFF)
+if(BUILD_TESTS)
+  message(STATUS "Building tests is enabled")
+  add_subdirectory(test)
+else()
+  message(STATUS "Building tests is disabled")
+endif()
+
