@@ -4,17 +4,17 @@ Standard: c++20
 ColumnLimit: 120
 
 # Indentation
-AccessModifierOffset: -4
+AccessModifierOffset: -2
 BitFieldColonSpacing: Both
-ContinuationIndentWidth: 4
+ContinuationIndentWidth: 2
 IndentCaseLabels: true
 IndentCaseBlocks: false
 IndentExternBlock: Indent
 IndentPPDirectives: None
 IndentRequires: true
-IndentWidth: 4
+IndentWidth: 2
 IndentWrappedFunctionNames: true
-TabWidth: 4
+TabWidth: 2
 UseTab: Never
 
 # Alignment
