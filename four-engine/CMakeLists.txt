@@ -13,6 +13,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 file(GLOB SOURCES
      "src/*.hpp"
      "src/*.cpp"
+     "src/core/*.hpp"
+     "src/core/*.cpp"
 )
 
 add_subdirectory(vendor)

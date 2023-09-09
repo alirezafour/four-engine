@@ -3,12 +3,13 @@
 // #include "SDL_init.h"
 // #include "SDL_video.h"
 
-#include "core.hpp"
-
+#include "core/log.hpp"
 
 int main(int argc, char** argv)
 {
   LOG_CORE_INFO("print{}", " this");
+  LOG_CORE_INFO("testing");
+  LOG_WARN("warning App.");
 
   // if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO))
   // {
