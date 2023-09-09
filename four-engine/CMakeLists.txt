@@ -10,12 +10,32 @@ project(four-engine
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# if on windows
+if(WIN32)
 file(GLOB SOURCES
      "src/*.hpp"
      "src/*.cpp"
      "src/core/*.hpp"
      "src/core/*.cpp"
+     "src/window/sdl/*.hpp"
+     "src/window/sdl/*.cpp"
 )
+endif(WIN32)
+
+# if on linux
+if(UNIX)
+file(GLOB SOURCES
+     "src/*.hpp"
+     "src/*.cpp"
+     "src/core/*.hpp"
+     "src/core/*.cpp"
+     "src/window/sdl/*.hpp"
+     "src/window/sdl/*.cpp"
+)
+endif(UNIX)
+
+
+include_directories(src)
 
 add_subdirectory(vendor)
 
