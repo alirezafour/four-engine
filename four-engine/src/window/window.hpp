@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <string_view>
 
+#include "core/log.hpp"
+
 namespace four
 {
 
@@ -24,7 +26,7 @@ public:
     * @param width window width
     * @param height window height
     */
-  static std::unique_ptr<Derived> CreateWindow(std::string_view title, int32_t width, int32_t height)
+  [[nodiscard]] static std::unique_ptr<Derived> CreateWindow(std::string_view title, int32_t width, int32_t height) noexcept
   {
     static_assert(std::derived_from<Derived, Window<Derived>>, "your window class is not derived form Window<>.");
     static_assert(std::constructible_from<Derived, std::string_view, int32_t, int32_t>,
@@ -36,10 +38,28 @@ public:
       return std::move(window);
     } catch (std::exception& e)
     {
-      throw e;
+      LOG_CORE_ERROR(e.what());
     }
     return nullptr;
   }
+
+  [[nodiscard]] auto GetWindow() const noexcept
+  {
+    static_assert(std::derived_from<Derived, Window<Derived>>, "your window class is not derived form Window<>.");
+
+    return static_cast<const Derived*>(this)->GetWindow();
+  }
+
+  [[nodiscard]] inline int32_t GetWidth() const noexcept
+  {
+    return static_cast<const Derived*>(this)->GetWidth();
+  }
+
+  [[nodiscard]] inline int32_t GetHeight() const noexcept
+  {
+    return static_cast<const Derived*>(this)->GetHeight();
+  }
+
 
 private:
   friend Derived;

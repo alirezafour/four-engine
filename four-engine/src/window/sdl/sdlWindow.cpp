@@ -29,7 +29,10 @@ void SdlWindow::DestroyWindow()
 }
 
 
-SdlWindow::SdlWindow(std::string_view title, int32_t width, int32_t height) : Window<SdlWindow>()
+SdlWindow::SdlWindow(std::string_view title, int32_t width, int32_t height) :
+Window<SdlWindow>(),
+m_Width(width),
+m_Height(height)
 {
   if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO))
   {

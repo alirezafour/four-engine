@@ -25,7 +25,10 @@ public:
     * @param width width of the window
     * @param height height of the window
     */
-  explicit SdlWindow(std::string_view title, std::int32_t width, int32_t height);
+  SdlWindow()
+  {
+  }
+  SdlWindow(std::string_view title, std::int32_t width, int32_t height);
 
   /**
     * @brief shutdown the sdl and destroy window 
@@ -37,9 +40,19 @@ public:
     * @brienf return row pointer to the sdl window
     * @return row pointer to sdl window
     */
-  SDL_Window* GetWindow() const noexcept
+  [[nodiscard]] SDL_Window* GetWindow() const noexcept
   {
     return m_SdlWindow;
+  }
+
+  [[nodiscard]] inline int32_t GetWidth() const noexcept
+  {
+    return m_Width;
+  }
+
+  [[nodiscard]] inline int32_t GetHeight() const noexcept
+  {
+    return m_Height;
   }
 
 private:
@@ -52,5 +65,7 @@ private:
 private:
   /** the window */
   SDL_Window* m_SdlWindow;
+  int32_t     m_Width;
+  int32_t     m_Height;
 };
 } // namespace four
