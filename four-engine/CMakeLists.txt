@@ -17,6 +17,8 @@ file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.hpp"
      "src/core/*.cpp"
+     "src/core/imgui/*.hpp"
+     "src/core/imgui/*.cpp"
      "src/window/sdl/*.hpp"
      "src/window/sdl/*.cpp"
 )

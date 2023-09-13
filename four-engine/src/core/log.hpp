@@ -51,7 +51,7 @@ private:
 // @todo : add options to enable log for core and app seperately
 // add extra option that we need logging in release build
 //
-#ifdef _F_RELEASE // remove logs when release
+#ifdef FOUR_RELEASE // remove logs when release
 
 #define LOG_CORE_TRACE(...)
 #define LOG_CORE_INFO(...)
