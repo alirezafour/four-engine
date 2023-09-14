@@ -3,10 +3,13 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
+#include <type_traits>
 
+#include "event/applicationEvent.hpp"
 #include "window/window.hpp"
 
 struct SDL_Window;
+union SDL_Event;
 
 namespace four
 {
@@ -55,6 +58,22 @@ public:
     return m_Height;
   }
 
+  template <typename T>
+  [[nodiscard]] T& GetEvent()
+  {
+    if constexpr (std::is_same_v<T, WindowCloseEvent>)
+    {
+      return m_CloseEvent;
+    }
+    else
+    {
+      static_assert(std::is_same_v<T, WindowCloseEvent>, "no event with this type exist");
+      return nullptr;
+    }
+  }
+
+  void OnUpdate();
+
 private:
   /**
     * Destroy window and shutdown subsystem video
@@ -62,10 +81,15 @@ private:
     */
   void DestroyWindow();
 
+  void OnEvent(const SDL_Event& event);
+
 private:
   /** the window */
   SDL_Window* m_SdlWindow;
   int32_t     m_Width;
   int32_t     m_Height;
+
+  // Events
+  WindowCloseEvent m_CloseEvent;
 };
 } // namespace four

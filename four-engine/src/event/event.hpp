@@ -3,6 +3,7 @@
 #include "spdlog/fmt/bundled/core.h"
 #include <functional>
 #include <stdint.h>
+#include <utility>
 namespace four
 {
 
@@ -39,28 +40,49 @@ enum class EventCategory : uint8_t
   EventCategoryMouseButton = 1 << 4,
 };
 
-template <typename Derived>
+/**
+  * @brief Event interface class
+  * Parent of all interface in applicaiton
+  * @param Derived derived class that is using this class as Parent
+  * @param Args callback function arguments
+  */
+template <typename Derived, typename... Args>
 class Event
 {
+  /** call back function signiture */
+  using FunctionType = std::function<void(Args...)>;
+
 public:
+  /**
+    * @brief Get event type of the event 
+    * @return return Event type
+    */
   EventType GetEventType() const
   {
     return static_cast<const Derived*>(this)->GetEventType();
   }
 
+  /**
+    * @brief reutrn category of event
+    * @return category of event
+    */
   EventCategory GetEventCategory() const
   {
     return static_cast<const Derived*>(this)->GetEventCategory();
   }
 
-  bool IsHandled() const
+  /**
+    *
+    */
+  void SetupCallBack(FunctionType callback)
   {
-    return m_IsHandled;
+    Event<Derived>::m_Callback = callback;
   }
 
-  void SetHandled(bool value)
+  void notify(Args... args)
   {
-    m_IsHandled = value;
+    if (m_Callback)
+      m_Callback(args...);
   }
 
   bool IsInCategory(EventCategory category)
@@ -70,16 +92,7 @@ public:
 
 private:
   friend Derived;
-  bool m_IsHandled = false;
-};
-
-//dispatcher
-template <typename T>
-class EventDispatcher
-{
-
-public:
-  // void Dispatch(T type, )
+  FunctionType m_Callback;
 };
 
 

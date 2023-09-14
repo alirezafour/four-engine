@@ -32,3 +32,10 @@ TEST_CASE("Constrcut SDL Window")
     REQUIRE(w != nullptr);
   }
 }
+
+TEST_CASE("Layer Test")
+{
+  SECTION("Pushing")
+  {
+  }
+}
