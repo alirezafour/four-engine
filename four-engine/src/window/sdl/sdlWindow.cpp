@@ -1,6 +1,7 @@
 #include "window/sdl/sdlWindow.hpp"
 
 #include "SDL_error.h"
+#include "SDL_events.h"
 #include "SDL_init.h"
 #include "SDL_video.h"
 
@@ -48,6 +49,27 @@ m_Height(height)
     throw std::exception("failed to create sdl window");
   }
   LOG_CORE_INFO("Window Created.");
+}
+
+void SdlWindow::OnUpdate()
+{
+  SDL_Event event;
+  while (SDL_PollEvent(&event))
+  {
+    OnEvent(event);
+  }
+}
+
+void SdlWindow::OnEvent(const SDL_Event& event)
+{
+  switch (event.type)
+  {
+    case SDL_EventType::SDL_EVENT_QUIT:
+    {
+      m_CloseEvent.notify();
+      break;
+    }
+  }
 }
 
 } // namespace four

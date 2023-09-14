@@ -2,11 +2,14 @@
 
 #include <concepts>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <cstdint>
 #include <string_view>
+#include <variant>
 
 #include "core/log.hpp"
+#include "event/applicationEvent.hpp"
 
 namespace four
 {
@@ -18,6 +21,8 @@ namespace four
 template <typename Derived>
 class Window
 {
+  using PossibleEvents = std::variant<WindowCloseEvent, WindowResizeEvent>;
+
 public:
   /**
     * @brief Create window of the requested type
@@ -60,9 +65,15 @@ public:
     return static_cast<const Derived*>(this)->GetHeight();
   }
 
+  void OnUpdate()
+  {
+    static_cast<const Derived*>(this)->OnUpdate();
+  }
+
 
 private:
   friend Derived;
+  std::vector<PossibleEvents> m_WindowEvents;
 };
 
 } // namespace four
