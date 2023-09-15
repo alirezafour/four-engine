@@ -44,6 +44,9 @@ add_subdirectory(vendor)
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
 
+#setup PCH
+target_precompile_headers(${PROJECT_NAME} PUBLIC src/four-pch.h src/four-pch.cpp)
+
 add_library(four_engine INTERFACE)
 target_include_directories(four_engine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(four_engine INTERFACE ${PROJECT_NAME})

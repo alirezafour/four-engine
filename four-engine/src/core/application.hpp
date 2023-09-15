@@ -1,15 +1,9 @@
 #pragma once
 
 #include "core/imgui/imguiLayer.hpp"
-#include "core/layer.hpp"
 #include "core/layerStack.hpp"
 #include "core/log.hpp"
 #include "window/sdl/sdlWindow.hpp"
-#include "window/window.hpp"
-
-#include <functional>
-#include <memory>
-#include <vector>
 
 namespace four
 {

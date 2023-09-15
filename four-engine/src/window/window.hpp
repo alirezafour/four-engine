@@ -1,15 +1,7 @@
 #pragma once
 
-#include <concepts>
-#include <exception>
-#include <functional>
-#include <memory>
-#include <cstdint>
-#include <string_view>
-#include <variant>
-
 #include "core/log.hpp"
-#include "event/applicationEvent.hpp"
+#include "event/WindowEvent.hpp"
 
 namespace four
 {

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "spdlog/fmt/bundled/core.h"
-#include <functional>
-#include <stdint.h>
-#include <utility>
 namespace four
 {
 
+/**
+ * @brief enum to represent event type 
+ * types are Window, App, Key, Mouse and base on action.
+ */
 enum class EventType : uint8_t
 {
   None = 0,
@@ -30,6 +30,10 @@ enum class EventType : uint8_t
   MouseScrolled,
 };
 
+/**
+ * @brief represent Category whitch this event belong to
+ * seperating App, Input, Key, Mouse movement, Mouse buttons
+ */
 enum class EventCategory : uint8_t
 {
   None                     = 0,
@@ -72,19 +76,29 @@ public:
   }
 
   /**
-    *
+    * @brief setup call back for event
+    * Set specific function callback or lambda for event trigger
+    * @todo : temperory using single call back
     */
   void SetupCallBack(FunctionType callback)
   {
     Event<Derived>::m_Callback = callback;
   }
 
+  /**
+    * @brief notify callback function for changes
+    * call callback function with parameters or none 
+    */
   void notify(Args... args)
   {
     if (m_Callback)
       m_Callback(args...);
   }
 
+  /**
+    * @brief check if belong to provided category
+    * Check if the category is supported or not
+    */
   bool IsInCategory(EventCategory category)
   {
     return GetEventCategory() & category;
@@ -92,6 +106,9 @@ public:
 
 private:
   friend Derived;
+
+  /** temperory single call back for event */
+  // @todo : consider having list of listener like observer design pattern
   FunctionType m_Callback;
 };
 

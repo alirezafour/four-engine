@@ -1,3 +1,5 @@
+#include "four-pch.h"
+
 #include "window/sdl/sdlWindow.hpp"
 
 #include "SDL_error.h"
@@ -6,9 +8,6 @@
 #include "SDL_video.h"
 
 #include "core/log.hpp"
-#include "window/window.hpp"
-#include <exception>
-#include <system_error>
 
 namespace four
 {

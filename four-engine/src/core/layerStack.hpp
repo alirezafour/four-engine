@@ -1,9 +1,6 @@
 #pragma once
 
 #include "core/log.hpp"
-#include <algorithm>
-#include <memory>
-#include <vector>
 
 namespace four
 {

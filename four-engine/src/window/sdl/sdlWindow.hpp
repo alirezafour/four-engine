@@ -1,11 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <memory>
-#include <string_view>
-#include <type_traits>
-
-#include "event/applicationEvent.hpp"
 #include "window/window.hpp"
 
 struct SDL_Window;
