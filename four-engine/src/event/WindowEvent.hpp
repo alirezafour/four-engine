@@ -29,7 +29,7 @@ public:
   * @brief Window Resize event
   * Resize event triggered when window resize from window
   */
-class WindowResizeEvent : public Event<WindowResizeEvent>
+class WindowResizeEvent : public Event<WindowResizeEvent, uint32_t, uint32_t>
 {
 public:
   /** CRTP overrited Get event type */

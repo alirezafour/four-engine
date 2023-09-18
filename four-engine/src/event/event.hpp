@@ -82,14 +82,14 @@ public:
     */
   void SetupCallBack(FunctionType callback)
   {
-    Event<Derived>::m_Callback = callback;
+    m_Callback = callback;
   }
 
   /**
     * @brief notify callback function for changes
     * call callback function with parameters or none 
     */
-  void notify(Args... args)
+  void Notify(Args... args)
   {
     if (m_Callback)
       m_Callback(args...);

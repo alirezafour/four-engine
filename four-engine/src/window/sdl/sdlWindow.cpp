@@ -65,7 +65,12 @@ void SdlWindow::OnEvent(const SDL_Event& event)
   {
     case SDL_EventType::SDL_EVENT_QUIT:
     {
-      m_CloseEvent.notify();
+      m_CloseEvent.Notify();
+      break;
+    }
+    case SDL_EventType::SDL_EVENT_WINDOW_RESIZED:
+    {
+      m_ResizeEvent.Notify(0, 0);
       break;
     }
   }

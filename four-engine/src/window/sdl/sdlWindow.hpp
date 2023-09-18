@@ -1,5 +1,6 @@
 #pragma once
 
+#include "event/WindowEvent.hpp"
 #include "window/window.hpp"
 
 struct SDL_Window;
@@ -55,13 +56,16 @@ public:
   template <typename T>
   [[nodiscard]] T& GetEvent()
   {
-    if constexpr (std::is_same_v<T, WindowCloseEvent>)
+    if constexpr (std::is_same_v<T, WindowCloseEvent> || std::is_same_v<T, WindowResizeEvent>)
     {
-      return m_CloseEvent;
+      if constexpr (std::is_same_v<T, WindowCloseEvent>)
+        return m_CloseEvent;
+      else
+        return m_ResizeEvent;
     }
     else
     {
-      static_assert(std::is_same_v<T, WindowCloseEvent>, "no event with this type exist");
+      static_assert(std::is_same_v<T, WindowResizeEvent>, "Event not exist");
       return nullptr;
     }
   }
@@ -84,6 +88,7 @@ private:
   int32_t     m_Height;
 
   // Events
-  WindowCloseEvent m_CloseEvent;
+  WindowCloseEvent  m_CloseEvent;
+  WindowResizeEvent m_ResizeEvent;
 };
 } // namespace four
