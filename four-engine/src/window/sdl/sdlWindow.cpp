@@ -19,7 +19,7 @@ SdlWindow::~SdlWindow()
 
 void SdlWindow::DestroyWindow()
 {
-  if (m_SdlWindow)
+  if (m_SdlWindow != nullptr)
   {
     LOG_CORE_INFO("Window Deleted.");
     SDL_DestroyWindow(m_SdlWindow);
@@ -34,14 +34,14 @@ Window<SdlWindow>(),
 m_Width(width),
 m_Height(height)
 {
-  if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO))
+  if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO) != 0)
   {
     LOG_CORE_ERROR("Error on init: {}", SDL_GetError());
     throw std::exception("failed to init sdl subsystem");
   }
 
   m_SdlWindow = SDL_CreateWindow(title.data(), width, height, SDL_WindowFlags::SDL_WINDOW_RESIZABLE);
-  if (!m_SdlWindow)
+  if (m_SdlWindow == nullptr)
   {
     LOG_CORE_ERROR("failed creating window: {}", SDL_GetError());
     DestroyWindow();
@@ -53,7 +53,7 @@ m_Height(height)
 void SdlWindow::OnUpdate()
 {
   SDL_Event event;
-  while (SDL_PollEvent(&event))
+  while (SDL_PollEvent(&event) != 0)
   {
     OnEvent(event);
   }

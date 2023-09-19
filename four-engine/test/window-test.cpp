@@ -16,8 +16,8 @@ TEST_CASE("Constrcut SDL Window")
     REQUIRE(window->GetWidth() == 200);
     REQUIRE(window->GetHeight() == 300);
 
-    SDL_Window* w = window->GetWindow();
-    REQUIRE(w != nullptr);
+    SDL_Window* sdlWindow = window->GetWindow();
+    REQUIRE(sdlWindow != nullptr);
   }
 
   SECTION("Directing Create SDL Window")
@@ -28,8 +28,8 @@ TEST_CASE("Constrcut SDL Window")
     REQUIRE(window->GetWidth() == 2);
     REQUIRE(window->GetHeight() == 1);
 
-    SDL_Window* w = window->GetWindow();
-    REQUIRE(w != nullptr);
+    SDL_Window* sdlWindow = window->GetWindow();
+    REQUIRE(sdlWindow != nullptr);
   }
 }
 

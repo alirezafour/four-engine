@@ -18,13 +18,13 @@ public:
 
   void RemoveLayer(T* layer)
   {
-    if (std::erase_if(m_Layers, [layer](const auto& l) { return l.get() == layer; }))
+    if (std::erase_if(m_Layers, [layer](const auto& inLayer) { return inLayer.get() == layer; }))
     {
       LOG_CORE_INFO("LayerStack Erased element.");
     }
   }
 
-  std::size_t Count() const
+  [[nodiscard]] std::size_t Count() const
   {
     return m_Layers.size();
   }

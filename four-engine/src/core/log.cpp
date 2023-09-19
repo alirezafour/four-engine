@@ -8,8 +8,8 @@
 namespace four
 {
 
-auto Log::sm_CoreLogger = spdlog::stdout_color_mt("Core");
-auto Log::sm_AppLogger  = spdlog::stdout_color_mt("App");
+const std::shared_ptr<spdlog::logger> Log::sm_CoreLogger = spdlog::stdout_color_mt("Core");
+const std::shared_ptr<spdlog::logger> Log::sm_AppLogger  = spdlog::stdout_color_mt("App");
 
 void Log::Init()
 {

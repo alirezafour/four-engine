@@ -14,7 +14,8 @@ public:
   explicit Application() : m_Window(Window<SdlWindow>::CreateWindow("title", 800, 600))
   {
     m_Window->GetEvent<WindowCloseEvent>().SetupCallBack([&]() { OnExit(); });
-    m_Window->GetEvent<WindowResizeEvent>().SetupCallBack([&](uint32_t w, uint32_t h) { OnResize(w, h); });
+    m_Window->GetEvent<WindowResizeEvent>().SetupCallBack(
+      [&](uint32_t width, uint32_t height) { OnResize(width, height); });
   }
 
   void OnEvent()

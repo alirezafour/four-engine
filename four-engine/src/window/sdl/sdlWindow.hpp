@@ -23,10 +23,13 @@ public:
     * @param width width of the window
     * @param height height of the window
     */
-  SdlWindow()
-  {
-  }
-  SdlWindow(std::string_view title, std::int32_t width, int32_t height);
+  SdlWindow()                            = delete;
+  SdlWindow(const SdlWindow&)            = default;
+  SdlWindow(SdlWindow&&)                 = delete;
+  SdlWindow& operator=(const SdlWindow&) = default;
+  SdlWindow& operator=(SdlWindow&&)      = delete;
+
+  explicit SdlWindow(std::string_view title, std::int32_t width, int32_t height);
 
   /**
     * @brief shutdown the sdl and destroy window 
@@ -59,9 +62,13 @@ public:
     if constexpr (std::is_same_v<T, WindowCloseEvent> || std::is_same_v<T, WindowResizeEvent>)
     {
       if constexpr (std::is_same_v<T, WindowCloseEvent>)
+      {
         return m_CloseEvent;
+      }
       else
+      {
         return m_ResizeEvent;
+      }
     }
     else
     {
@@ -83,9 +90,9 @@ private:
 
 private:
   /** the window */
-  SDL_Window* m_SdlWindow;
-  int32_t     m_Width;
-  int32_t     m_Height;
+  SDL_Window* m_SdlWindow{};
+  int32_t     m_Width{};
+  int32_t     m_Height{};
 
   // Events
   WindowCloseEvent  m_CloseEvent;

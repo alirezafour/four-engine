@@ -13,13 +13,13 @@ class WindowCloseEvent : public Event<WindowCloseEvent>
 {
 public:
   /** CRTP overrited Get event type */
-  [[nodiscard]] inline EventType GetEventType() const
+  [[nodiscard]] static inline EventType GetEventType()
   {
     return EventType::WindowClose;
   }
 
   /** CRTP overrited Get event category */
-  [[nodiscard]] inline EventCategory GetEventCategory() const
+  [[nodiscard]] static inline EventCategory GetEventCategory()
   {
     return EventCategory::EventCategoryApplication;
   }
@@ -33,13 +33,13 @@ class WindowResizeEvent : public Event<WindowResizeEvent, uint32_t, uint32_t>
 {
 public:
   /** CRTP overrited Get event type */
-  [[nodiscard]] inline EventType GetEventType() const
+  [[nodiscard]] static inline EventType GetEventType()
   {
     return EventType::WindowClose;
   }
 
   /** CRTP overrited Get event category */
-  [[nodiscard]] inline EventCategory GetEventCategory() const
+  [[nodiscard]] static inline EventCategory GetEventCategory()
   {
     return EventCategory::EventCategoryApplication;
   }

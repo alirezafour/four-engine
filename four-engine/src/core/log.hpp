@@ -11,6 +11,13 @@ namespace four
 class Log
 {
 public:
+  Log()                = delete;
+  ~Log()               = default;
+  Log(Log&)            = delete;
+  Log(Log&&)           = delete;
+  Log operator=(Log&)  = delete;
+  Log operator=(Log&&) = delete;
+
   static void Init();
   /**
     * @brief return engine logger
@@ -30,18 +37,11 @@ public:
   }
 
 private:
-  Log()                = delete;
-  Log(Log&)            = delete;
-  Log(Log&&)           = delete;
-  Log operator=(Log&)  = delete;
-  Log operator=(Log&&) = delete;
-
-private:
   /** logger for engine logging */
-  static std::shared_ptr<spdlog::logger> sm_CoreLogger;
+  const static std::shared_ptr<spdlog::logger> sm_CoreLogger;
 
   /** logger for application logging */
-  static std::shared_ptr<spdlog::logger> sm_AppLogger;
+  const static std::shared_ptr<spdlog::logger> sm_AppLogger;
 };
 //
 } // namespace four

@@ -36,12 +36,12 @@ enum class EventType : uint8_t
  */
 enum class EventCategory : uint8_t
 {
-  None                     = 0,
-  EventCategoryApplication = 1,
-  EventCategoryInput       = 1 << 1,
-  EventCategoryKeyboard    = 1 << 2,
-  EventCategoryMouse       = 1 << 3,
-  EventCategoryMouseButton = 1 << 4,
+  None                     = 0U,
+  EventCategoryApplication = 1U,
+  EventCategoryInput       = 1U << 1U,
+  EventCategoryKeyboard    = 1U << 2U,
+  EventCategoryMouse       = 1U << 3U,
+  EventCategoryMouseButton = 1U << 4U,
 };
 
 /**
@@ -61,18 +61,18 @@ public:
     * @brief Get event type of the event 
     * @return return Event type
     */
-  EventType GetEventType() const
+  [[nodiscard]] EventType GetEventType() const
   {
-    return static_cast<const Derived*>(this)->GetEventType();
+    return Derived::GetEventType();
   }
 
   /**
     * @brief reutrn category of event
     * @return category of event
     */
-  EventCategory GetEventCategory() const
+  [[nodiscard]] EventCategory GetEventCategory() const
   {
-    return static_cast<const Derived*>(this)->GetEventCategory();
+    return Derived::GetEventCategory();
   }
 
   /**
@@ -92,7 +92,9 @@ public:
   void Notify(Args... args)
   {
     if (m_Callback)
+    {
       m_Callback(args...);
+    }
   }
 
   /**
