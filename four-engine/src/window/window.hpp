@@ -23,11 +23,11 @@ public:
     * @param width window width
     * @param height window height
     */
-  [[nodiscard]] static std::unique_ptr<Derived> CreateWindow(std::string_view title, int32_t width, int32_t height) noexcept
+  [[nodiscard]] static std::unique_ptr<Derived> CreateWindow(std::string_view title, uint32_t width, uint32_t height) noexcept
   {
     static_assert(std::derived_from<Derived, Window<Derived>>, "your window class is not derived form Window<>.");
-    static_assert(std::constructible_from<Derived, std::string_view, int32_t, int32_t>,
-                  "Constrcutor with (std::string_view, int32_t, int32_t) parameter is not exist in derived class.");
+    static_assert(std::constructible_from<Derived, std::string_view, uint32_t, uint32_t>,
+                  "Constrcutor with (std::string_view, uint32_t, uint32_t) parameter is not exist in derived class.");
 
     try
     {
@@ -47,12 +47,12 @@ public:
     return static_cast<const Derived*>(this)->GetWindow();
   }
 
-  [[nodiscard]] inline int32_t GetWidth() const noexcept
+  [[nodiscard]] inline uint32_t GetWidth() const noexcept
   {
     return static_cast<const Derived*>(this)->GetWidth();
   }
 
-  [[nodiscard]] inline int32_t GetHeight() const noexcept
+  [[nodiscard]] inline uint32_t GetHeight() const noexcept
   {
     return static_cast<const Derived*>(this)->GetHeight();
   }

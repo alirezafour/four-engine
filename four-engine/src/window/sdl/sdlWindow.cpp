@@ -29,7 +29,7 @@ void SdlWindow::DestroyWindow()
 }
 
 
-SdlWindow::SdlWindow(std::string_view title, int32_t width, int32_t height) :
+SdlWindow::SdlWindow(std::string_view title, uint32_t width, uint32_t height) :
 Window<SdlWindow>(),
 m_Width(width),
 m_Height(height)

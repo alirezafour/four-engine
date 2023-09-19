@@ -11,7 +11,8 @@ namespace four
 class Application
 {
 public:
-  explicit Application() : m_Window(Window<SdlWindow>::CreateWindow("title", 800, 600))
+  explicit Application(std::string_view title, uint32_t width, uint32_t height) :
+  m_Window(Window<SdlWindow>::CreateWindow(title, width, height))
   {
     m_Window->GetEvent<WindowCloseEvent>().SetupCallBack([&]() { OnExit(); });
     m_Window->GetEvent<WindowResizeEvent>().SetupCallBack(

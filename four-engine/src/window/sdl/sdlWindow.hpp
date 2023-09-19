@@ -23,21 +23,42 @@ public:
     * @param width width of the window
     * @param height height of the window
     */
-  SdlWindow()                            = delete;
-  SdlWindow(const SdlWindow&)            = default;
-  SdlWindow(SdlWindow&&)                 = delete;
-  SdlWindow& operator=(const SdlWindow&) = default;
-  SdlWindow& operator=(SdlWindow&&)      = delete;
-
-  explicit SdlWindow(std::string_view title, std::int32_t width, int32_t height);
+  explicit SdlWindow(std::string_view title, uint32_t width, uint32_t height);
 
   /**
-    * @brief shutdown the sdl and destroy window 
+   * @brief Deleted default constructor
+   */
+  SdlWindow() = delete;
+
+  /**
+   * @brief Deleted coppy constructor
+   */
+  SdlWindow(const SdlWindow&) = delete;
+
+  /**
+   * @brief Deleted move constructor
+   */
+  SdlWindow(SdlWindow&&) = delete;
+
+  /**
+   * @brief Deleted copy assignmet
+   */
+  SdlWindow& operator=(const SdlWindow&) = delete;
+
+  /**
+   * @brief Deleted move assignmet
+   *
+   * @return left side of the operator
+   */
+  SdlWindow& operator=(SdlWindow&&) = delete;
+
+  /**
+    * @brief Shutdown the sdl and destroy window 
     */
   ~SdlWindow();
 
   /**
-    * return row pointer ot sdl window
+    * return Raw pointer ot sdl window
     * @brienf return row pointer to the sdl window
     * @return row pointer to sdl window
     */
@@ -46,12 +67,22 @@ public:
     return m_SdlWindow;
   }
 
-  [[nodiscard]] inline int32_t GetWidth() const noexcept
+  /**
+   * @brief Get current width of the window 
+   *
+   * @return current width of window
+   */
+  [[nodiscard]] inline uint32_t GetWidth() const noexcept
   {
     return m_Width;
   }
 
-  [[nodiscard]] inline int32_t GetHeight() const noexcept
+  /**
+   * @brief Get current height of window
+   *
+   * @return the current height of window
+   */
+  [[nodiscard]] inline uint32_t GetHeight() const noexcept
   {
     return m_Height;
   }
@@ -77,6 +108,9 @@ public:
     }
   }
 
+  /**
+   * @brief Get called on every frame update
+   */
   void OnUpdate();
 
 private:
@@ -86,13 +120,22 @@ private:
     */
   void DestroyWindow();
 
+  /**
+   * @brief Get Called on any window event
+   *
+   * @param event sdl event that
+   */
   void OnEvent(const SDL_Event& event);
 
 private:
   /** the window */
   SDL_Window* m_SdlWindow{};
-  int32_t     m_Width{};
-  int32_t     m_Height{};
+
+  /** current width of the window */
+  uint32_t m_Width{};
+
+  /** current height of the window */
+  uint32_t m_Height{};
 
   // Events
   WindowCloseEvent  m_CloseEvent;
