@@ -87,6 +87,12 @@ public:
     return m_Height;
   }
 
+  /**
+   * @todo : temperory replace with proper implementation ( using dispatch )
+   * @brief Get existed event base on provided class
+   *
+   * @return object of the event
+   */
   template <typename T>
   [[nodiscard]] T& GetEvent()
   {

@@ -61,7 +61,7 @@ public:
     * @brief Get event type of the event 
     * @return return Event type
     */
-  [[nodiscard]] EventType GetEventType() const
+  [[nodiscard]] inline static EventType GetEventType()
   {
     return Derived::GetEventType();
   }
@@ -70,7 +70,7 @@ public:
     * @brief reutrn category of event
     * @return category of event
     */
-  [[nodiscard]] EventCategory GetEventCategory() const
+  [[nodiscard]] inline static EventCategory GetEventCategory()
   {
     return Derived::GetEventCategory();
   }

@@ -40,7 +40,10 @@ m_Height(height)
     throw std::exception("failed to init sdl subsystem");
   }
 
-  m_SdlWindow = SDL_CreateWindow(title.data(), width, height, SDL_WindowFlags::SDL_WINDOW_RESIZABLE);
+  m_SdlWindow = SDL_CreateWindow(title.data(),
+                                 static_cast<int>(width),
+                                 static_cast<int>(height),
+                                 SDL_WindowFlags::SDL_WINDOW_RESIZABLE);
   if (m_SdlWindow == nullptr)
   {
     LOG_CORE_ERROR("failed creating window: {}", SDL_GetError());

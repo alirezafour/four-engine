@@ -62,6 +62,11 @@ public:
     static_cast<const Derived*>(this)->OnUpdate();
   }
 
+  explicit operator bool() const
+  {
+    return GetWindow() != nullptr;
+  }
+
 
 private:
   friend Derived;
