@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/layer.hpp"
-#include "core/log.hpp"
 
 namespace four
 {

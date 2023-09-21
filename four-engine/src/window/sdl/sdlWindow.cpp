@@ -1,13 +1,12 @@
 #include "four-pch.h"
 
 #include "window/sdl/sdlWindow.hpp"
+#include "event/WindowEvent.hpp"
 
 #include "SDL_error.h"
 #include "SDL_events.h"
 #include "SDL_init.h"
 #include "SDL_video.h"
-
-#include "core/log.hpp"
 
 namespace four
 {
@@ -64,19 +63,58 @@ void SdlWindow::OnUpdate()
 
 void SdlWindow::OnEvent(const SDL_Event& event)
 {
+
+  EventType eventType = TransformEvent(event);
+  for (auto& inEvent : m_EventList)
+  {
+    switch (eventType)
+    {
+      case EventType::WindowClose:
+      {
+        if (auto* value = std::get_if<WindowCloseEvent>(&inEvent))
+        {
+          value->Notify();
+          break;
+        }
+      }
+      case EventType::WindowResize:
+      {
+        if (auto* value = std::get_if<WindowResizeEvent>(&inEvent))
+        {
+          value->Notify(0, 0);
+          break;
+        }
+      }
+      case EventType::None:
+      case EventType::WindowFocus:
+      case EventType::WindowLoseFocus:
+      case EventType::WindowMoved:
+      case EventType::AppTick:
+      case EventType::AppUpdate:
+      case EventType::AppRender:
+      case EventType::KeyPressed:
+      case EventType::KeyReleased:
+      case EventType::KeyTyped:
+      case EventType::MouseButtonPressed:
+      case EventType::MouseButtonReleased:
+      case EventType::MouseMoved:
+      case EventType::MouseScrolled:
+        break;
+    }
+  }
+}
+
+EventType SdlWindow::TransformEvent(const SDL_Event& event)
+{
   switch (event.type)
   {
     case SDL_EventType::SDL_EVENT_QUIT:
-    {
-      m_CloseEvent.Notify();
-      break;
-    }
+      return EventType::WindowClose;
     case SDL_EventType::SDL_EVENT_WINDOW_RESIZED:
-    {
-      m_ResizeEvent.Notify(0, 0);
-      break;
-    }
+      return EventType::WindowResize;
   }
+
+  return {};
 }
 
 } // namespace four

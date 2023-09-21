@@ -1,4 +1,5 @@
 #include "four-pch.h"
+
 #include "core/log.hpp"
 
 #include "spdlog/common.h"

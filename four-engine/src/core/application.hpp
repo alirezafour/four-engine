@@ -2,7 +2,6 @@
 
 #include "core/imgui/imguiLayer.hpp"
 #include "core/layerStack.hpp"
-#include "core/log.hpp"
 #include "window/sdl/sdlWindow.hpp"
 
 namespace four
@@ -14,9 +13,10 @@ public:
   explicit Application(std::string_view title, uint32_t width, uint32_t height) :
   m_Window(Window<SdlWindow>::CreateWindow(title, width, height))
   {
-    m_Window->GetEvent<WindowCloseEvent>().SetupCallBack([&]() { OnExit(); });
-    m_Window->GetEvent<WindowResizeEvent>().SetupCallBack(
-      [&](uint32_t width, uint32_t height) { OnResize(width, height); });
+    m_Window->SetEventCallBack<WindowCloseEvent>([&]() { OnExit(); });
+    m_Window->SetEventCallBack<WindowResizeEvent>([&](uint32_t width, uint32_t height) { OnResize(width, height); });
+
+    m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
   }
 
   void OnEvent()

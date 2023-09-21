@@ -114,5 +114,28 @@ private:
   FunctionType m_Callback;
 };
 
+template <typename T>
+class EventDispatcher
+{
+public:
+  explicit EventDispatcher(T&& event)
+  {
+    m_EventList.insert(T::GetEventType, event);
+  }
+
+  template <typename... Args>
+  void Dispatch(EventType type, Args... args)
+  {
+    auto itEvent = m_EventList.find(type);
+    if (itEvent != m_EventList.end())
+    {
+      itEvent.second.Notify(args...);
+    }
+  }
+
+private:
+  std::unordered_map<EventType, Event<T>> m_EventList;
+};
+
 
 } // namespace four

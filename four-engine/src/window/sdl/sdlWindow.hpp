@@ -16,6 +16,7 @@ namespace four
 class SdlWindow : public Window<SdlWindow>
 {
 public:
+  using WindowEventVariant = std::variant<WindowCloseEvent, WindowResizeEvent>;
   /**
     * @brief Creating a window 
     * if it fail it thorw exception
@@ -87,31 +88,15 @@ public:
     return m_Height;
   }
 
-  /**
-   * @todo : temperory replace with proper implementation ( using dispatch )
-   * @brief Get existed event base on provided class
-   *
-   * @return object of the event
-   */
-  template <typename T>
-  [[nodiscard]] T& GetEvent()
+  template <typename T, typename... Args>
+  // requires std::derived_from<T, Event<T>>
+  // @todo check that T is derived form Event<T> and exist in our variant
+  // @todo set Args to be function call that matches Event callback
+  void SetEventCallBack(Args... args)
   {
-    if constexpr (std::is_same_v<T, WindowCloseEvent> || std::is_same_v<T, WindowResizeEvent>)
-    {
-      if constexpr (std::is_same_v<T, WindowCloseEvent>)
-      {
-        return m_CloseEvent;
-      }
-      else
-      {
-        return m_ResizeEvent;
-      }
-    }
-    else
-    {
-      static_assert(std::is_same_v<T, WindowResizeEvent>, "Event not exist");
-      return nullptr;
-    }
+    T event;
+    event.SetupCallBack(args...);
+    m_EventList.push_back(std::move(event));
   }
 
   /**
@@ -133,6 +118,8 @@ private:
    */
   void OnEvent(const SDL_Event& event);
 
+  EventType TransformEvent(const SDL_Event& event);
+
 private:
   /** the window */
   SDL_Window* m_SdlWindow{};
@@ -144,7 +131,6 @@ private:
   uint32_t m_Height{};
 
   // Events
-  WindowCloseEvent  m_CloseEvent;
-  WindowResizeEvent m_ResizeEvent;
+  std::vector<std::variant<WindowCloseEvent, WindowResizeEvent>> m_EventList;
 };
 } // namespace four

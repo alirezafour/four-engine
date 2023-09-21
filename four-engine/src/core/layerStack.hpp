@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/log.hpp"
+#include "core/layer.hpp"
 
 namespace four
 {
@@ -23,6 +23,7 @@ public:
   T* PushLayer(std::unique_ptr<T> layer)
   {
     LOG_CORE_INFO("Layer stack: PushLayer");
+    layer->OnAttach();
     m_Layers.push_back(std::move(layer));
     return m_Layers.front().get();
   }
@@ -34,7 +35,7 @@ public:
    */
   void RemoveLayer(T* layer)
   {
-    if (std::erase_if(m_Layers, [layer](const auto& inLayer) { return inLayer.get() == layer; }))
+    if (auto inLayer = std::erase_if(m_Layers, [layer](const auto& inLayer) { return inLayer.get() == layer; }))
     {
       LOG_CORE_INFO("LayerStack Erased element.");
     }

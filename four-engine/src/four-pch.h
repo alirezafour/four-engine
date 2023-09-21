@@ -2,6 +2,7 @@
 #pragma once
 
 #include <vector>
+#include <concepts>
 #include <unordered_map>
 #include <memory>
 #include <algorithm>

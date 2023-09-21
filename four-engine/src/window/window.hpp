@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/log.hpp"
 #include "event/WindowEvent.hpp"
 
 namespace four
