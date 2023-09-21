@@ -35,7 +35,7 @@ public:
   /** CRTP overrited Get event type */
   [[nodiscard]] inline static EventType GetEventType()
   {
-    return EventType::WindowClose;
+    return EventType::WindowResize;
   }
 
   /** CRTP overrited Get event category */

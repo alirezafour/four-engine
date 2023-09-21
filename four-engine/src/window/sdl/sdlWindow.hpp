@@ -88,15 +88,12 @@ public:
     return m_Height;
   }
 
-  template <typename T, typename... Args>
-  // requires std::derived_from<T, Event<T>>
-  // @todo check that T is derived form Event<T> and exist in our variant
-  // @todo set Args to be function call that matches Event callback
-  void SetEventCallBack(Args... args)
+  template <typename T, typename F>
+  void SetEventCallBack(F lambda)
   {
     T event;
-    event.SetupCallBack(args...);
-    m_EventList.push_back(std::move(event));
+    event.SetupCallBack(lambda);
+    m_EventList[T::GetEventType()] = std::move(event);
   }
 
   /**
@@ -131,6 +128,6 @@ private:
   uint32_t m_Height{};
 
   // Events
-  std::vector<std::variant<WindowCloseEvent, WindowResizeEvent>> m_EventList;
+  std::unordered_map<EventType, WindowEventVariant> m_EventList;
 };
 } // namespace four

@@ -63,43 +63,20 @@ void SdlWindow::OnUpdate()
 
 void SdlWindow::OnEvent(const SDL_Event& event)
 {
-
   EventType eventType = TransformEvent(event);
-  for (auto& inEvent : m_EventList)
+  if (m_EventList.contains(eventType))
   {
-    switch (eventType)
+
+    if (auto* value = std::get_if<WindowCloseEvent>(&m_EventList[eventType]))
     {
-      case EventType::WindowClose:
-      {
-        if (auto* value = std::get_if<WindowCloseEvent>(&inEvent))
-        {
-          value->Notify();
-          break;
-        }
-      }
-      case EventType::WindowResize:
-      {
-        if (auto* value = std::get_if<WindowResizeEvent>(&inEvent))
-        {
-          value->Notify(0, 0);
-          break;
-        }
-      }
-      case EventType::None:
-      case EventType::WindowFocus:
-      case EventType::WindowLoseFocus:
-      case EventType::WindowMoved:
-      case EventType::AppTick:
-      case EventType::AppUpdate:
-      case EventType::AppRender:
-      case EventType::KeyPressed:
-      case EventType::KeyReleased:
-      case EventType::KeyTyped:
-      case EventType::MouseButtonPressed:
-      case EventType::MouseButtonReleased:
-      case EventType::MouseMoved:
-      case EventType::MouseScrolled:
-        break;
+      value->Notify();
+      return;
+    }
+
+    if (auto* value = std::get_if<WindowResizeEvent>(&m_EventList[eventType]))
+    {
+      value->Notify(0, 0);
+      return;
     }
   }
 }

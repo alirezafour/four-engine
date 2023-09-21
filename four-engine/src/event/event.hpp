@@ -53,10 +53,10 @@ enum class EventCategory : uint8_t
 template <typename Derived, typename... Args>
 class Event
 {
-  /** call back function signiture */
-  using FunctionType = std::function<void(Args...)>;
 
 public:
+  /** call back function signiture */
+  using FunctionType = std::function<void(Args...)>;
   /**
     * @brief Get event type of the event 
     * @return return Event type
