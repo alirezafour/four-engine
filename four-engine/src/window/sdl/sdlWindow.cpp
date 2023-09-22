@@ -49,7 +49,7 @@ m_Height(height)
     DestroyWindow();
     throw std::exception("failed to create sdl window");
   }
-  LOG_CORE_INFO("Window Created.");
+  LOG_CORE_INFO("Window in sdlWindow Created.");
 }
 
 void SdlWindow::OnUpdate()
@@ -67,13 +67,13 @@ void SdlWindow::OnEvent(const SDL_Event& event)
   if (m_EventList.contains(eventType))
   {
 
-    if (auto* value = std::get_if<WindowCloseEvent>(&m_EventList[eventType]))
+    if (auto* value = std::get_if<Event<WindowCloseEvent>>(&m_EventList[eventType]))
     {
       value->Notify();
       return;
     }
 
-    if (auto* value = std::get_if<WindowResizeEvent>(&m_EventList[eventType]))
+    if (auto* value = std::get_if<Event<WindowResizeEvent, uint32_t, uint32_t>>(&m_EventList[eventType]))
     {
       value->Notify(0, 0);
       return;

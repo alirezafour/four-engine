@@ -15,6 +15,7 @@ class Window
   using PossibleEvents = std::variant<WindowCloseEvent, WindowResizeEvent>;
 
 public:
+  virtual ~Window() = default;
   /**
     * @brief Create window of the requested type
     * Create Window of the type it can throw exception if fail

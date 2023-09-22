@@ -16,7 +16,7 @@ namespace four
 class SdlWindow : public Window<SdlWindow>
 {
 public:
-  using WindowEventVariant = std::variant<WindowCloseEvent, WindowResizeEvent>;
+  using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;
   /**
     * @brief Creating a window 
     * if it fail it thorw exception
@@ -88,10 +88,9 @@ public:
     return m_Height;
   }
 
-  template <typename T, typename F>
-  void SetEventCallBack(F lambda)
+  template <typename F, typename T, typename... Args>
+  void SetEventCallBack(Event<T, Args...> event, F lambda)
   {
-    T event;
     event.SetupCallBack(lambda);
     m_EventList[T::GetEventType()] = std::move(event);
   }
@@ -101,19 +100,19 @@ public:
    */
   void OnUpdate();
 
-private:
-  /**
-    * Destroy window and shutdown subsystem video
-    * @brienf destroy window and subsystem
-    */
-  void DestroyWindow();
-
   /**
    * @brief Get Called on any window event
    *
    * @param event sdl event that
    */
   void OnEvent(const SDL_Event& event);
+
+private:
+  /**
+    * Destroy window and shutdown subsystem video
+    * @brienf destroy window and subsystem
+    */
+  void DestroyWindow();
 
   EventType TransformEvent(const SDL_Event& event);
 
