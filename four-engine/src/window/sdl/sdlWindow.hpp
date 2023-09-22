@@ -1,4 +1,5 @@
 #pragma once
+#ifdef FOUR_USE_SDL
 
 #include "event/WindowEvent.hpp"
 #include "window/window.hpp"
@@ -130,3 +131,5 @@ private:
   std::unordered_map<EventType, WindowEventVariant> m_EventList;
 };
 } // namespace four
+
+#endif // FOUR_USE_SDL

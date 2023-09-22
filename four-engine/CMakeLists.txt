@@ -19,8 +19,6 @@ file(GLOB SOURCES
      "src/core/*.cpp"
      "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
-     "src/window/sdl/*.hpp"
-     "src/window/sdl/*.cpp"
 )
 endif(WIN32)
 
@@ -31,15 +29,26 @@ file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.hpp"
      "src/core/*.cpp"
-     "src/window/sdl/*.hpp"
-     "src/window/sdl/*.cpp"
+     "src/core/imgui/*.hpp"
+     "src/core/imgui/*.cpp"
 )
 endif(UNIX)
 
+# SFML or SDL
+option(FOUR_USE_SDL "Use SDL" OFF)
+option(FOUR_USE_SFML "Use SFML" OFF)
 
 include_directories(src)
 
 add_subdirectory(vendor)
+
+if(FOUR_USE_SDL)
+  file(GLOB SDL_TO_ADD "src/window/sdl/*.cpp" "src/window/sdl/*.hpp")
+  list(APPEND SOURCES ${SDL_TO_ADD})
+elseif(FOUR_USE_SFML)
+  file(GLOB SFML_TO_ADD "src/window/sfml/*.cpp" "src/window/sfml/*.hpp")
+  list(APPEND SOURCES ${SFML_TO_ADD})
+endif(FOUR_USE_SDL)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
