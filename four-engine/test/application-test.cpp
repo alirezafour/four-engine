@@ -7,6 +7,9 @@
 
 TEST_CASE("Application test")
 {
+  // log used in every systems so it required to initialized first
+  four::Log::Init();
+
   SECTION("testing layers")
   {
     four::LayerStack<four::ImGuiLayer> layerStack;

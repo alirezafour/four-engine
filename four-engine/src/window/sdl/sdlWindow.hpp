@@ -30,7 +30,7 @@ public:
   /**
    * @brief Deleted default constructor
    */
-  SdlWindow() = delete;
+  SdlWindow() = default;
 
   /**
    * @brief Deleted coppy constructor
@@ -40,7 +40,7 @@ public:
   /**
    * @brief Deleted move constructor
    */
-  SdlWindow(SdlWindow&&) = delete;
+  SdlWindow(SdlWindow&&) = default;
 
   /**
    * @brief Deleted copy assignmet
@@ -52,7 +52,7 @@ public:
    *
    * @return left side of the operator
    */
-  SdlWindow& operator=(SdlWindow&&) = delete;
+  SdlWindow& operator=(SdlWindow&&) = default;
 
   /**
     * @brief Shutdown the sdl and destroy window 
@@ -74,20 +74,14 @@ public:
    *
    * @return current width of window
    */
-  [[nodiscard]] inline uint32_t GetWidth() const noexcept
-  {
-    return m_Width;
-  }
+  [[nodiscard]] uint32_t GetWidth() const noexcept;
 
   /**
    * @brief Get current height of window
    *
    * @return the current height of window
    */
-  [[nodiscard]] inline uint32_t GetHeight() const noexcept
-  {
-    return m_Height;
-  }
+  [[nodiscard]] uint32_t GetHeight() const noexcept;
 
   template <typename F, typename T, typename... Args>
   void SetEventCallBack(Event<T, Args...> event, F lambda)
@@ -95,6 +89,7 @@ public:
     event.SetupCallBack(lambda);
     m_EventList[T::GetEventType()] = std::move(event);
   }
+
 
   /**
    * @brief Get called on every frame update
@@ -108,6 +103,8 @@ public:
    */
   void OnEvent(const SDL_Event& event);
 
+  void Shutdown();
+
 private:
   /**
     * Destroy window and shutdown subsystem video
@@ -115,7 +112,14 @@ private:
     */
   void DestroyWindow();
 
-  EventType TransformEvent(const SDL_Event& event);
+  /**
+   * @brief Translate SDL Event to four event system
+   *
+   * @param event SDL event
+   * @return equivilant event from four event 
+   */
+  static EventType TransformEvent(const SDL_Event& event);
+
 
 private:
   /** the window */

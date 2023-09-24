@@ -1,5 +1,8 @@
 #pragma once
 #include "spdlog/logger.h"
+#include "spdlog/common.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 namespace four
 {
@@ -18,7 +21,32 @@ public:
   Log operator=(Log&)  = delete;
   Log operator=(Log&&) = delete;
 
-  static void Init();
+  static bool Init()
+  {
+    if (sm_CoreLogger && sm_CoreLogger)
+    {
+      return true;
+    }
+
+    Log::sm_CoreLogger = spdlog::stdout_color_mt("Core");
+    Log::sm_AppLogger  = spdlog::stdout_color_mt("App");
+
+
+    if (sm_CoreLogger == nullptr || sm_AppLogger == nullptr)
+    {
+      return false;
+    }
+    // set output pattern for logs
+    spdlog::set_pattern("%^[%T] %n: %v%$");
+    return true;
+  }
+
+  static void Shutdown()
+  {
+    sm_CoreLogger.reset();
+    sm_AppLogger.reset();
+  }
+
   /**
     * @brief return engine logger
     * @return get engine core logger 
@@ -38,10 +66,10 @@ public:
 
 private:
   /** logger for engine logging */
-  const static std::shared_ptr<spdlog::logger> sm_CoreLogger;
+  static std::shared_ptr<spdlog::logger> sm_CoreLogger;
 
   /** logger for application logging */
-  const static std::shared_ptr<spdlog::logger> sm_AppLogger;
+  static std::shared_ptr<spdlog::logger> sm_AppLogger;
 };
 //
 } // namespace four

@@ -4,6 +4,8 @@
 #include "event/WindowEvent.hpp"
 #include "event/event.hpp"
 #include "window/window.hpp"
+#include "core/log.hpp"
+
 #include <memory>
 
 // Check what window is used and test base on that
@@ -15,6 +17,9 @@ using UsedWindow = four::SdlWindow;
 
 TEST_CASE("Constrcut Window")
 {
+  // log used in every systems so it required to initialized first
+  four::Log::Init();
+
   SECTION("Using Interface")
   {
     std::unique_ptr<four::Window<UsedWindow>> window = std::make_unique<UsedWindow>("title", 200, 300);

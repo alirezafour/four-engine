@@ -16,15 +16,32 @@ SdlWindow::~SdlWindow()
   DestroyWindow();
 }
 
+uint32_t SdlWindow::GetWidth() const noexcept
+{
+  int width = 0;
+  SDL_GetWindowSize(m_SdlWindow, &width, nullptr);
+  return static_cast<uint32_t>(width);
+}
+uint32_t SdlWindow::GetHeight() const noexcept
+{
+  int height = 0;
+  SDL_GetWindowSize(m_SdlWindow, nullptr, &height);
+  return static_cast<uint32_t>(height);
+}
+
+void SdlWindow::Shutdown()
+{
+  DestroyWindow();
+}
+
 void SdlWindow::DestroyWindow()
 {
   if (m_SdlWindow != nullptr)
   {
     LOG_CORE_INFO("Window Deleted.");
     SDL_DestroyWindow(m_SdlWindow);
+    SDL_QuitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO);
   }
-
-  SDL_QuitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO);
 }
 
 
@@ -75,7 +92,7 @@ void SdlWindow::OnEvent(const SDL_Event& event)
 
     if (auto* value = std::get_if<Event<WindowResizeEvent, uint32_t, uint32_t>>(&m_EventList[eventType]))
     {
-      value->Notify(0, 0);
+      value->Notify(GetWidth(), GetHeight());
       return;
     }
   }

@@ -67,6 +67,11 @@ public:
     return GetWindow() != nullptr;
   }
 
+  void Shutdown()
+  {
+    static_cast<Derived*>(this)->Shutdown();
+  }
+
 
 private:
   friend Derived;
