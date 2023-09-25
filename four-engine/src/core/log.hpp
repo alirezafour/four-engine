@@ -21,17 +21,25 @@ public:
   Log operator=(Log&)  = delete;
   Log operator=(Log&&) = delete;
 
+  /**
+   * @brief Initialize Loggers if not Initialized yet
+   *
+   * @return true if successfully Initialize or already Initialized
+   */
   static bool Init()
   {
+    // check if already Initialized
     if (sm_CoreLogger && sm_CoreLogger)
     {
       return true;
     }
 
+    // create 2 different logger for core an app
     Log::sm_CoreLogger = spdlog::stdout_color_mt("Core");
     Log::sm_AppLogger  = spdlog::stdout_color_mt("App");
 
 
+    // check if successfully created
     if (sm_CoreLogger == nullptr || sm_AppLogger == nullptr)
     {
       return false;
@@ -41,6 +49,9 @@ public:
     return true;
   }
 
+  /**
+   * @brief Shutdown Core and App Logger
+   */
   static void Shutdown()
   {
     sm_CoreLogger.reset();
@@ -53,6 +64,11 @@ public:
     */
   inline static auto GetCoreLogger() noexcept
   {
+    // check if not Initialized
+    if (!sm_CoreLogger)
+    {
+      Log::Init();
+    }
     return sm_CoreLogger.get();
   }
   /**
@@ -61,6 +77,11 @@ public:
     */
   inline static auto GetAppLogger() noexcept
   {
+    // check if not Initialized
+    if (!sm_AppLogger)
+    {
+      Log::Init();
+    }
     return sm_AppLogger.get();
   }
 
