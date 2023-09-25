@@ -15,7 +15,11 @@ class Window
   using PossibleEvents = std::variant<WindowCloseEvent, WindowResizeEvent>;
 
 public:
-  virtual ~Window() = default;
+  Window(const Window&)                = delete;
+  Window(Window&&) noexcept            = default;
+  Window& operator=(const Window&)     = delete;
+  Window& operator=(Window&&) noexcept = default;
+  virtual ~Window()                    = default;
   /**
     * @brief Create window of the requested type
     * Create Window of the type it can throw exception if fail
@@ -29,15 +33,9 @@ public:
     static_assert(std::constructible_from<Derived, std::string_view, uint32_t, uint32_t>,
                   "Constrcutor with (std::string_view, uint32_t, uint32_t) parameter is not exist in derived class.");
 
-    try
-    {
-      auto window = std::make_unique<Derived>(title, width, height);
-      return std::move(window);
-    } catch (std::exception& e)
-    {
-      LOG_CORE_ERROR(e.what());
-    }
-    return nullptr;
+    auto window = std::make_unique<Derived>(title, width, height);
+    FOUR_ASSERT(window != nullptr);
+    return std::move(window);
   }
 
   [[nodiscard]] auto GetWindow() const noexcept
@@ -74,6 +72,8 @@ public:
 
 
 private:
+  Window() = default;
+
   friend Derived;
   std::vector<PossibleEvents> m_WindowEvents;
 };

@@ -27,6 +27,6 @@ private:
 
   LayerStack<ImGuiLayer>     m_ImGuiLayer;
   std::unique_ptr<SdlWindow> m_Window;
-  bool                       m_IsRunning = true;
+  bool                       m_IsRunning;
 };
 } // namespace four

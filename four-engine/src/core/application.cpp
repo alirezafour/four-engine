@@ -5,11 +5,13 @@
 namespace four
 {
 
-Application::Application(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
+Application::Application(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr), m_IsRunning(true)
 {
-
   if (!InitLog() || !InitWindow(title, width, height))
   {
+    // if failed to initialize revent running the app
+    m_IsRunning = false;
+    LOG_CORE_ERROR("Failed to Initialized in Application struct");
     return;
   }
 
