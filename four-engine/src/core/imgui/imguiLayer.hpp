@@ -5,7 +5,7 @@
 namespace four
 {
 
-class ImGuiLayer : Layer<ImGuiLayer>
+class ImGuiLayer : public Layer<ImGuiLayer>
 {
 public:
   void OnAttach()

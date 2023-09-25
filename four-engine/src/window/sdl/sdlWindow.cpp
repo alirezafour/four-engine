@@ -40,6 +40,7 @@ void SdlWindow::DestroyWindow()
   {
     LOG_CORE_INFO("Window Deleted.");
     SDL_DestroyWindow(m_SdlWindow);
+    m_SdlWindow = nullptr;
     SDL_QuitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO);
   }
 }

@@ -10,7 +10,7 @@ TEST_CASE("Application test")
   // log used in every systems so it required to initialized first
   four::Log::Init();
 
-  SECTION("testing layers")
+  SECTION("testing LayerStack Push")
   {
     four::LayerStack<four::ImGuiLayer> layerStack;
 
@@ -18,6 +18,17 @@ TEST_CASE("Application test")
     auto* ref      = layer.get();
     auto* refStack = layerStack.PushLayer(std::move(layer));
     REQUIRE(ref == refStack);
-    layerStack.RemoveLayer(ref);
+    REQUIRE(layerStack.Count() == 1);
+  }
+
+  SECTION("testing LayerStack Remove")
+  {
+    four::LayerStack<four::ImGuiLayer> layerStack;
+
+    auto* refStack = layerStack.PushLayer(std::make_unique<four::ImGuiLayer>());
+
+    REQUIRE(layerStack.Count() == 1);
+    layerStack.RemoveLayer(refStack);
+    REQUIRE(layerStack.Count() == 0);
   }
 }

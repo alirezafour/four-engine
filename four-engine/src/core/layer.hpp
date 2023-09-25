@@ -1,5 +1,7 @@
 #pragma once
 
+#include "event/event.hpp"
+
 namespace four
 {
 
@@ -29,6 +31,7 @@ public:
   }
   /**
    * @brief CRTP on Event that get called when event comes for this specific layer
+   * @todo: not implemented
    */
   void OnEvent()
   {
@@ -38,21 +41,5 @@ public:
 private:
   friend Derived;
 };
-
-// helpers
-template <typename T>
-struct IsLayer
-{
-  constexpr static bool value = false;
-};
-
-template <typename T>
-struct IsLayer<Layer<T>>
-{
-  constexpr static bool value = true;
-};
-
-template <typename T>
-constexpr bool IsLayer_v = IsLayer<T>::value;
 
 } // namespace four

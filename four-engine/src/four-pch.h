@@ -10,9 +10,11 @@
 #include <exception>
 #include <system_error>
 #include <functional>
-#include <stdint.h>
+#include <cstdint>
 #include <utility>
 #include <type_traits>
 #include <variant>
+#include <ranges>
+#include <xutility>
 
 #include "core/log.hpp"

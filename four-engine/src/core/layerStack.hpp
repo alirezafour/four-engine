@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/layer.hpp"
+#include <xutility>
 
 namespace four
 {
@@ -11,6 +12,7 @@ namespace four
  * @tparam T Type of layer to store
  */
 template <typename T>
+  requires std::derived_from<T, Layer<T>>
 class LayerStack
 {
 public:
@@ -27,6 +29,13 @@ public:
     m_Layers.push_back(std::move(layer));
     return m_Layers.front().get();
   }
+  ~LayerStack()
+  {
+    for (const auto& layer : m_Layers)
+    {
+      layer->OnDetach();
+    }
+  }
 
   /**
    * @brief remove layer form layer stack
@@ -35,10 +44,13 @@ public:
    */
   void RemoveLayer(T* layer)
   {
-    if (auto inLayer = std::erase_if(m_Layers, [layer](const auto& inLayer) { return inLayer.get() == layer; }))
+    auto itListToRemove = std::ranges::remove_if(m_Layers,
+                                                 [layer](const auto& inLayer) { return inLayer.get() == layer; });
+    for (auto& each : itListToRemove)
     {
-      LOG_CORE_INFO("LayerStack Erased element.");
+      each->OnDetach();
     }
+    m_Layers.erase(itListToRemove.begin(), itListToRemove.end());
   }
 
   /**

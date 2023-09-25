@@ -14,7 +14,7 @@ namespace four
   * Class to Create window with default flags with SDL3 library
   * @brief class to create SDL window with SDL3
   */
-class SdlWindow : public Window<SdlWindow>
+class SdlWindow final : public Window<SdlWindow>
 {
 public:
   using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;
@@ -57,7 +57,7 @@ public:
   /**
     * @brief Shutdown the sdl and destroy window 
     */
-  ~SdlWindow();
+  ~SdlWindow() final;
 
   /**
     * return Raw pointer ot sdl window
@@ -103,6 +103,9 @@ public:
    */
   void OnEvent(const SDL_Event& event);
 
+  /**
+   * @brief Shutdown window and sdl video subsystem
+   */
   void Shutdown();
 
 private:
