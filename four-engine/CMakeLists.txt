@@ -17,6 +17,8 @@ file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.hpp"
      "src/core/*.cpp"
+     "src/renderer/*.hpp"
+     "src/renderer/*.cpp"
      "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
 )
@@ -29,6 +31,8 @@ file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.hpp"
      "src/core/*.cpp"
+     "src/renderer/*.hpp"
+     "src/renderer/*.cpp"
      "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
 )

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "event/WindowEvent.hpp"
+#include <concepts>
 
 namespace four
 {
@@ -42,9 +43,12 @@ public:
 
   [[nodiscard]] auto GetWindow() const noexcept
   {
-    static_assert(std::derived_from<Derived, Window<Derived>>, "your window class is not derived form Window<>.");
-
     return static_cast<const Derived*>(this)->GetWindow();
+  }
+
+  auto GetGlContext() const noexcept
+  {
+    return static_cast<const Derived*>(this)->GetGlContext();
   }
 
   [[nodiscard]] inline uint32_t GetWidth() const noexcept

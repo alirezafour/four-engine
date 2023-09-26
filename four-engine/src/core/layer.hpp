@@ -16,12 +16,29 @@ class Layer
 {
 public:
   /**
+   * @brief CRTP Init of layer (it should only be called once for each type of Layer)
+   */
+  bool Init()
+  {
+    return static_cast<Derived*>(this)->Init();
+  }
+
+  /**
    * @brief CRTP On attach that get called for initialization
    */
   void OnAttach()
   {
     static_cast<Derived*>(this)->OnAttach();
   }
+
+  /**
+   * @brief CRTP On Update that called when rendering each frame
+   */
+  void OnUpdate()
+  {
+    static_cast<Derived*>(this)->OnUpdate();
+  }
+
   /**
    * @brief CRTP on detach that get called for uninitialization
    */
@@ -29,6 +46,7 @@ public:
   {
     static_cast<Derived*>(this)->OnDetach();
   }
+
   /**
    * @brief CRTP on Event that get called when event comes for this specific layer
    * @todo: not implemented
@@ -36,6 +54,14 @@ public:
   void OnEvent()
   {
     static_cast<Derived*>(this)->OnEvent();
+  }
+
+  /**
+   * @brief CRTP On Shutdown of layer (it should only be called once for each type of Layer)
+   */
+  void Shutdown()
+  {
+    static_cast<Derived*>(this)->Shutdown();
   }
 
 private:

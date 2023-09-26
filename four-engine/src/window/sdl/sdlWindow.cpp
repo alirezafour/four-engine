@@ -29,6 +29,7 @@ uint32_t SdlWindow::GetHeight() const noexcept
   return static_cast<uint32_t>(height);
 }
 
+
 void SdlWindow::Shutdown()
 {
   DestroyWindow();
@@ -61,6 +62,10 @@ m_Height(height)
                                  static_cast<int>(width),
                                  static_cast<int>(height),
                                  SDL_WindowFlags::SDL_WINDOW_RESIZABLE);
+
+  m_GlContext = SDL_GL_CreateContext(m_SdlWindow);
+  SDL_GL_MakeCurrent(m_SdlWindow, m_GlContext);
+
   if (m_SdlWindow == nullptr)
   {
     LOG_CORE_ERROR("failed creating window: {}", SDL_GetError());

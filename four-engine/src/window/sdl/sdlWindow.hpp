@@ -1,4 +1,5 @@
 #pragma once
+#include "SDL_video.h"
 #ifdef FOUR_USE_SDL
 
 #include "event/WindowEvent.hpp"
@@ -69,6 +70,11 @@ public:
     return m_SdlWindow;
   }
 
+  [[nodiscard]] SDL_GLContext GetGlContext() const noexcept
+  {
+    return m_GlContext;
+  }
+
   /**
    * @brief Get current width of the window 
    *
@@ -127,6 +133,9 @@ private:
 private:
   /** the window */
   SDL_Window* m_SdlWindow{};
+
+  /** gl context used */
+  SDL_GLContext m_GlContext;
 
   /** current width of the window */
   uint32_t m_Width{};

@@ -8,17 +8,11 @@ namespace four
 class ImGuiLayer : public Layer<ImGuiLayer>
 {
 public:
-  void OnAttach()
-  {
-    LOG_CORE_INFO("ImGuiLayer on Attach.");
-  }
-  void OnDetach()
-  {
-    LOG_CORE_INFO("ImGuiLayer on Detach.");
-  }
-  void OnEvent()
-  {
-    LOG_CORE_INFO("ImGuiLayer on Event.");
-  }
+  bool Init();
+  void Shutdown();
+  void OnAttach();
+  void OnDetach();
+  void OnUpdate();
+  void OnEvent();
 };
 } // namespace four

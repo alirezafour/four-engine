@@ -21,11 +21,16 @@ elseif(FOUR_USE_SFML)
   target_compile_definitions(vendor INTERFACE FOUR_USE_SFML)
 endif(FOUR_USE_SDL)
 
+# add imgui
+add_library(imgui STATIC imgui-setup.cpp)
+target_include_directories(imgui BEFORE PUBLIC imgui)
+
 # log using spdlog
 add_subdirectory(spdlog)
 
 if(FOUR_USE_SDL) # link if sdl is used
   target_link_libraries(vendor INTERFACE SDL3::SDL3)
+  target_link_libraries(vendor INTERFACE imgui)
 elseif(FOUR_USE_SFML) # link if sfml is used
   target_link_libraries(vendor INTERFACE sfml-graphics)
 endif(FOUR_USE_SDL)

@@ -17,8 +17,9 @@ TEST_CASE("Application test")
     auto  layer    = std::make_unique<four::ImGuiLayer>();
     auto* ref      = layer.get();
     auto* refStack = layerStack.PushLayer(std::move(layer));
+    layerStack.PushLayer(std::make_unique<four::ImGuiLayer>());
     REQUIRE(ref == refStack);
-    REQUIRE(layerStack.Count() == 1);
+    REQUIRE(layerStack.Count() == 2);
   }
 
   SECTION("testing LayerStack Remove")

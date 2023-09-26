@@ -4,15 +4,15 @@
 
 namespace four
 {
-
+std::unique_ptr<Application> Application::sm_Instance = nullptr;
 Application::Application(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
 {
-
   if (!InitLog() || !InitWindow(title, width, height))
   {
     return;
   }
 
+  m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
 }
 
@@ -21,6 +21,9 @@ void Application::Run()
   while (m_IsRunning)
   {
     m_Window->OnUpdate();
+    m_ImGuiLayer.BeginRender();
+    m_ImGuiLayer.OnUpdate();
+    m_ImGuiLayer.EndRender();
   }
 }
 
@@ -61,6 +64,7 @@ void Application::OnResize(uint32_t width, uint32_t height)
 void Application::Shutdown()
 {
   m_IsRunning = false;
+  m_ImGuiLayer.Shutdown();
   m_Window->Shutdown();
   Log::Shutdown();
 }
