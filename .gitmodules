@@ -9,11 +9,10 @@
 	path = four-engine/vendor/imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
-[submodule "four-engine/vendor/glad"]
-	path = four-engine/vendor/glad
-	url = https://github.com/Dav1dde/glad.git
-	branch = glad2
 [submodule "four-engine/vendor/glfw"]
 	path = four-engine/vendor/glfw
 	url = https://github.com/glfw/glfw.git
 	branch = 3.3-stable
+[submodule "four-engine/vendor/glm"]
+	path = four-engine/vendor/glm
+	url = https://github.com/g-truc/glm.git
