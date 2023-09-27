@@ -21,9 +21,12 @@ elseif(FOUR_USE_SFML)
   target_compile_definitions(vendor INTERFACE FOUR_USE_SFML)
 endif(FOUR_USE_SDL)
 
-# add imgui
-add_library(imgui STATIC imgui-setup.cpp)
-target_include_directories(imgui BEFORE PUBLIC imgui)
+#imgui setup
+file(GLOB IMGUI_SOURCE
+  "imgui/*.cpp"
+)
+add_library(imgui ${IMGUI_SOURCE})
+target_include_directories(imgui PUBLIC imgui)
 
 # log using spdlog
 add_subdirectory(spdlog)

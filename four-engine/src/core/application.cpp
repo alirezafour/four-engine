@@ -11,8 +11,6 @@ Application::Application(std::string_view title, uint32_t width, uint32_t height
   {
     return;
   }
-
-  m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
 }
 

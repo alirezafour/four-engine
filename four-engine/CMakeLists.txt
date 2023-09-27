@@ -13,34 +13,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # if on windows
 if(WIN32)
 file(GLOB SOURCES
-     "src/*.hpp"
      "src/*.cpp"
-     "src/core/*.hpp"
      "src/core/*.cpp"
-     "src/renderer/*.hpp"
      "src/renderer/*.cpp"
-     "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
+     "vendro/imgui/backends/imgui_impl_opengl3.cpp"
+     "vendor/imgui/backends/imgui_impl_sdl3.cpp"
 )
 endif(WIN32)
 
 # if on linux
 if(UNIX)
 file(GLOB SOURCES
-     "src/*.hpp"
      "src/*.cpp"
-     "src/core/*.hpp"
      "src/core/*.cpp"
-     "src/renderer/*.hpp"
      "src/renderer/*.cpp"
-     "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
+     "vendro/imgui/backends/imgui_impl_opengl3.cpp"
+     "vendor/imgui/backends/imgui_impl_sdl3.cpp"
 )
 endif(UNIX)
 
 # SFML or SDL
 option(FOUR_USE_SDL "Use SDL" OFF)
-option(FOUR_USE_SFML "Use SFML" OFF)
 
 include_directories(src)
 
@@ -49,9 +44,6 @@ add_subdirectory(vendor)
 if(FOUR_USE_SDL)
   file(GLOB SDL_TO_ADD "src/window/sdl/*.cpp" "src/window/sdl/*.hpp")
   list(APPEND SOURCES ${SDL_TO_ADD})
-elseif(FOUR_USE_SFML)
-  file(GLOB SFML_TO_ADD "src/window/sfml/*.cpp" "src/window/sfml/*.hpp")
-  list(APPEND SOURCES ${SFML_TO_ADD})
 endif(FOUR_USE_SDL)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -73,5 +65,5 @@ if(BUILD_TESTS)
   add_subdirectory(test)
 else()
   message(STATUS "Building tests is disabled")
-endif()
+endif(BUILD_TESTS)
 

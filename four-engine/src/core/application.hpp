@@ -1,8 +1,6 @@
 #pragma once
 
 #include "core/imgui/imguilayerstack.hpp"
-#include "core/layerStack.hpp"
-#include "core/imgui/imguiLayer.hpp"
 #include "window/sdl/sdlWindow.hpp"
 
 namespace four
@@ -44,7 +42,6 @@ private:
 
   bool InitWindow(std::string_view title, uint32_t width, uint32_t height);
   bool InitLog();
-  bool InitImGuiLayer();
 
   void OnResize(uint32_t width, uint32_t height);
 

@@ -2,10 +2,11 @@
 
 #include "core/application.hpp"
 #include "core/imgui/imguiLayer.hpp"
+
 #include "imgui.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_opengl3.h"
-
+#include <stdio.h>
 #include <SDL3/SDL.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL3/SDL_opengles2.h>
@@ -19,31 +20,27 @@ namespace four
 bool ImGuiLayer::Init()
 {
   LOG_CORE_INFO("On Init ImGuiLayer.");
+
+  // Setup Dear ImGui context
+  IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+  (void)io;
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
-
+  // Setup Dear ImGui style
   ImGui::StyleColorsDark();
-  ImGuiStyle& style = ImGui::GetStyle();
+  //ImGui::StyleColorsLight();
 
-  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-  {
-    style.WindowRounding              = 0.F;
-    style.Colors[ImGuiCol_WindowBg].w = 1.F;
-  }
+  auto  fourWindow = Application::GetInstance()->GetWindow();
+  auto  window     = fourWindow->GetWindow();
+  auto* gl_context = fourWindow->GetGlContext();
 
   const char* glsl_version = "#version 100";
 
-  auto* window = Application::GetInstance()->GetWindow();
-
-  auto* sdlWindow = window->GetWindow();
-  auto* glContext = window->GetGlContext();
-
-
-  ImGui_ImplSDL3_InitForOpenGL(sdlWindow, glContext);
+  // Setup Platform/Renderer backends
+  ImGui_ImplSDL3_InitForOpenGL(window, gl_context);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
   return true;
