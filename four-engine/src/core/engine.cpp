@@ -6,9 +6,8 @@ namespace four
 {
 std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 
-Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
+Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr), m_IsRunning(true)
 {
-
   if (!InitLog() || !InitWindow(title, width, height))
   {
     LOG_CORE_ERROR("Failed Initializing Engine.");
