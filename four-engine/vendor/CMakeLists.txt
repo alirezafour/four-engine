@@ -24,6 +24,10 @@ endif(FOUR_USE_SDL)
 # log using spdlog
 add_subdirectory(spdlog)
 
+#glfw
+add_subdirectory(glfw)
+add_subdirectory(glm)
+
 if(FOUR_USE_SDL) # link if sdl is used
   target_link_libraries(vendor INTERFACE SDL3::SDL3)
 elseif(FOUR_USE_SFML) # link if sfml is used
@@ -31,4 +35,17 @@ elseif(FOUR_USE_SFML) # link if sfml is used
 endif(FOUR_USE_SDL)
 
 # link spdlog for logging
-  target_link_libraries(vendor INTERFACE spdlog::spdlog)
+target_link_libraries(vendor INTERFACE spdlog::spdlog)
+
+target_link_libraries(vendor INTERFACE glfw)
+target_link_libraries(vendor INTERFACE glm::glm)
+
+
+find_package(Vulkan REQUIRED)
+
+target_include_directories(vendor INTERFACE ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(vendor INTERFACE ${Vulkan_LIBRARIES})
+
+
+
+
