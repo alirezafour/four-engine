@@ -15,5 +15,5 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
-add_subdirectory(four-engine/vendor)
+add_subdirectory(four-engine)
 add_subdirectory(MyApp)
