@@ -15,10 +15,6 @@ if(WIN32)
 file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.cpp"
-     "src/renderer/*.cpp"
-     "src/core/imgui/*.cpp"
-     "vendro/imgui/backends/imgui_impl_opengl3.cpp"
-     "vendor/imgui/backends/imgui_impl_sdl3.cpp"
 )
 endif(WIN32)
 
@@ -27,15 +23,8 @@ if(UNIX)
 file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.cpp"
-     "src/renderer/*.cpp"
-     "src/core/imgui/*.cpp"
-     "vendro/imgui/backends/imgui_impl_opengl3.cpp"
-     "vendor/imgui/backends/imgui_impl_sdl3.cpp"
 )
 endif(UNIX)
-
-# SFML or SDL
-option(FOUR_USE_SDL "Use SDL" OFF)
 
 include_directories(src)
 
