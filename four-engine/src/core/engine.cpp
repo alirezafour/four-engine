@@ -1,41 +1,39 @@
 #include "four-pch.h"
 
-#include "core/application.hpp"
+#include "core/engine.hpp"
 
 namespace four
 {
+std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 
-Application::Application(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
+Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
 {
 
   if (!InitLog() || !InitWindow(title, width, height))
   {
+    LOG_CORE_ERROR("Failed Initializing Engine.");
     return;
   }
 
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
+  m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
 }
 
-void Application::Run()
+void Engine::Run()
 {
   while (m_IsRunning)
   {
     m_Window->OnUpdate();
+    m_ImGuiLayer.OnUpdate();
   }
 }
 
-bool Application::InitLog()
+bool Engine::InitLog()
 {
-  if (!Log::Init())
-  {
-    LOG_CORE_ERROR("Init Log Failed.");
-    return false;
-  }
-
-  return true;
+  return Log::Init();
 }
 
-bool Application::InitWindow(std::string_view title, uint32_t width, uint32_t height)
+bool Engine::InitWindow(std::string_view title, uint32_t width, uint32_t height)
 {
   m_Window.reset();
   m_Window = std::move(Window<SdlWindow>::CreateWindow(title, width, height));
@@ -53,14 +51,15 @@ bool Application::InitWindow(std::string_view title, uint32_t width, uint32_t he
   return true;
 }
 
-void Application::OnResize(uint32_t width, uint32_t height)
+void Engine::OnResize(uint32_t width, uint32_t height)
 {
   LOG_CORE_INFO("resize: w: {}, h {}", width, height);
 }
 
-void Application::Shutdown()
+void Engine::Shutdown()
 {
   m_IsRunning = false;
+  m_ImGuiLayer.Shutdown();
   m_Window->Shutdown();
   Log::Shutdown();
 }

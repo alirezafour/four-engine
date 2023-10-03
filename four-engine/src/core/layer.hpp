@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/core.hpp"
+
 #include "event/event.hpp"
 
 namespace four
@@ -36,6 +38,21 @@ public:
   void OnEvent()
   {
     static_cast<Derived*>(this)->OnEvent();
+  }
+
+  bool Init()
+  {
+    return static_cast<Derived*>(this)->Init();
+  }
+
+  void Shutdown()
+  {
+    static_cast<Derived*>(this)->Shutdown();
+  }
+
+  void OnUpdate()
+  {
+    static_cast<Derived*>(this)->OnUpdate();
   }
 
 private:

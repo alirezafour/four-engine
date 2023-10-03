@@ -16,5 +16,3 @@
 #include <variant>
 #include <ranges>
 #include <xutility>
-
-#include "core/log.hpp"

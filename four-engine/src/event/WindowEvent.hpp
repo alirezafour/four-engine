@@ -1,4 +1,5 @@
 #pragma once
+#include "core/core.hpp"
 
 #include "event/event.hpp"
 

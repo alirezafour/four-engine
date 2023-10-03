@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 #project setup
 project(four-engine
         VERSION 0.0.1
-        LANGUAGES CXX
+        LANGUAGES CXX C
 )
 
 # specify the C++ standard

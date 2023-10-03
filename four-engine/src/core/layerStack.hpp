@@ -1,7 +1,8 @@
 #pragma once
 
+#include "core/core.hpp"
+
 #include "core/layer.hpp"
-#include <xutility>
 
 namespace four
 {
@@ -16,7 +17,23 @@ template <typename T>
 class LayerStack
 {
 public:
-  /**
+  LayerStack()                             = default;
+  LayerStack(const LayerStack&)            = delete;
+  LayerStack(LayerStack&&)                 = delete;
+  LayerStack& operator=(const LayerStack&) = delete;
+  LayerStack& operator=(LayerStack&&)      = delete;
+
+  explicit LayerStack(std::vector<std::unique_ptr<T>> m_Layers) : m_Layers(std::move(m_Layers))
+  {
+    if (m_Layers.empty())
+    {
+      m_Layers[0]->Init();
+    }
+    for (auto& layer : m_Layers)
+    {
+      layer->OnAttach();
+    }
+  } /**
    * @brief accept and stop layer in layer stack
    *
    * @param layer the layer to add
@@ -24,6 +41,12 @@ public:
    */
   T* PushLayer(std::unique_ptr<T> layer)
   {
+    // call init if first layer added
+    if (m_Layers.empty())
+    {
+      layer->Init();
+    }
+
     LOG_CORE_INFO("Layer stack: PushLayer");
     layer->OnAttach();
     m_Layers.push_back(std::move(layer));
@@ -31,10 +54,7 @@ public:
   }
   ~LayerStack()
   {
-    for (const auto& layer : m_Layers)
-    {
-      layer->OnDetach();
-    }
+    Shutdown();
   }
 
   /**
@@ -50,7 +70,35 @@ public:
     {
       each->OnDetach();
     }
+
+    // check if its last layer to remove call Shutdown on layer
+    if (itListToRemove.size() > 0 && itListToRemove.size() == m_Layers.size())
+    {
+      itListToRemove[0]->Shutdown();
+    }
     m_Layers.erase(itListToRemove.begin(), itListToRemove.end());
+  }
+
+  void OnUpdate()
+  {
+    for (auto& layer : m_Layers)
+    {
+      layer->OnUpdate();
+    }
+  }
+
+  void Shutdown()
+  {
+    if (m_Layers.size() > 0)
+    {
+      for (auto& layer : m_Layers)
+      {
+        layer->OnDetach();
+      }
+      // call Shutdown()
+      m_Layers[0]->Shutdown();
+    }
+    m_Layers.clear();
   }
 
   /**
