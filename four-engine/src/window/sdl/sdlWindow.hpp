@@ -19,6 +19,7 @@ class SdlWindow final : public Window<SdlWindow>
 {
 public:
   using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;
+
   /**
     * @brief Creating a window 
     * if it fail it thorw exception
@@ -27,11 +28,6 @@ public:
     * @param height height of the window
     */
   explicit SdlWindow(std::string_view title, uint32_t width, uint32_t height);
-
-  /**
-   * @brief Deleted default constructor
-   */
-  SdlWindow() = default;
 
   /**
    * @brief Deleted coppy constructor
@@ -129,8 +125,6 @@ private:
    */
   static EventType TransformEvent(const SDL_Event& event);
 
-
-private:
   /** the window */
   SDL_Window* m_SdlWindow{};
 

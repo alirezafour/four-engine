@@ -45,6 +45,7 @@ private:
 
   void OnResize(uint32_t width, uint32_t height);
 
+
   static std::unique_ptr<Application> sm_Instance;
   ImGuiLayerStack                     m_ImGuiLayer;
   std::unique_ptr<SdlWindow>          m_Window;

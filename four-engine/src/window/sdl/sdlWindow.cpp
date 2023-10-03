@@ -55,7 +55,8 @@ m_Height(height)
   if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO) != 0)
   {
     LOG_CORE_ERROR("Error on init: {}", SDL_GetError());
-    throw std::exception("failed to init sdl subsystem");
+    FOUR_ASSERT(false);
+    return;
   }
 
   m_SdlWindow = SDL_CreateWindow(title.data(),
@@ -69,8 +70,8 @@ m_Height(height)
   if (m_SdlWindow == nullptr)
   {
     LOG_CORE_ERROR("failed creating window: {}", SDL_GetError());
+    FOUR_ASSERT(false);
     DestroyWindow();
-    throw std::exception("failed to create sdl window");
   }
   LOG_CORE_INFO("Window in sdlWindow Created.");
 }
