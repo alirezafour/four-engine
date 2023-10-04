@@ -46,10 +46,7 @@ void SdlWindow::DestroyWindow()
 }
 
 
-SdlWindow::SdlWindow(std::string_view title, uint32_t width, uint32_t height) :
-Window<SdlWindow>(),
-m_Width(width),
-m_Height(height)
+SdlWindow::SdlWindow(std::string_view title, uint32_t width, uint32_t height) : m_Width(width), m_Height(height)
 {
   if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO) != 0)
   {
@@ -58,10 +55,7 @@ m_Height(height)
     return;
   }
 
-  m_SdlWindow = SDL_CreateWindow(title.data(),
-                                 static_cast<int>(width),
-                                 static_cast<int>(height),
-                                 SDL_WindowFlags::SDL_WINDOW_RESIZABLE);
+  m_SdlWindow = SDL_CreateWindow(title.data(), static_cast<int>(width), static_cast<int>(height), 0);
   if (m_SdlWindow == nullptr)
   {
     LOG_CORE_ERROR("failed creating window: {}", SDL_GetError());
@@ -83,21 +77,32 @@ void SdlWindow::OnUpdate()
 void SdlWindow::OnEvent(const SDL_Event& event)
 {
   EventType eventType = TransformEvent(event);
+
+  // handle close event
+  if (eventType == EventType::WindowClose)
+  {
+    OnCloseEvent();
+    return;
+  }
+
   if (m_EventList.contains(eventType))
   {
-
-    if (auto* value = std::get_if<Event<WindowCloseEvent>>(&m_EventList[eventType]))
-    {
-      value->Notify();
-      return;
-    }
-
     if (auto* value = std::get_if<Event<WindowResizeEvent, uint32_t, uint32_t>>(&m_EventList[eventType]))
     {
       value->Notify(GetWidth(), GetHeight());
       return;
     }
   }
+}
+
+bool SdlWindow::ShouldClose() const noexcept
+{
+  return m_ShouldCose;
+}
+
+void SdlWindow::OnCloseEvent()
+{
+  m_ShouldCose = true;
 }
 
 EventType SdlWindow::TransformEvent(const SDL_Event& event)

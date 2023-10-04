@@ -36,7 +36,7 @@ endif(UNIX)
 
 # SFML or SDL
 option(FOUR_USE_SDL "Use SDL" OFF)
-option(FOUR_USE_SFML "Use SFML" OFF)
+option(FOUR_USE_GLFW "Use GLFW" OFF)
 
 include_directories(src)
 
@@ -45,9 +45,9 @@ add_subdirectory(vendor)
 if(FOUR_USE_SDL)
   file(GLOB SDL_TO_ADD "src/window/sdl/*.cpp" "src/window/sdl/*.hpp")
   list(APPEND SOURCES ${SDL_TO_ADD})
-elseif(FOUR_USE_SFML)
-  file(GLOB SFML_TO_ADD "src/window/sfml/*.cpp" "src/window/sfml/*.hpp")
-  list(APPEND SOURCES ${SFML_TO_ADD})
+elseif(FOUR_USE_GLFW)
+  file(GLOB GLFW_TO_ADD "src/window/glfw/*.cpp" "src/window/glfw/*.hpp")
+  list(APPEND SOURCES ${GLFW_TO_ADD})
 endif(FOUR_USE_SDL)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})

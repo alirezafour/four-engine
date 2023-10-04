@@ -105,12 +105,16 @@ public:
    */
   void Shutdown();
 
+  [[nodiscard]] bool ShouldClose() const noexcept;
+
 private:
   /**
     * Destroy window and shutdown subsystem video
     * @brienf destroy window and subsystem
     */
   void DestroyWindow();
+
+  void OnCloseEvent();
 
   /**
    * @brief Translate SDL Event to four event system
@@ -131,5 +135,7 @@ private:
 
   // Events
   std::unordered_map<EventType, WindowEventVariant> m_EventList;
+
+  bool m_ShouldCose = false;
 };
 } // namespace four
