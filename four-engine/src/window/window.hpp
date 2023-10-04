@@ -59,7 +59,7 @@ public:
 
   void OnUpdate()
   {
-    static_cast<const Derived*>(this)->OnUpdate();
+    static_cast<Derived*>(this)->OnUpdate();
   }
 
   explicit operator bool() const
@@ -70,6 +70,11 @@ public:
   void Shutdown()
   {
     static_cast<Derived*>(this)->Shutdown();
+  }
+
+  [[nodiscard]] bool ShouldClose() const noexcept
+  {
+    return static_cast<const Derived*>(this)->ShouldClose();
   }
 
 
