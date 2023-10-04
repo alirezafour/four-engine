@@ -1,7 +1,7 @@
 #include "four-pch.h"
 
 #include "window/sdl/sdlWindow.hpp"
-#include "event/WindowEvent.hpp"
+#include "event/windowEvent.hpp"
 
 #include "SDL_error.h"
 #include "SDL_events.h"
@@ -10,42 +10,7 @@
 
 namespace four
 {
-
-SdlWindow::~SdlWindow()
-{
-  DestroyWindow();
-}
-
-uint32_t SdlWindow::GetWidth() const noexcept
-{
-  int width = 0;
-  SDL_GetWindowSize(m_SdlWindow, &width, nullptr);
-  return static_cast<uint32_t>(width);
-}
-uint32_t SdlWindow::GetHeight() const noexcept
-{
-  int height = 0;
-  SDL_GetWindowSize(m_SdlWindow, nullptr, &height);
-  return static_cast<uint32_t>(height);
-}
-
-void SdlWindow::Shutdown()
-{
-  DestroyWindow();
-}
-
-void SdlWindow::DestroyWindow()
-{
-  if (m_SdlWindow != nullptr)
-  {
-    LOG_CORE_INFO("Window Deleted.");
-    SDL_DestroyWindow(m_SdlWindow);
-    m_SdlWindow = nullptr;
-    SDL_QuitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO);
-  }
-}
-
-
+//----------------------------------------------------------------------------------------
 SdlWindow::SdlWindow(std::string_view title, uint32_t width, uint32_t height) : m_Width(width), m_Height(height)
 {
   if (SDL_InitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO) != 0)
@@ -65,6 +30,41 @@ SdlWindow::SdlWindow(std::string_view title, uint32_t width, uint32_t height) : 
   LOG_CORE_INFO("Window in sdlWindow Created.");
 }
 
+//----------------------------------------------------------------------------------------
+SdlWindow::~SdlWindow()
+{
+  DestroyWindow();
+}
+
+//----------------------------------------------------------------------------------------
+void SdlWindow::Shutdown()
+{
+  if (m_SdlWindow != nullptr)
+  {
+    LOG_CORE_INFO("Window Deleted.");
+    SDL_DestroyWindow(m_SdlWindow);
+    m_SdlWindow = nullptr;
+    SDL_QuitSubSystem(SDL_InitFlags::SDL_INIT_VIDEO);
+  }
+}
+
+//----------------------------------------------------------------------------------------
+uint32_t SdlWindow::GetWidth() const noexcept
+{
+  int width = 0;
+  SDL_GetWindowSize(m_SdlWindow, &width, nullptr);
+  return static_cast<uint32_t>(width);
+}
+
+//----------------------------------------------------------------------------------------
+uint32_t SdlWindow::GetHeight() const noexcept
+{
+  int height = 0;
+  SDL_GetWindowSize(m_SdlWindow, nullptr, &height);
+  return static_cast<uint32_t>(height);
+}
+
+//----------------------------------------------------------------------------------------
 void SdlWindow::OnUpdate()
 {
   SDL_Event event;
@@ -74,6 +74,7 @@ void SdlWindow::OnUpdate()
   }
 }
 
+//----------------------------------------------------------------------------------------
 void SdlWindow::OnEvent(const SDL_Event& event)
 {
   EventType eventType = TransformEvent(event);
@@ -95,16 +96,19 @@ void SdlWindow::OnEvent(const SDL_Event& event)
   }
 }
 
+//----------------------------------------------------------------------------------------
 bool SdlWindow::ShouldClose() const noexcept
 {
   return m_ShouldCose;
 }
 
+//----------------------------------------------------------------------------------------
 void SdlWindow::OnCloseEvent()
 {
   m_ShouldCose = true;
 }
 
+//----------------------------------------------------------------------------------------
 EventType SdlWindow::TransformEvent(const SDL_Event& event)
 {
   switch (event.type)

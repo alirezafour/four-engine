@@ -19,6 +19,8 @@ file(GLOB SOURCES
      "src/core/*.cpp"
      "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
+     "src/renderer/*.hpp"
+     "src/renderer/*.cpp"
 )
 endif(WIN32)
 
@@ -31,6 +33,8 @@ file(GLOB SOURCES
      "src/core/*.cpp"
      "src/core/imgui/*.hpp"
      "src/core/imgui/*.cpp"
+     "src/renderer/*.hpp"
+     "src/renderer/*.cpp"
 )
 endif(UNIX)
 

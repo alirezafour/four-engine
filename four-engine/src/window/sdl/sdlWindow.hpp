@@ -2,7 +2,6 @@
 
 #include "core/core.hpp"
 
-#include "event/WindowEvent.hpp"
 #include "window/window.hpp"
 
 struct SDL_Window;
@@ -11,10 +10,6 @@ union SDL_Event;
 namespace four
 {
 
-/**
-  * Class to Create window with default flags with SDL3 library
-  * @brief class to create SDL window with SDL3
-  */
 class SdlWindow final : public Window<SdlWindow>
 {
 public:
@@ -87,7 +82,6 @@ public:
     m_EventList[T::GetEventType()] = std::move(event);
   }
 
-
   /**
    * @brief Get called on every frame update
    */
@@ -105,6 +99,11 @@ public:
    */
   void Shutdown();
 
+  /**
+   * @brief Check if user closed window
+   *
+   * @return if user closed window and engine should stop
+   */
   [[nodiscard]] bool ShouldClose() const noexcept;
 
 private:
@@ -114,6 +113,9 @@ private:
     */
   void DestroyWindow();
 
+  /**
+   * @brief GetCalled when user close window
+   */
   void OnCloseEvent();
 
   /**
@@ -136,6 +138,12 @@ private:
   // Events
   std::unordered_map<EventType, WindowEventVariant> m_EventList;
 
+  /** flag to know if user close the window */
   bool m_ShouldCose = false;
 };
 } // namespace four
+
+/**
+  * @class SdlWindow
+  * @brief class to create SDL window with SDL3
+  */

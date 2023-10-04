@@ -5,6 +5,7 @@
 #include "core/imgui/imguiLayer.hpp"
 #include "core/layerStack.hpp"
 
+// check to use proper window
 #ifdef FOUR_USE_SDL
 #include "window/sdl/sdlWindow.hpp"
 using UsingWindow = four::SdlWindow;
