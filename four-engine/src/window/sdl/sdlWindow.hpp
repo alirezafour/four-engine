@@ -10,7 +10,7 @@ union SDL_Event;
 namespace four
 {
 
-class SdlWindow final : public Window<SdlWindow>
+class FOUR_ENGINE_API SdlWindow final : public Window<SdlWindow>
 {
 public:
   using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;

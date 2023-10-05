@@ -14,7 +14,7 @@ namespace four
  */
 template <typename T>
   requires std::derived_from<T, Layer<T>>
-class LayerStack
+class FOUR_ENGINE_API LayerStack
 {
 public:
   LayerStack()                             = default;

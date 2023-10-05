@@ -14,7 +14,7 @@ namespace four
  * @tparam Derived the class type that derived from this (CRTP)
  */
 template <class Derived>
-class Layer
+class FOUR_ENGINE_API Layer
 {
 public:
   /**

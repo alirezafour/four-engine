@@ -1,4 +1,7 @@
 #pragma once
+
+#include "core/core.hpp"
+
 #include "spdlog/logger.h"
 #include "spdlog/common.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -11,7 +14,7 @@ namespace four
  * Logger class to create log files or log on console
  * @brief Logger Class
  */
-class Log
+class FOUR_ENGINE_API Log
 {
 public:
   Log()                = delete;

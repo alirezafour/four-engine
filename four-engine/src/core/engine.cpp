@@ -57,6 +57,7 @@ void Engine::Shutdown()
   m_ImGuiLayer.Shutdown();
   m_Window->Shutdown();
   Log::Shutdown();
+  sm_Instance.reset();
 }
 
 } // namespace four

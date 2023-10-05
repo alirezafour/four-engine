@@ -1,5 +1,10 @@
 #pragma once
 
+
+// @todo
+// manage satitic and shared version
+#define FOUR_ENGINE_API
+
 #include "core/log.hpp"
 
 // @todo : add options to enable log for core and app seperately

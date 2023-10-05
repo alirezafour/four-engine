@@ -1,3 +1,5 @@
+#pragma once
+
 #include "core/core.hpp"
 
 #include "event/windowEvent.hpp"
@@ -8,7 +10,7 @@ struct GLFWwindow;
 namespace four
 {
 
-class GlfwWindow : public Window<GlfwWindow>
+class FOUR_ENGINE_API GlfwWindow : public Window<GlfwWindow>
 {
 public:
   using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;

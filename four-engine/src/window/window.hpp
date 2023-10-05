@@ -12,7 +12,7 @@ namespace four
   * this class is base class window and it also act as builder for window creation
   */
 template <typename Derived>
-class Window
+class FOUR_ENGINE_API Window
 {
   using PossibleEvents = std::variant<WindowCloseEvent, WindowResizeEvent>;
 

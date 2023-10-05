@@ -53,7 +53,7 @@ enum class EventCategory : uint8_t
   * @param Args callback function arguments
   */
 template <typename Derived, typename... Args>
-class Event
+class FOUR_ENGINE_API Event
 {
 
 public:

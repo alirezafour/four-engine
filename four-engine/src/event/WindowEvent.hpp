@@ -10,7 +10,7 @@ namespace four
   * @brief Window Close Event
   * Event that triggered when application close event happen form window
   */
-class WindowCloseEvent : public Event<WindowCloseEvent>
+class FOUR_ENGINE_API WindowCloseEvent : public Event<WindowCloseEvent>
 {
 public:
   /** CRTP overrited Get event type */
