@@ -18,6 +18,13 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
 }
 
+Engine::~Engine()
+{
+  m_ImGuiLayer.Shutdown();
+  m_Window->Shutdown();
+  Log::Shutdown();
+}
+
 void Engine::Run()
 {
   while (!m_Window->ShouldClose())
@@ -54,9 +61,6 @@ void Engine::OnResize(uint32_t width, uint32_t height)
 
 void Engine::Shutdown()
 {
-  m_ImGuiLayer.Shutdown();
-  m_Window->Shutdown();
-  Log::Shutdown();
   sm_Instance.reset();
 }
 

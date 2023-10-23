@@ -49,7 +49,7 @@ public:
   /**
    * @brief Default destructor
    */
-  ~Engine() = default;
+  ~Engine();
 
   /**
    * @brief Initalize Engine and its dependecies
@@ -100,7 +100,7 @@ public:
   /**
    * @brief Shutdown and free resources of Engine
    */
-  void Shutdown();
+  static void Shutdown();
 
 private:
   /**
