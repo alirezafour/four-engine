@@ -12,18 +12,19 @@ m_Window(nullptr),
 m_Width(width),
 m_Height(height)
 {
-  glfwSetErrorCallback(GlfwWindow::GlfwErrorsCallback);
+  glfwSetErrorCallback(GlfwErrorsCallback);
 
   if (glfwInit() == GLFW_FALSE)
   {
     return;
   }
-  // setup default hint
-  // @todo
-  // glfwInitHint(GLFW_CLIENT_API, GLFW_NO_API);
-  // glfwInitHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
   m_Window = glfwCreateWindow(width, height, std::string(title).data(), nullptr, nullptr);
+  glfwSetWindowUserPointer(m_Window, this);
+
   LOG_CORE_INFO("Init glfw Window");
 }
 
@@ -31,6 +32,12 @@ m_Height(height)
 GlfwWindow::~GlfwWindow()
 {
   Shutdown();
+}
+
+//----------------------------------------------------------------------------------------
+void GlfwWindow::GlfwErrorsCallback(int32_t /*error*/, const char* descripton)
+{
+  LOG_CORE_ERROR("GLFW Error: {}", descripton);
 }
 
 //----------------------------------------------------------------------------------------

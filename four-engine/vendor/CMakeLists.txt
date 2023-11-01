@@ -19,6 +19,7 @@ elseif(FOUR_USE_SDL)
 elseif(FOUR_USE_GLFW)
   add_subdirectory(glfw)
   target_compile_definitions(vendor INTERFACE FOUR_USE_GLFW)
+  target_compile_definitions(vendor INTERFACE GLFW_INCLUDE_VULKAN)
   target_link_libraries(vendor INTERFACE glfw)
 endif()
 

@@ -94,18 +94,14 @@ public:
    */
   [[nodiscard]] bool ShouldClose() const noexcept;
 
-protected:
+private:
   /**
    * @brief Callback for glfw errors
    *
    * @param descripton Error descripton
    */
-  static void GlfwErrorsCallback(int32_t /*error*/, const char* descripton)
-  {
-    LOG_CORE_ERROR("GLFW Error: {}", descripton);
-  }
+  static void GlfwErrorsCallback(int32_t /*error*/, const char* descripton);
 
-private:
 
 private:
   /** Reference to glfw window */
