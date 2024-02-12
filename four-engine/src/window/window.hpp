@@ -42,24 +42,22 @@ public:
 
   [[nodiscard]] auto GetWindow() const noexcept
   {
-    static_assert(std::derived_from<Derived, Window<Derived>>, "your window class is not derived form Window<>.");
-
-    return static_cast<const Derived*>(this)->GetWindow();
+    return GetConstDerived()->GetWindowImpl();
   }
 
   [[nodiscard]] inline uint32_t GetWidth() const noexcept
   {
-    return static_cast<const Derived*>(this)->GetWidth();
+    return GetConstDerived()->GetWidthImpl();
   }
 
   [[nodiscard]] inline uint32_t GetHeight() const noexcept
   {
-    return static_cast<const Derived*>(this)->GetHeight();
+    return GetConstDerived()->GetHeightImpl();
   }
 
   void OnUpdate()
   {
-    static_cast<Derived*>(this)->OnUpdate();
+    GetDerived()->OnUpdateImpl();
   }
 
   explicit operator bool() const
@@ -69,17 +67,37 @@ public:
 
   void Shutdown()
   {
-    static_cast<Derived*>(this)->Shutdown();
+    GetDerived()->ShutdownImpl();
   }
 
   [[nodiscard]] bool ShouldClose() const noexcept
   {
-    return static_cast<const Derived*>(this)->ShouldClose();
+    return GetConstDerived()->ShouldCloseImpl();
   }
 
 
 private:
   Window() = default;
+
+  /**
+   * @brief cast and return derived object pointer
+   *
+   * @return non-const pointer to derived class
+   */
+  Derived* GetDerived()
+  {
+    return static_cast<Derived*>(this);
+  }
+
+  /**
+   * @brief cast and return derived object pointer as const
+   *
+   * @return const pointer to derived class
+   */
+  const Derived* GetConstDerived() const
+  {
+    return static_cast<const Derived*>(this);
+  }
 
   friend Derived;
   std::vector<PossibleEvents> m_WindowEvents;

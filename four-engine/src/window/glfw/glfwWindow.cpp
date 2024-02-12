@@ -41,7 +41,7 @@ void GlfwWindow::GlfwErrorsCallback(int32_t /*error*/, const char* descripton)
 }
 
 //----------------------------------------------------------------------------------------
-void GlfwWindow::Shutdown()
+void GlfwWindow::ShutdownImpl()
 {
   if (m_Window != nullptr)
   {
@@ -53,25 +53,25 @@ void GlfwWindow::Shutdown()
 }
 
 //----------------------------------------------------------------------------------------
-bool GlfwWindow::ShouldClose() const noexcept
+bool GlfwWindow::ShouldCloseImpl() const noexcept
 {
   return static_cast<bool>(glfwWindowShouldClose(m_Window));
 }
 
 //----------------------------------------------------------------------------------------
-void GlfwWindow::OnUpdate()
+void GlfwWindow::OnUpdateImpl()
 {
   glfwPollEvents();
 }
 
 //----------------------------------------------------------------------------------------
-uint32_t GlfwWindow::GetWidth() const noexcept
+uint32_t GlfwWindow::GetWidthImpl() const noexcept
 {
   return m_Width;
 }
 
 //----------------------------------------------------------------------------------------
-uint32_t GlfwWindow::GetHeight() const noexcept
+uint32_t GlfwWindow::GetHeightImpl() const noexcept
 {
   return m_Height;
 }

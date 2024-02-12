@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 
 #project setup
 project(four-engine
@@ -47,6 +47,7 @@ include_directories(src)
 add_subdirectory(vendor)
 
 if(FOUR_USE_SDL)
+  print(ERROR "not implemented yet.")
   file(GLOB SDL_TO_ADD "src/window/sdl/*.cpp" "src/window/sdl/*.hpp")
   list(APPEND SOURCES ${SDL_TO_ADD})
 elseif(FOUR_USE_GLFW)

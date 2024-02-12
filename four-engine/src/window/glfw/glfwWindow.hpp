@@ -12,6 +12,8 @@ namespace four
 
 class FOUR_ENGINE_API GlfwWindow : public Window<GlfwWindow>
 {
+  friend class Window<GlfwWindow>;
+
 public:
   using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;
 
@@ -51,12 +53,13 @@ public:
    */
   GlfwWindow& operator=(GlfwWindow&&) = default;
 
+private:
   /**
    * @brief Get reference to glfw window
    *
    * @return Reference to glfw window
    */
-  [[nodiscard]] auto* GetWindow() const noexcept
+  [[nodiscard]] auto* GetWindowImpl() const noexcept
   {
     return m_Window;
   }
@@ -66,25 +69,25 @@ public:
    *
    * @return width of the window 
    */
-  [[nodiscard]] uint32_t GetWidth() const noexcept;
+  [[nodiscard]] uint32_t GetWidthImpl() const noexcept;
 
   /**
    * @brief Get Height of the window
    *
    * @return Height of the window
    */
-  [[nodiscard]] uint32_t GetHeight() const noexcept;
+  [[nodiscard]] uint32_t GetHeightImpl() const noexcept;
 
   /**
    * @brief Get called on update of the engine
    * it handle events
    */
-  void OnUpdate();
+  void OnUpdateImpl();
 
   /**
    * @brief Called to destruct glfw window and system
    */
-  void Shutdown();
+  void ShutdownImpl();
 
   /**
    * @brief Return if window need to be closed
@@ -92,9 +95,8 @@ public:
    *
    * @return flag to know that user close the application or not
    */
-  [[nodiscard]] bool ShouldClose() const noexcept;
+  [[nodiscard]] bool ShouldCloseImpl() const noexcept;
 
-private:
   /**
    * @brief Callback for glfw errors
    *
