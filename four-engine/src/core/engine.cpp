@@ -16,11 +16,19 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
 
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
+  m_VulkanDevice = std::make_unique<VulkDevice>(m_Window.get());
+  m_VulkanDevice->InitVulkan();
+  m_VulkPipeline = std::make_unique<VulkPipeline>(*m_VulkanDevice,
+                                                  VulkPipeline::DefaultPipeLineConfigInfo(width, height),
+                                                  "shaders/simpleShader.vert.spv",
+                                                  "shaders/simpleShader.frag.spv");
 }
 
 Engine::~Engine()
 {
   m_ImGuiLayer.Shutdown();
+  m_VulkPipeline.reset();
+  m_VulkanDevice->Cleanup();
   m_Window->Shutdown();
   Log::Shutdown();
 }
@@ -42,9 +50,7 @@ bool Engine::InitLog()
 bool Engine::InitWindow(std::string_view title, uint32_t width, uint32_t height)
 {
   m_Window.reset();
-  m_Window = std::move(Window<UsingWindow>::CreateWindow(title, width, height));
-  // check if window created successfully
-  if (m_Window == nullptr)
+  if (m_Window = Window<UsingWindow>::CreateWindow(title, width, height); m_Window == nullptr)
   {
     LOG_ERROR("Initializing Window falied");
     return false;

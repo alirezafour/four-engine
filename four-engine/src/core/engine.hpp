@@ -5,6 +5,10 @@
 #include "core/imgui/imguiLayer.hpp"
 #include "core/layerStack.hpp"
 
+// test vulkan
+#include "renderer/vulkan/vulkPipline.hpp"
+#include "renderer/vulkan/vulkDevice.hpp"
+
 // check to use proper window
 #ifdef FOUR_USE_SDL
 #include "window/sdl/sdlWindow.hpp"
@@ -18,7 +22,7 @@ using UsingWindow = four::GlfwWindow;
 namespace four
 {
 
-class FOUR_ENGINE_API Engine
+class Engine
 {
 public:
   /**
@@ -69,6 +73,7 @@ public:
     sm_Instance = std::unique_ptr<Engine>(new Engine(title, width, height));
     return sm_Instance.get();
   }
+
 
   /**
    * @brief Return reference to instance of the Engine 
@@ -154,5 +159,7 @@ private:
 
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
+  std::unique_ptr<VulkDevice>          m_VulkanDevice;
+  std::unique_ptr<VulkPipeline>        m_VulkPipeline;
 };
 } // namespace four

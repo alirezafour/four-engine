@@ -2,8 +2,11 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <concepts>
 #include <unordered_map>
+#include <unordered_set>
+#include <set>
 #include <memory>
 #include <algorithm>
 #include <cassert>
