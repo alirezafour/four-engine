@@ -16,19 +16,21 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
 
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
-  m_VulkanDevice = std::make_unique<VulkDevice>(m_Window.get());
-  m_VulkanDevice->InitVulkan();
-  m_VulkPipeline = std::make_unique<VulkPipeline>(*m_VulkanDevice,
+  m_VulkDevice = std::make_unique<VulkDevice>(m_Window.get());
+  m_VulkDevice->InitVulkan();
+  m_VulkPipeline = std::make_unique<VulkPipeline>(*m_VulkDevice,
                                                   VulkPipeline::DefaultPipeLineConfigInfo(width, height),
                                                   "shaders/simpleShader.vert.spv",
                                                   "shaders/simpleShader.frag.spv");
+
+  m_SwapChain = std::make_unique<VulkSwapChain>(*m_VulkDevice, m_Window->GetExtent());
 }
 
 Engine::~Engine()
 {
   m_ImGuiLayer.Shutdown();
   m_VulkPipeline.reset();
-  m_VulkanDevice->Cleanup();
+  m_VulkDevice->Cleanup();
   m_Window->Shutdown();
   Log::Shutdown();
 }

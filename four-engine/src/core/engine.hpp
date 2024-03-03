@@ -8,6 +8,7 @@
 // test vulkan
 #include "renderer/vulkan/vulkPipline.hpp"
 #include "renderer/vulkan/vulkDevice.hpp"
+#include "renderer/vulkan/vulkSwapChain.hpp"
 
 // check to use proper window
 #ifdef FOUR_USE_SDL
@@ -159,7 +160,8 @@ private:
 
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
-  std::unique_ptr<VulkDevice>          m_VulkanDevice;
+  std::unique_ptr<VulkDevice>          m_VulkDevice;
   std::unique_ptr<VulkPipeline>        m_VulkPipeline;
+  std::unique_ptr<VulkSwapChain>       m_SwapChain;
 };
 } // namespace four

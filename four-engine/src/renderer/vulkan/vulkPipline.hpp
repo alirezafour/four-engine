@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 
 namespace four
 {
@@ -10,7 +10,6 @@ struct PipeLineConfigInfo
 {
   VkViewport                             viewport;
   VkRect2D                               scissor;
-  VkPipelineViewportStateCreateInfo      viewportInfo;
   VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
   VkPipelineRasterizationStateCreateInfo rasterizationInfo;
   VkPipelineMultisampleStateCreateInfo   multisampleInfo;

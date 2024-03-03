@@ -239,6 +239,8 @@ void VulkDevice::CreateInstance()
   {
     throw std::runtime_error("failed to create instance!");
   }
+
+  HasGflwRequiredInstanceExtensions();
 }
 
 //===========================================================================================
