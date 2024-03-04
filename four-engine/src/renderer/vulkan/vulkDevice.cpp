@@ -1,12 +1,42 @@
 #include "four-pch.h"
 
-#include "vulkDevice.hpp"
+#include "renderer/vulkan/vulkDevice.hpp"
 #include "window/glfw/glfwWindow.hpp"
 #include "GLFW/glfw3.h"
 
 namespace four
 {
 
+static VkResult CreateDebugUtilsMessengerEXT(VkInstance                                instance,
+                                             const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                             const VkAllocationCallbacks*              pAllocator,
+                                             VkDebugUtilsMessengerEXT*                 pDebugMessenger)
+{
+  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+  if (func != nullptr)
+  {
+    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+  }
+  else
+  {
+    LOG_CORE_ERROR("Debug utils messanger is not available!");
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+  }
+}
+
+//===========================================================================================
+static void DestroyDebugUtilsMessengerEXT(VkInstance                   instance,
+                                          VkDebugUtilsMessengerEXT     debugMessenger,
+                                          const VkAllocationCallbacks* pAllocator)
+{
+  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+  if (func != nullptr)
+  {
+    func(instance, debugMessenger, pAllocator);
+  }
+}
+
+//===========================================================================================
 VulkDevice::VulkDevice(Window<GlfwWindow>* window) : m_Window(window)
 {
 }
@@ -241,7 +271,23 @@ void VulkDevice::CreateInstance()
   createInfo.enabledExtensionCount   = glfwExtensionCount;
   createInfo.ppEnabledExtensionNames = glfwExtensions;
 
+  auto extentions                    = GetRequiredExtensions();
+  createInfo.enabledExtensionCount   = static_cast<uint32_t>(extentions.size());
+  createInfo.ppEnabledExtensionNames = extentions.data();
+
+  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+  if (enableValidationLayers)
+  {
+    createInfo.enabledLayerCount   = static_cast<uint32_t>(m_ValidationLayers.size());
+    createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
+    PopulateDebugMessengerCreateInfo(debugCreateInfo);
+    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+  }
+
+
   createInfo.enabledLayerCount = 0;
+  createInfo.pNext             = nullptr;
+
 
   if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS)
   {
@@ -253,16 +299,15 @@ void VulkDevice::CreateInstance()
 }
 
 //===========================================================================================
-void VulkDevice::FillDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void VulkDevice::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
-  createInfo                 = {};
-  createInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  createInfo       = {};
+  createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
   createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   createInfo.pfnUserCallback = DebugCallback;
+  createInfo.pUserData       = nullptr; // Optional
 }
 
 //===========================================================================================
@@ -274,7 +319,7 @@ void VulkDevice::SetupDebugMessenger()
   }
 
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
-  FillDebugMessengerCreateInfo(createInfo);
+  PopulateDebugMessengerCreateInfo(createInfo);
 
   if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
   {
@@ -301,13 +346,13 @@ std::vector<const char*> VulkDevice::GetRequiredExtensions()
 //===========================================================================================
 bool VulkDevice::CheckValidationLayerSupport()
 {
-  uint32_t layerCount;
+  uint32_t layerCount = 0;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-  for (const char* layerName : validationLayers)
+  for (const char* layerName : m_ValidationLayers)
   {
     bool layerFound = false;
 
@@ -404,8 +449,8 @@ void VulkDevice::CreateLogicalDevice()
   // have been deprecated
   if (enableValidationLayers)
   {
-    createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
+    createInfo.enabledLayerCount   = static_cast<uint32_t>(m_ValidationLayers.size());
+    createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
   }
   else
   {

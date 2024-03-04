@@ -7,47 +7,6 @@
 namespace four
 {
 
-const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
-
-// TODO:
-// INFO: Testing
-//
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-//===========================================================================================
-inline VkResult CreateDebugUtilsMessengerEXT(VkInstance                                instance,
-                                             const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                             const VkAllocationCallbacks*              pAllocator,
-                                             VkDebugUtilsMessengerEXT*                 pCallback)
-{
-  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-  if (func != nullptr)
-  {
-    return func(instance, pCreateInfo, pAllocator, pCallback);
-  }
-  else
-  {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-}
-
-//===========================================================================================
-inline void DestroyDebugUtilsMessengerEXT(VkInstance                   instance,
-                                          VkDebugUtilsMessengerEXT     callback,
-                                          const VkAllocationCallbacks* pAllocator)
-{
-  if (auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
-                                                                             "vkDestroyDebugUtilsMessengerEXT");
-      func != nullptr)
-  {
-    func(instance, callback, pAllocator);
-  }
-}
-
 //===========================================================================================
 struct SwapChainSupportDetails
 {
@@ -77,6 +36,14 @@ class GlfwWindow;
 
 class VulkDevice
 {
+
+  // enable validation layer for debugging in debug mode
+#ifdef NDEBUG
+  const bool enableValidationLayers = false;
+#else
+  const bool enableValidationLayers = true;
+#endif
+
 public:
   VulkDevice() = default;
   explicit VulkDevice(Window<GlfwWindow>* window);
@@ -194,8 +161,6 @@ private:
   bool IsDeviceSuitable(VkPhysicalDevice device);
 
   QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
-
-  void FillDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
   void HasGflwRequiredInstanceExtensions();
 
