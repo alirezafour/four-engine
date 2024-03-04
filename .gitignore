@@ -62,3 +62,6 @@ CmakeDoxygenDefaults.cmake
 *.user
 *.sln
 *.vcxproj*
+
+# shaders
+shaders/*
