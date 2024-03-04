@@ -33,6 +33,8 @@ public:
 
   static PipeLineConfigInfo DefaultPipeLineConfigInfo(const uint32_t width, const uint32_t height);
 
+  void Bind(VkCommandBuffer commandBuffer);
+
 private:
   static std::vector<char> ReadFile(std::string_view filePath);
 

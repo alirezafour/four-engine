@@ -12,15 +12,14 @@ const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_val
 // TODO:
 // INFO: Testing
 //
-// #ifdef NDEBUG
-// const bool enableValidationLayers = false;
-// #else
-// const bool enableValidationLayers = true;
-// #endif
+#ifdef NDEBUG
 const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
 
 //===========================================================================================
-inline VkResult createDebugUtilsMessengerEXT(VkInstance                                instance,
+inline VkResult CreateDebugUtilsMessengerEXT(VkInstance                                instance,
                                              const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                              const VkAllocationCallbacks*              pAllocator,
                                              VkDebugUtilsMessengerEXT*                 pCallback)
@@ -91,31 +90,31 @@ public:
   void Cleanup();
 
   //===========================================================================================
-  [[nodiscard]] inline VkCommandPool getCommandPool() const
+  [[nodiscard]] inline VkCommandPool GetCommandPool() const
   {
     return m_CommandPool;
   }
 
   //===========================================================================================
-  [[nodiscard]] inline VkDevice device() const
+  [[nodiscard]] inline VkDevice GetDevice() const
   {
     return m_Device;
   }
 
   //===========================================================================================
-  [[nodiscard]] inline VkSurfaceKHR surface() const
+  [[nodiscard]] inline VkSurfaceKHR GetSurface() const
   {
     return m_Surface;
   }
 
   //===========================================================================================
-  [[nodiscard]] inline VkQueue graphicsQueue() const
+  [[nodiscard]] inline VkQueue GetGraphicsQueue() const
   {
     return m_GraphicsQueue;
   }
 
   //===========================================================================================
-  [[nodiscard]] inline VkQueue presentQueue() const
+  [[nodiscard]] inline VkQueue GetPresentQueue() const
   {
     return m_PresentQueue;
   }
@@ -129,7 +128,7 @@ public:
   uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
   //===========================================================================================
-  [[nodiscard]] inline QueueFamilyIndices findPhysicalQueueFamilies()
+  [[nodiscard]] inline QueueFamilyIndices FindPhysicalQueueFamilies()
   {
     return FindQueueFamilies(m_PhysicalDevice);
   }
@@ -178,7 +177,7 @@ private:
                                                       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                       void*                                       pUserData)
   {
-    LOG_CORE_ERROR("validation layer: {}\n", pCallbackData->pMessage);
+    LOG_CORE_ERROR("validation layer: {}", pCallbackData->pMessage);
 
     return VK_FALSE;
   }
@@ -194,11 +193,9 @@ private:
   // helper functions
   bool IsDeviceSuitable(VkPhysicalDevice device);
 
-  std::vector<const char*> getRequiredExtensions();
-
   QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
-  void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+  void FillDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
   void HasGflwRequiredInstanceExtensions();
 

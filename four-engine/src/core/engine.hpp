@@ -9,6 +9,7 @@
 #include "renderer/vulkan/vulkPipline.hpp"
 #include "renderer/vulkan/vulkDevice.hpp"
 #include "renderer/vulkan/vulkSwapChain.hpp"
+#include "renderer/vulkan/vulkModel.hpp"
 
 // check to use proper window
 #ifdef FOUR_USE_SDL
@@ -152,6 +153,13 @@ private:
   void OnResize(uint32_t width, uint32_t height);
 
 private:
+  void LoadModels();
+  void CreatePipeLineLayout();
+  void CreatePipeLine();
+  void CreateCommandBuffers();
+  void DrawFrame();
+
+private:
   /** singletone instance of Engine */
   static std::unique_ptr<Engine> sm_Instance;
 
@@ -161,7 +169,10 @@ private:
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
   std::unique_ptr<VulkDevice>          m_VulkDevice;
-  std::unique_ptr<VulkPipeline>        m_VulkPipeline;
   std::unique_ptr<VulkSwapChain>       m_SwapChain;
+  std::unique_ptr<VulkPipeline>        m_VulkPipeline;
+  VkPipelineLayout                     m_PipelineLayout;
+  std::vector<VkCommandBuffer>         m_CommandBuffers;
+  std::unique_ptr<VulkModel>           m_VulkModel;
 };
 } // namespace four

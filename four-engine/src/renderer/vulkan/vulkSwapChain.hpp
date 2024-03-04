@@ -20,6 +20,7 @@ public:
   VulkSwapChain(VulkSwapChain&&)                 = delete;
   VulkSwapChain& operator=(VulkSwapChain&&)      = delete;
 
+
   [[nodiscard]] VkFramebuffer GetFrameBuffer(int index) const
   {
     return m_SwapChainFramebuffers[index];

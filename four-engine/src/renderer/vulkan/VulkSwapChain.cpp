@@ -23,44 +23,44 @@ VulkSwapChain::~VulkSwapChain()
 {
   for (auto* imageView : m_SwapChainImageViews)
   {
-    vkDestroyImageView(m_VulkDevice.device(), imageView, nullptr);
+    vkDestroyImageView(m_VulkDevice.GetDevice(), imageView, nullptr);
   }
   m_SwapChainImageViews.clear();
 
   if (m_SwapChain != nullptr)
   {
-    vkDestroySwapchainKHR(m_VulkDevice.device(), m_SwapChain, nullptr);
+    vkDestroySwapchainKHR(m_VulkDevice.GetDevice(), m_SwapChain, nullptr);
     m_SwapChain = nullptr;
   }
 
   for (int i = 0; i < m_DepthImages.size(); i++)
   {
-    vkDestroyImageView(m_VulkDevice.device(), m_DepthImageViews[i], nullptr);
-    vkDestroyImage(m_VulkDevice.device(), m_DepthImages[i], nullptr);
-    vkFreeMemory(m_VulkDevice.device(), m_DepthImageMemorys[i], nullptr);
+    vkDestroyImageView(m_VulkDevice.GetDevice(), m_DepthImageViews[i], nullptr);
+    vkDestroyImage(m_VulkDevice.GetDevice(), m_DepthImages[i], nullptr);
+    vkFreeMemory(m_VulkDevice.GetDevice(), m_DepthImageMemorys[i], nullptr);
   }
 
   for (auto* framebuffer : m_SwapChainFramebuffers)
   {
-    vkDestroyFramebuffer(m_VulkDevice.device(), framebuffer, nullptr);
+    vkDestroyFramebuffer(m_VulkDevice.GetDevice(), framebuffer, nullptr);
   }
 
-  vkDestroyRenderPass(m_VulkDevice.device(), m_RenderPass, nullptr);
+  vkDestroyRenderPass(m_VulkDevice.GetDevice(), m_RenderPass, nullptr);
 
   // cleanup synchronization objects
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
   {
-    vkDestroySemaphore(m_VulkDevice.device(), m_RenderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(m_VulkDevice.device(), m_ImageAvailableSemaphores[i], nullptr);
-    vkDestroyFence(m_VulkDevice.device(), m_InFlightFences[i], nullptr);
+    vkDestroySemaphore(m_VulkDevice.GetDevice(), m_RenderFinishedSemaphores[i], nullptr);
+    vkDestroySemaphore(m_VulkDevice.GetDevice(), m_ImageAvailableSemaphores[i], nullptr);
+    vkDestroyFence(m_VulkDevice.GetDevice(), m_InFlightFences[i], nullptr);
   }
 }
 
 VkResult VulkSwapChain::AcquireNextImage(uint32_t* imageIndex)
 {
-  vkWaitForFences(m_VulkDevice.device(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+  vkWaitForFences(m_VulkDevice.GetDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 
-  VkResult result = vkAcquireNextImageKHR(m_VulkDevice.device(),
+  VkResult result = vkAcquireNextImageKHR(m_VulkDevice.GetDevice(),
                                           m_SwapChain,
                                           std::numeric_limits<uint64_t>::max(),
                                           m_ImageAvailableSemaphores[m_CurrentFrame], // must be a not signaled semaphore
@@ -74,28 +74,28 @@ VkResult VulkSwapChain::SubmitCommandBuffers(const VkCommandBuffer* buffers, uin
 {
   if (m_ImagesInFlight[*imageIndex] != VK_NULL_HANDLE)
   {
-    vkWaitForFences(m_VulkDevice.device(), 1, &m_ImagesInFlight[*imageIndex], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(m_VulkDevice.GetDevice(), 1, &m_ImagesInFlight[*imageIndex], VK_TRUE, UINT64_MAX);
   }
   m_ImagesInFlight[*imageIndex] = m_InFlightFences[m_CurrentFrame];
 
   VkSubmitInfo submitInfo = {};
   submitInfo.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-  VkSemaphore          waitSemaphores[] = {m_ImageAvailableSemaphores[m_CurrentFrame]};
-  VkPipelineStageFlags waitStages[]     = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-  submitInfo.waitSemaphoreCount         = 1;
-  submitInfo.pWaitSemaphores            = waitSemaphores;
-  submitInfo.pWaitDstStageMask          = waitStages;
+  std::array<VkSemaphore, 1>          waitSemaphores{m_ImageAvailableSemaphores[m_CurrentFrame]};
+  std::array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores    = waitSemaphores.data();
+  submitInfo.pWaitDstStageMask  = waitStages.data();
 
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers    = buffers;
 
-  VkSemaphore signalSemaphores[]  = {m_RenderFinishedSemaphores[m_CurrentFrame]};
+  std::array<VkSemaphore, 1> signalSemaphores{m_RenderFinishedSemaphores[m_CurrentFrame]};
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores    = signalSemaphores;
+  submitInfo.pSignalSemaphores    = signalSemaphores.data();
 
-  vkResetFences(m_VulkDevice.device(), 1, &m_InFlightFences[m_CurrentFrame]);
-  if (vkQueueSubmit(m_VulkDevice.graphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) != VK_SUCCESS)
+  vkResetFences(m_VulkDevice.GetDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
+  if (vkQueueSubmit(m_VulkDevice.GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) != VK_SUCCESS)
   {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
@@ -104,15 +104,15 @@ VkResult VulkSwapChain::SubmitCommandBuffers(const VkCommandBuffer* buffers, uin
   presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores    = signalSemaphores;
+  presentInfo.pWaitSemaphores    = signalSemaphores.data();
 
-  VkSwapchainKHR swapChains[] = {m_SwapChain};
-  presentInfo.swapchainCount  = 1;
-  presentInfo.pSwapchains     = swapChains;
+  std::array<VkSwapchainKHR, 1> swapChains{m_SwapChain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains    = swapChains.data();
 
   presentInfo.pImageIndices = imageIndex;
 
-  auto result = vkQueuePresentKHR(m_VulkDevice.presentQueue(), &presentInfo);
+  auto result = vkQueuePresentKHR(m_VulkDevice.GetPresentQueue(), &presentInfo);
 
   m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -135,7 +135,7 @@ void VulkSwapChain::CreateSwapChain()
 
   VkSwapchainCreateInfoKHR createInfo = {};
   createInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  createInfo.surface                  = m_VulkDevice.surface();
+  createInfo.surface                  = m_VulkDevice.GetSurface();
 
   createInfo.minImageCount    = imageCount;
   createInfo.imageFormat      = surfaceFormat.format;
@@ -144,14 +144,14 @@ void VulkSwapChain::CreateSwapChain()
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  QueueFamilyIndices indices              = m_VulkDevice.findPhysicalQueueFamilies();
-  uint32_t           queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
+  QueueFamilyIndices      indices = m_VulkDevice.FindPhysicalQueueFamilies();
+  std::array<uint32_t, 2> queueFamilyIndices{indices.graphicsFamily, indices.presentFamily};
 
   if (indices.graphicsFamily != indices.presentFamily)
   {
     createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
     createInfo.queueFamilyIndexCount = 2;
-    createInfo.pQueueFamilyIndices   = queueFamilyIndices;
+    createInfo.pQueueFamilyIndices   = queueFamilyIndices.data();
   }
   else
   {
@@ -168,7 +168,7 @@ void VulkSwapChain::CreateSwapChain()
 
   createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-  if (vkCreateSwapchainKHR(m_VulkDevice.device(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
+  if (vkCreateSwapchainKHR(m_VulkDevice.GetDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
   {
     throw std::runtime_error("failed to create swap chain!");
   }
@@ -177,9 +177,9 @@ void VulkSwapChain::CreateSwapChain()
   // allowed to create a swap chain with more. That's why we'll first query the final number of
   // images with vkGetSwapchainImagesKHR, then resize the container and finally call it again to
   // retrieve the handles.
-  vkGetSwapchainImagesKHR(m_VulkDevice.device(), m_SwapChain, &imageCount, nullptr);
+  vkGetSwapchainImagesKHR(m_VulkDevice.GetDevice(), m_SwapChain, &imageCount, nullptr);
   m_SwapChainImages.resize(imageCount);
-  vkGetSwapchainImagesKHR(m_VulkDevice.device(), m_SwapChain, &imageCount, m_SwapChainImages.data());
+  vkGetSwapchainImagesKHR(m_VulkDevice.GetDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
 
   m_SwapChainImageFormat = surfaceFormat.format;
   m_SwapChainExtent      = extent;
@@ -201,7 +201,7 @@ void VulkSwapChain::CreateImageViews()
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount     = 1;
 
-    if (vkCreateImageView(m_VulkDevice.device(), &viewInfo, nullptr, &m_SwapChainImageViews[i]) != VK_SUCCESS)
+    if (vkCreateImageView(m_VulkDevice.GetDevice(), &viewInfo, nullptr, &m_SwapChainImageViews[i]) != VK_SUCCESS)
     {
       throw std::runtime_error("failed to create texture image view!");
     }
@@ -262,7 +262,7 @@ void VulkSwapChain::CreateRenderPass()
   renderPassInfo.dependencyCount                        = 1;
   renderPassInfo.pDependencies                          = &dependency;
 
-  if (vkCreateRenderPass(m_VulkDevice.device(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
+  if (vkCreateRenderPass(m_VulkDevice.GetDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
   {
     throw std::runtime_error("failed to create render pass!");
   }
@@ -285,7 +285,7 @@ void VulkSwapChain::CreateFramebuffers()
     framebufferInfo.height                  = swapChainExtent.height;
     framebufferInfo.layers                  = 1;
 
-    if (vkCreateFramebuffer(m_VulkDevice.device(), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
+    if (vkCreateFramebuffer(m_VulkDevice.GetDevice(), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
     {
       throw std::runtime_error("failed to create framebuffer!");
     }
@@ -332,7 +332,7 @@ void VulkSwapChain::CreateDepthResources()
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount     = 1;
 
-    if (vkCreateImageView(m_VulkDevice.device(), &viewInfo, nullptr, &m_DepthImageViews[i]) != VK_SUCCESS)
+    if (vkCreateImageView(m_VulkDevice.GetDevice(), &viewInfo, nullptr, &m_DepthImageViews[i]) != VK_SUCCESS)
     {
       throw std::runtime_error("failed to create texture image view!");
     }
@@ -355,9 +355,9 @@ void VulkSwapChain::CreateSyncObjects()
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
   {
-    if (vkCreateSemaphore(m_VulkDevice.device(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-        vkCreateSemaphore(m_VulkDevice.device(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-        vkCreateFence(m_VulkDevice.device(), &fenceInfo, nullptr, &m_InFlightFences[i]) != VK_SUCCESS)
+    if (vkCreateSemaphore(m_VulkDevice.GetDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
+        vkCreateSemaphore(m_VulkDevice.GetDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
+        vkCreateFence(m_VulkDevice.GetDevice(), &fenceInfo, nullptr, &m_InFlightFences[i]) != VK_SUCCESS)
     {
       throw std::runtime_error("failed to create synchronization objects for a frame!");
     }

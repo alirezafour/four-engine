@@ -48,6 +48,7 @@ uint32_t VulkDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags p
     }
   }
 
+  LOG_CORE_ERROR("failed to find suitable memory type!");
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
@@ -68,6 +69,7 @@ VkFormat VulkDevice::FindSupportedFormat(const std::vector<VkFormat>& candidates
       return format;
     }
   }
+  LOG_CORE_ERROR("failed to find supported format!");
   throw std::runtime_error("failed to find supported format!");
 }
 
@@ -86,6 +88,7 @@ void VulkDevice::CreateBuffer(VkDeviceSize          size,
 
   if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create vertex buffer!");
     throw std::runtime_error("failed to create vertex buffer!");
   }
 
@@ -99,6 +102,7 @@ void VulkDevice::CreateBuffer(VkDeviceSize          size,
 
   if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to allocate vertex buffer memory!");
     throw std::runtime_error("failed to allocate vertex buffer memory!");
   }
 
@@ -185,6 +189,7 @@ void VulkDevice::CreateImageWithInfo(const VkImageCreateInfo& imageInfo,
 {
   if (vkCreateImage(m_Device, &imageInfo, nullptr, &image) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create image!");
     throw std::runtime_error("failed to create image!");
   }
 
@@ -198,11 +203,13 @@ void VulkDevice::CreateImageWithInfo(const VkImageCreateInfo& imageInfo,
 
   if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to allocate image memory!");
     throw std::runtime_error("failed to allocate image memory!");
   }
 
   if (vkBindImageMemory(m_Device, image, imageMemory, 0) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to bind image memory!");
     throw std::runtime_error("failed to bind image memory!");
   }
 }
@@ -212,6 +219,7 @@ void VulkDevice::CreateInstance()
 {
   if (enableValidationLayers && !CheckValidationLayerSupport())
   {
+    LOG_CORE_ERROR("validation layers requested, but not available!");
     throw std::runtime_error("validation layers requested, but not available!");
   }
 
@@ -237,6 +245,7 @@ void VulkDevice::CreateInstance()
 
   if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create instance!");
     throw std::runtime_error("failed to create instance!");
   }
 
@@ -244,7 +253,7 @@ void VulkDevice::CreateInstance()
 }
 
 //===========================================================================================
-void VulkDevice::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void VulkDevice::FillDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
   createInfo                 = {};
   createInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -265,10 +274,11 @@ void VulkDevice::SetupDebugMessenger()
   }
 
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
-  PopulateDebugMessengerCreateInfo(createInfo);
+  FillDebugMessengerCreateInfo(createInfo);
 
-  if (createDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
+  if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to set up debug messenger!");
     throw std::runtime_error("failed to set up debug messenger!");
   }
 }
@@ -331,9 +341,10 @@ void VulkDevice::PickPhysicalDevice()
   vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
   if (deviceCount == 0)
   {
+    LOG_CORE_ERROR("failed to find GPUs with Vulkan support!");
     throw std::runtime_error("failed to find GPUs with Vulkan support!");
   }
-  LOG_CORE_INFO("Device count: {}\n", deviceCount);
+  LOG_CORE_INFO("Device count: {}", deviceCount);
 
   std::vector<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
@@ -349,11 +360,12 @@ void VulkDevice::PickPhysicalDevice()
 
   if (m_PhysicalDevice == VK_NULL_HANDLE)
   {
+    LOG_CORE_ERROR("failed to find a suitable GPU!");
     throw std::runtime_error("failed to find a suitable GPU!");
   }
 
   vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
-  LOG_CORE_INFO("physical device: {}\n", properties.deviceName);
+  LOG_CORE_INFO("physical device: {}", properties.deviceName);
 }
 
 //===========================================================================================
@@ -402,6 +414,7 @@ void VulkDevice::CreateLogicalDevice()
 
   if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create logical device!");
     throw std::runtime_error("failed to create logical device!");
   }
 
@@ -412,7 +425,7 @@ void VulkDevice::CreateLogicalDevice()
 //===========================================================================================
 void VulkDevice::CreateCommandPool()
 {
-  QueueFamilyIndices queueFamilyIndices = findPhysicalQueueFamilies();
+  QueueFamilyIndices queueFamilyIndices = FindPhysicalQueueFamilies();
 
   VkCommandPoolCreateInfo poolInfo = {};
   poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -421,6 +434,7 @@ void VulkDevice::CreateCommandPool()
 
   if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create command pool!");
     throw std::runtime_error("failed to create command pool!");
   }
 }
@@ -446,23 +460,6 @@ bool VulkDevice::IsDeviceSuitable(VkPhysicalDevice device)
 }
 
 //===========================================================================================
-std::vector<const char*> VulkDevice::getRequiredExtensions()
-{
-  uint32_t     glfwExtensionCount = 0;
-  const char** glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-  std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-  if (enableValidationLayers)
-  {
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  }
-
-  return extensions;
-}
-
-//===========================================================================================
 QueueFamilyIndices VulkDevice::FindQueueFamilies(VkPhysicalDevice device)
 {
   QueueFamilyIndices indices;
@@ -481,9 +478,9 @@ QueueFamilyIndices VulkDevice::FindQueueFamilies(VkPhysicalDevice device)
       indices.graphicsFamily         = i;
       indices.graphicsFamilyHasValue = true;
     }
-    VkBool32 presentSupport = false;
+    VkBool32 presentSupport = 0U; // false
     vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
-    if (queueFamily.queueCount > 0 && presentSupport)
+    if (queueFamily.queueCount > 0 && (presentSupport != 0U))
     {
       indices.presentFamily         = i;
       indices.presentFamilyHasValue = true;
@@ -500,11 +497,6 @@ QueueFamilyIndices VulkDevice::FindQueueFamilies(VkPhysicalDevice device)
 }
 
 //===========================================================================================
-void VulkDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-}
-
-//===========================================================================================
 void VulkDevice::HasGflwRequiredInstanceExtensions()
 {
   uint32_t extensionCount = 0;
@@ -512,7 +504,7 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
   std::vector<VkExtensionProperties> extensions(extensionCount);
   vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-  LOG_CORE_INFO("available extensions:\n");
+  LOG_CORE_INFO("available extensions:");
   std::unordered_set<std::string> available;
   for (const auto& extension : extensions)
   {
@@ -521,12 +513,13 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
   }
 
   LOG_CORE_INFO("required extensions:");
-  auto requiredExtensions = getRequiredExtensions();
+  auto requiredExtensions = GetRequiredExtensions();
   for (const auto& required : requiredExtensions)
   {
     LOG_CORE_INFO("\t{}", required);
     if (available.find(required) == available.end())
     {
+      LOG_CORE_ERROR("Missing required glfw extension");
       throw std::runtime_error("Missing required glfw extension");
     }
   }
@@ -535,7 +528,7 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
 //===========================================================================================
 bool VulkDevice::CheckDeviceExtensionSupport(VkPhysicalDevice device)
 {
-  uint32_t extensionCount;
+  uint32_t extensionCount = 0;
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -557,7 +550,7 @@ SwapChainSupportDetails VulkDevice::QuerySwapChainSupport(VkPhysicalDevice devic
   SwapChainSupportDetails details;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.capabilities);
 
-  uint32_t formatCount;
+  uint32_t formatCount = 0;
   vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, nullptr);
 
   if (formatCount != 0)
@@ -566,7 +559,7 @@ SwapChainSupportDetails VulkDevice::QuerySwapChainSupport(VkPhysicalDevice devic
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, details.formats.data());
   }
 
-  uint32_t presentModeCount;
+  uint32_t presentModeCount = 0;
   vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, nullptr);
 
   if (presentModeCount != 0)
@@ -582,6 +575,7 @@ void VulkDevice::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
   auto* window = m_Window->GetWindow();
   if (glfwCreateWindowSurface(instance, window, nullptr, surface) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("glfw failed to create surface");
     throw std::runtime_error("glfw failed to create surface");
   }
 }
