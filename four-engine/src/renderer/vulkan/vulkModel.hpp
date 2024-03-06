@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/vulkan/vulkDevice.hpp"
+#include "vulkan/vulkan_core.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -8,6 +8,7 @@
 
 namespace four
 {
+class VulkDevice;
 
 class VulkModel
 {
@@ -15,6 +16,7 @@ public:
   struct Vertex
   {
     glm::vec2 position;
+    glm::vec3 color;
 
     static std::vector<VkVertexInputBindingDescription>   GetBindingDescriptions();
     static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions();

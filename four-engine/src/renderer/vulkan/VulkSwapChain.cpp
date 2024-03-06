@@ -1,11 +1,10 @@
 #include "four-pch.h"
 
-#include "vulkSwapChain.hpp"
-#include "vulkDevice.hpp"
+#include "renderer/vulkan/vulkSwapChain.hpp"
+#include "renderer/vulkan/vulkDevice.hpp"
 
 namespace four
 {
-
 
 VulkSwapChain::VulkSwapChain(VulkDevice& deviceRef, WindowExtent extent) :
 m_VulkDevice{deviceRef},
@@ -33,7 +32,7 @@ VulkSwapChain::~VulkSwapChain()
     m_SwapChain = nullptr;
   }
 
-  for (int i = 0; i < m_DepthImages.size(); i++)
+  for (int i = 0; i < m_DepthImages.size(); ++i)
   {
     vkDestroyImageView(m_VulkDevice.GetDevice(), m_DepthImageViews[i], nullptr);
     vkDestroyImage(m_VulkDevice.GetDevice(), m_DepthImages[i], nullptr);
@@ -48,7 +47,7 @@ VulkSwapChain::~VulkSwapChain()
   vkDestroyRenderPass(m_VulkDevice.GetDevice(), m_RenderPass, nullptr);
 
   // cleanup synchronization objects
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
     vkDestroySemaphore(m_VulkDevice.GetDevice(), m_RenderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(m_VulkDevice.GetDevice(), m_ImageAvailableSemaphores[i], nullptr);
@@ -188,7 +187,7 @@ void VulkSwapChain::CreateSwapChain()
 void VulkSwapChain::CreateImageViews()
 {
   m_SwapChainImageViews.resize(m_SwapChainImages.size());
-  for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+  for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
   {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -271,7 +270,7 @@ void VulkSwapChain::CreateRenderPass()
 void VulkSwapChain::CreateFramebuffers()
 {
   m_SwapChainFramebuffers.resize(ImageCount());
-  for (size_t i = 0; i < ImageCount(); i++)
+  for (size_t i = 0; i < ImageCount(); ++i)
   {
     std::array<VkImageView, 2> attachments = {m_SwapChainImageViews[i], m_DepthImageViews[i]};
 
@@ -301,7 +300,7 @@ void VulkSwapChain::CreateDepthResources()
   m_DepthImageMemorys.resize(ImageCount());
   m_DepthImageViews.resize(ImageCount());
 
-  for (int i = 0; i < m_DepthImages.size(); i++)
+  for (int i = 0; i < m_DepthImages.size(); ++i)
   {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -353,7 +352,7 @@ void VulkSwapChain::CreateSyncObjects()
   fenceInfo.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fenceInfo.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
     if (vkCreateSemaphore(m_VulkDevice.GetDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
         vkCreateSemaphore(m_VulkDevice.GetDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
@@ -368,7 +367,7 @@ VkSurfaceFormatKHR VulkSwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSu
 {
   for (const auto& availableFormat : availableFormats)
   {
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
     {
       return availableFormat;
     }

@@ -42,11 +42,17 @@ Engine::~Engine()
 
 void Engine::Run()
 {
-  while (!m_Window->ShouldClose())
+  try
   {
-    m_Window->OnUpdate();
-    DrawFrame();
-    m_ImGuiLayer.OnUpdate();
+    while (!m_Window->ShouldClose())
+    {
+      m_Window->OnUpdate();
+      DrawFrame();
+      m_ImGuiLayer.OnUpdate();
+    }
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("Exception: {}", e.what());
   }
 
   vkDeviceWaitIdle(m_VulkDevice->GetDevice());
@@ -180,11 +186,9 @@ void Engine::DrawFrame()
 
 void Engine::LoadModels()
 {
-  std::vector<VulkModel::Vertex> vertices = {
-    {{0.0F, -0.5F}},
-    {{0.5F, 0.5F}},
-    {{-0.5F, 0.5F}},
-  };
+  std::vector<VulkModel::Vertex> vertices = {{{0.0F, -0.5F}, {1.0F, 0.0F, 0.0F}},
+                                             {{0.5F, 0.5F}, {0.0F, 1.0F, 0.0F}},
+                                             {{-0.5F, 0.5F}, {0.0F, 0.0F, 1.0F}}};
 
   m_VulkModel = std::make_unique<VulkModel>(*m_VulkDevice, vertices);
 }

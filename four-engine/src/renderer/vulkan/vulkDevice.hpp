@@ -1,8 +1,7 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include "core/core.hpp"
-#include <vulkan/vulkan.h>
-
 
 namespace four
 {
@@ -39,9 +38,9 @@ class VulkDevice
 
   // enable validation layer for debugging in debug mode
 #ifdef NDEBUG
-  const bool enableValidationLayers = false;
+  static constexpr bool enableValidationLayers = false;
 #else
-  const bool enableValidationLayers = true;
+  static constexpr bool enableValidationLayers = true;
 #endif
 
 public:

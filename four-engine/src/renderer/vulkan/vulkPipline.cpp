@@ -36,7 +36,6 @@ std::vector<char> VulkPipeline::ReadFile(std::string_view filePath)
   std::ifstream file(filePath.data(), std::ios::ate | std::ios::binary);
   if (!file.is_open())
   {
-    LOG_CORE_ERROR("failed to open file: {}", filePath);
     throw std::runtime_error("failed to open file: " + std::string(filePath));
   }
 
@@ -119,7 +118,6 @@ void VulkPipeline::CreateGraphicPipeline(std::string_view vertPath, std::string_
   if (vkCreateGraphicsPipelines(m_Device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) !=
       VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create graphics pipeline");
     throw std::runtime_error("failed to create graphics pipeline");
   }
 }
@@ -134,7 +132,6 @@ void VulkPipeline::CreateShaderModule(const std::vector<char>& code, VkShaderMod
 
   if (vkCreateShaderModule(m_Device.GetDevice(), &createInfo, nullptr, shaderModule) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create shader module");
     throw std::runtime_error("failed to create shader module");
   }
 }
@@ -162,7 +159,7 @@ PipeLineConfigInfo VulkPipeline::DefaultPipeLineConfigInfo(const uint32_t width,
   configInfo.rasterizationInfo.depthClampEnable        = VK_FALSE;
   configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
   configInfo.rasterizationInfo.polygonMode             = VK_POLYGON_MODE_FILL;
-  configInfo.rasterizationInfo.lineWidth               = 1.0f;
+  configInfo.rasterizationInfo.lineWidth               = 1.0F;
   configInfo.rasterizationInfo.cullMode                = VK_CULL_MODE_NONE;
   configInfo.rasterizationInfo.frontFace               = VK_FRONT_FACE_CLOCKWISE;
   configInfo.rasterizationInfo.depthBiasEnable         = VK_FALSE;

@@ -78,7 +78,6 @@ uint32_t VulkDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags p
     }
   }
 
-  LOG_CORE_ERROR("failed to find suitable memory type!");
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
@@ -99,7 +98,6 @@ VkFormat VulkDevice::FindSupportedFormat(const std::vector<VkFormat>& candidates
       return format;
     }
   }
-  LOG_CORE_ERROR("failed to find supported format!");
   throw std::runtime_error("failed to find supported format!");
 }
 
@@ -118,7 +116,6 @@ void VulkDevice::CreateBuffer(VkDeviceSize          size,
 
   if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create vertex buffer!");
     throw std::runtime_error("failed to create vertex buffer!");
   }
 
@@ -132,7 +129,6 @@ void VulkDevice::CreateBuffer(VkDeviceSize          size,
 
   if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to allocate vertex buffer memory!");
     throw std::runtime_error("failed to allocate vertex buffer memory!");
   }
 
@@ -219,7 +215,6 @@ void VulkDevice::CreateImageWithInfo(const VkImageCreateInfo& imageInfo,
 {
   if (vkCreateImage(m_Device, &imageInfo, nullptr, &image) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create image!");
     throw std::runtime_error("failed to create image!");
   }
 
@@ -233,13 +228,11 @@ void VulkDevice::CreateImageWithInfo(const VkImageCreateInfo& imageInfo,
 
   if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to allocate image memory!");
     throw std::runtime_error("failed to allocate image memory!");
   }
 
   if (vkBindImageMemory(m_Device, image, imageMemory, 0) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to bind image memory!");
     throw std::runtime_error("failed to bind image memory!");
   }
 }
@@ -249,7 +242,6 @@ void VulkDevice::CreateInstance()
 {
   if (enableValidationLayers && !CheckValidationLayerSupport())
   {
-    LOG_CORE_ERROR("validation layers requested, but not available!");
     throw std::runtime_error("validation layers requested, but not available!");
   }
 
@@ -291,7 +283,6 @@ void VulkDevice::CreateInstance()
 
   if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create instance!");
     throw std::runtime_error("failed to create instance!");
   }
 
@@ -323,7 +314,6 @@ void VulkDevice::SetupDebugMessenger()
 
   if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to set up debug messenger!");
     throw std::runtime_error("failed to set up debug messenger!");
   }
 }
@@ -386,7 +376,6 @@ void VulkDevice::PickPhysicalDevice()
   vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
   if (deviceCount == 0)
   {
-    LOG_CORE_ERROR("failed to find GPUs with Vulkan support!");
     throw std::runtime_error("failed to find GPUs with Vulkan support!");
   }
   LOG_CORE_INFO("Device count: {}", deviceCount);
@@ -405,7 +394,6 @@ void VulkDevice::PickPhysicalDevice()
 
   if (m_PhysicalDevice == VK_NULL_HANDLE)
   {
-    LOG_CORE_ERROR("failed to find a suitable GPU!");
     throw std::runtime_error("failed to find a suitable GPU!");
   }
 
@@ -447,7 +435,6 @@ void VulkDevice::CreateLogicalDevice()
 
   if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create logical device!");
     throw std::runtime_error("failed to create logical device!");
   }
 
@@ -467,7 +454,6 @@ void VulkDevice::CreateCommandPool()
 
   if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("failed to create command pool!");
     throw std::runtime_error("failed to create command pool!");
   }
 }
@@ -552,7 +538,6 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
     LOG_CORE_INFO("\t{}", required);
     if (available.find(required) == available.end())
     {
-      LOG_CORE_ERROR("Missing required glfw extension");
       throw std::runtime_error("Missing required glfw extension");
     }
   }
@@ -608,7 +593,6 @@ void VulkDevice::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
   auto* window = m_Window->GetWindow();
   if (glfwCreateWindowSurface(instance, window, nullptr, surface) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("glfw failed to create surface");
     throw std::runtime_error("glfw failed to create surface");
   }
 }

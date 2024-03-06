@@ -20,7 +20,7 @@ m_Height(height)
   }
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
   m_Window = glfwCreateWindow(width, height, std::string(title).data(), nullptr, nullptr);
   glfwSetWindowUserPointer(m_Window, this);

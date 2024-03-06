@@ -1,11 +1,11 @@
 #pragma once
 
-
-#include "renderer/vulkan/vulkDevice.hpp"
 #include "vulkan/vulkan_core.h"
 #include "window/window.hpp"
+
 namespace four
 {
+class VulkDevice;
 
 class VulkSwapChain
 {

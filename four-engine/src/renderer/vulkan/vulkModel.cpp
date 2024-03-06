@@ -1,7 +1,7 @@
 #include "four-pch.h"
 
-#include "vulkModel.hpp"
-
+#include "renderer/vulkan/vulkDevice.hpp"
+#include "renderer/vulkan/vulkModel.hpp"
 
 namespace four
 {
@@ -56,12 +56,9 @@ std::vector<VkVertexInputBindingDescription> VulkModel::Vertex::GetBindingDescri
 }
 std::vector<VkVertexInputAttributeDescription> VulkModel::Vertex::GetAttributeDescriptions()
 {
-  std::vector<VkVertexInputAttributeDescription> attributeDescriptions(1);
-  attributeDescriptions[0].binding  = 0;
-  attributeDescriptions[0].location = 0;
-  attributeDescriptions[0].format   = VK_FORMAT_R32G32_SFLOAT;
-  attributeDescriptions[0].offset   = offsetof(Vertex, position);
-  return attributeDescriptions;
+  // location, binding, format, offset
+  return {{0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position)},
+          {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}};
 }
 
 } // namespace four
