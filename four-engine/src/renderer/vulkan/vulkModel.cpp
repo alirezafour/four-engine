@@ -36,10 +36,9 @@ void VulkModel::CreateVertexBuffers(const std::vector<Vertex>& vertices)
 
 void VulkModel::Bind(VkCommandBuffer commandBuffer)
 {
-  VkBuffer     buffers[] = {m_VertexBuffer};
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
-  Bind(commandBuffer);
+  std::array<VkBuffer, 1>     buffers{m_VertexBuffer};
+  std::array<VkDeviceSize, 1> offsets{0};
+  vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers.data(), offsets.data());
 }
 
 void VulkModel::Draw(VkCommandBuffer commandBuffer)

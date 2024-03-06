@@ -36,6 +36,7 @@ std::vector<char> VulkPipeline::ReadFile(std::string_view filePath)
   std::ifstream file(filePath.data(), std::ios::ate | std::ios::binary);
   if (!file.is_open())
   {
+    LOG_CORE_ERROR("failed to open file: {}", filePath);
     throw std::runtime_error("failed to open file: " + std::string(filePath));
   }
 
@@ -118,6 +119,7 @@ void VulkPipeline::CreateGraphicPipeline(std::string_view vertPath, std::string_
   if (vkCreateGraphicsPipelines(m_Device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) !=
       VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create graphics pipeline");
     throw std::runtime_error("failed to create graphics pipeline");
   }
 }
@@ -132,6 +134,7 @@ void VulkPipeline::CreateShaderModule(const std::vector<char>& code, VkShaderMod
 
   if (vkCreateShaderModule(m_Device.GetDevice(), &createInfo, nullptr, shaderModule) != VK_SUCCESS)
   {
+    LOG_CORE_ERROR("failed to create shader module");
     throw std::runtime_error("failed to create shader module");
   }
 }

@@ -295,7 +295,7 @@ void VulkDevice::CreateInstance()
     throw std::runtime_error("failed to create instance!");
   }
 
-  HasGflwRequiredInstanceExtensions();
+  // HasGflwRequiredInstanceExtensions();
 }
 
 //===========================================================================================
@@ -444,18 +444,6 @@ void VulkDevice::CreateLogicalDevice()
   createInfo.pEnabledFeatures        = &deviceFeatures;
   createInfo.enabledExtensionCount   = static_cast<uint32_t>(m_DeviceExtensions.size());
   createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
-
-  // might not really be necessary anymore because device specific validation layers
-  // have been deprecated
-  if (enableValidationLayers)
-  {
-    createInfo.enabledLayerCount   = static_cast<uint32_t>(m_ValidationLayers.size());
-    createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
-  }
-  else
-  {
-    createInfo.enabledLayerCount = 0;
-  }
 
   if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
   {
