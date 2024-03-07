@@ -158,6 +158,8 @@ private:
   void CreatePipeLine();
   void CreateCommandBuffers();
   void DrawFrame();
+  void ReCreateSwapChain();
+  void RecordCommandBuffers(uint32_t imageIndex);
 
 private:
   /** singletone instance of Engine */
@@ -168,11 +170,14 @@ private:
 
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
-  std::unique_ptr<VulkDevice>          m_VulkDevice;
-  std::unique_ptr<VulkSwapChain>       m_SwapChain;
-  std::unique_ptr<VulkPipeline>        m_VulkPipeline;
-  VkPipelineLayout                     m_PipelineLayout;
-  std::vector<VkCommandBuffer>         m_CommandBuffers;
-  std::unique_ptr<VulkModel>           m_VulkModel;
+
+  /** TODO: will be abstracted in the future */
+  /** vulkan */
+  std::unique_ptr<VulkDevice>    m_VulkDevice;
+  std::unique_ptr<VulkSwapChain> m_SwapChain;
+  std::unique_ptr<VulkPipeline>  m_VulkPipeline;
+  VkPipelineLayout               m_PipelineLayout;
+  std::vector<VkCommandBuffer>   m_CommandBuffers;
+  std::unique_ptr<VulkModel>     m_VulkModel;
 };
 } // namespace four

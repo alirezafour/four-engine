@@ -122,6 +122,31 @@ public:
     return GetConstDerived()->ShouldCloseImpl();
   }
 
+  /**
+   * @brief check if window was resized
+   * @return true if window was resized
+   */
+  [[nodiscard]] bool WasWindowResized() const noexcept
+  {
+    return GetConstDerived()->WasWindowResizedImpl();
+  }
+
+  /**
+   * @brief reset window resize flag
+   */
+  void ResetWindowResized()
+  {
+    GetDerived()->ResetWindowResizedImpl();
+  }
+
+  /**
+   * @brief wait for events
+   */
+  void WaitEvents()
+  {
+    GetDerived()->WaitEventsImpl();
+  }
+
 
 private:
   Window() = default;

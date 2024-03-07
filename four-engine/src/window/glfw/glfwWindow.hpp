@@ -97,6 +97,30 @@ private:
    */
   [[nodiscard]] bool ShouldCloseImpl() const noexcept;
 
+
+  /**
+   * @brief Return if window was resized
+   *
+   * @return flag to know that window was resized
+   */
+  [[nodiscard]] bool WasWindowResizedImpl() const noexcept
+  {
+    return m_FrameBufferResized;
+  }
+
+  /**
+   * @brief Reset window resize flag
+   */
+  void ResetWindowResizedImpl() noexcept
+  {
+    m_FrameBufferResized = false;
+  }
+
+  /**
+   * @brief Wait for events implementation
+   */
+  void WaitEventsImpl() const;
+
   /**
    * @brief Callback for glfw errors
    *
@@ -104,12 +128,16 @@ private:
    */
   static void GlfwErrorsCallback(int32_t /*error*/, const char* descripton);
 
+private:
+  static void FrameBufferResizedCallback(GLFWwindow* window, int32_t width, int32_t height);
 
 private:
   /** Reference to glfw window */
   GLFWwindow* m_Window;
+  std::string m_Title;
   uint32_t    m_Width;
   uint32_t    m_Height;
+  bool        m_FrameBufferResized = false;
 };
 
 } // namespace four
