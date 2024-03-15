@@ -10,6 +10,14 @@
 #include "renderer/vulkan/vulkDevice.hpp"
 #include "renderer/vulkan/vulkSwapChain.hpp"
 #include "renderer/vulkan/vulkModel.hpp"
+// glm testing
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "glm/glm.hpp"
+#include "glm/gtc/constants.hpp"
+
+// test gameobject
+#include "core/tempGameObj.hpp"
 
 
 // check to use proper window
@@ -154,7 +162,9 @@ private:
   void OnResize(uint32_t width, uint32_t height);
 
 private:
-  void LoadModels();
+  // tesing
+  void LoadGameObjects();
+
   void CreatePipeLineLayout();
   void CreatePipeLine();
   void CreateCommandBuffers();
@@ -162,6 +172,7 @@ private:
   void DrawFrame();
   void ReCreateSwapChain();
   void RecordCommandBuffers(uint32_t imageIndex);
+  void RenderGameObjects(VkCommandBuffer commandBuffer);
 
 private:
   /** singletone instance of Engine */
@@ -180,6 +191,8 @@ private:
   std::unique_ptr<VulkPipeline>  m_VulkPipeline;
   VkPipelineLayout               m_PipelineLayout;
   std::vector<VkCommandBuffer>   m_CommandBuffers;
-  std::unique_ptr<VulkModel>     m_VulkModel;
+
+  //testing
+  std::vector<TempGameObj> m_GameObjects;
 };
 } // namespace four

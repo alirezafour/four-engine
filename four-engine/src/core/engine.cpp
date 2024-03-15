@@ -2,10 +2,6 @@
 
 #include "core/engine.hpp"
 
-// glm testing
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
 
 namespace four
 {
@@ -13,6 +9,7 @@ namespace four
 // testing push constants
 struct SimplePushConstants
 {
+  glm::mat2 transform{1.0F};
   glm::vec2 offset;
   alignas(16) glm::vec3 color;
 };
@@ -32,7 +29,7 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
   m_VulkDevice = std::make_unique<VulkDevice>(m_Window.get());
   m_VulkDevice->InitVulkan();
 
-  LoadModels();
+  LoadGameObjects();
   CreatePipeLineLayout();
   ReCreateSwapChain();
   CreateCommandBuffers();
@@ -224,23 +221,7 @@ void Engine::RecordCommandBuffers(uint32_t imageIndex)
   vkCmdSetScissor(m_CommandBuffers[imageIndex], 0, 1, &scissor);
 
   m_VulkPipeline->Bind(m_CommandBuffers[imageIndex]);
-  m_VulkModel->Bind(m_CommandBuffers[imageIndex]);
-
-  for (int i = 0; i < 4; ++i)
-  {
-    auto                change = static_cast<float>(i);
-    SimplePushConstants push{};
-    push.offset = glm::vec2(0.0F, -0.4F + 0.2F * change);
-    push.color  = glm::vec3(0.0F, 0.0F, 0.1F * change);
-    vkCmdPushConstants(m_CommandBuffers[imageIndex],
-                       m_PipelineLayout,
-                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                       0,
-                       sizeof(SimplePushConstants),
-                       &push);
-
-    m_VulkModel->Draw(m_CommandBuffers[imageIndex]);
-  }
+  RenderGameObjects(m_CommandBuffers[imageIndex]);
 
   vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
   if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS)
@@ -279,13 +260,43 @@ void Engine::DrawFrame()
   }
 }
 
-void Engine::LoadModels()
+void Engine::LoadGameObjects()
 {
   std::vector<VulkModel::Vertex> vertices = {{{0.0F, -0.5F}, {1.0F, 0.0F, 0.0F}},
                                              {{0.5F, 0.5F}, {0.0F, 1.0F, 0.0F}},
                                              {{-0.5F, 0.5F}, {0.0F, 0.0F, 1.0F}}};
 
-  m_VulkModel = std::make_unique<VulkModel>(*m_VulkDevice, vertices);
+  auto vulkModel = std::make_shared<VulkModel>(*m_VulkDevice, vertices);
+
+  auto triangle = TempGameObj::Create();
+  triangle.SetModel(vulkModel);
+  triangle.SetColor(glm::vec3(0.1F, 0.8F, 0.1F));
+  triangle.SetTransform2D({{0.2F, 0.0F}, {2.0F, 0.5F}, 0.25F * glm::two_pi<float>()});
+
+
+  m_GameObjects.push_back(std::move(triangle));
+}
+
+void Engine::RenderGameObjects(VkCommandBuffer commandBuffer)
+{
+  for (auto& gameObj : m_GameObjects)
+  {
+    auto transform     = gameObj.GetTransform2D();
+    transform.rotation = glm::mod(transform.rotation + 0.0001F, glm::two_pi<float>());
+    gameObj.SetTransform2D(transform);
+    SimplePushConstants push{};
+    push.offset    = gameObj.GetTransform2D().translation;
+    push.color     = gameObj.GetColor();
+    push.transform = gameObj.GetTransform2D().mat2();
+    vkCmdPushConstants(commandBuffer,
+                       m_PipelineLayout,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                       0,
+                       sizeof(SimplePushConstants),
+                       &push);
+    gameObj.GetModel()->Bind(commandBuffer);
+    gameObj.GetModel()->Draw(commandBuffer);
+  }
 }
 
 } // namespace four
