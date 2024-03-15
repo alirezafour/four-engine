@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "four-pch.h"
 
 #include "renderer/vulkan/vulkSwapChain.hpp"
@@ -10,12 +12,28 @@ VulkSwapChain::VulkSwapChain(VulkDevice& deviceRef, WindowExtent extent) :
 m_VulkDevice{deviceRef},
 m_WindowExtent{extent}
 {
+  Init();
+}
+
+void VulkSwapChain::Init()
+{
   CreateSwapChain();
   CreateImageViews();
   CreateRenderPass();
   CreateDepthResources();
   CreateFramebuffers();
   CreateSyncObjects();
+}
+
+VulkSwapChain::VulkSwapChain(VulkDevice& deviceRef, WindowExtent extent, std::shared_ptr<VulkSwapChain> prevSwapChain) :
+m_VulkDevice{deviceRef},
+m_WindowExtent{extent},
+m_PrevSwapChain{std::move(prevSwapChain)}
+{
+  Init();
+
+  // cheanup old swap chain since it's no longer needed
+  m_PrevSwapChain.reset();
 }
 
 VulkSwapChain::~VulkSwapChain()
@@ -165,7 +183,7 @@ void VulkSwapChain::CreateSwapChain()
   createInfo.presentMode = presentMode;
   createInfo.clipped     = VK_TRUE;
 
-  createInfo.oldSwapchain = VK_NULL_HANDLE;
+  createInfo.oldSwapchain = m_PrevSwapChain ? m_PrevSwapChain->GetSwapChainHandle() : VK_NULL_HANDLE;
 
   if (vkCreateSwapchainKHR(m_VulkDevice.GetDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
   {

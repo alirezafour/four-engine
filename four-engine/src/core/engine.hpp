@@ -157,6 +157,7 @@ private:
   void CreatePipeLineLayout();
   void CreatePipeLine();
   void CreateCommandBuffers();
+  void FreeCommandBuffer();
   void DrawFrame();
   void ReCreateSwapChain();
   void RecordCommandBuffers(uint32_t imageIndex);

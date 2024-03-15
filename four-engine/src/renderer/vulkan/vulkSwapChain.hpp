@@ -12,7 +12,8 @@ class VulkSwapChain
 public:
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  VulkSwapChain(VulkDevice& device, WindowExtent windowExtent);
+  explicit VulkSwapChain(VulkDevice& device, WindowExtent windowExtent);
+  explicit VulkSwapChain(VulkDevice& device, WindowExtent windowExtent, std::shared_ptr<VulkSwapChain> prevSwapChain);
   ~VulkSwapChain();
 
   VulkSwapChain(const VulkSwapChain&)            = delete;
@@ -63,7 +64,13 @@ public:
   [[nodiscard]] VkResult AcquireNextImage(uint32_t* imageIndex);
   [[nodiscard]] VkResult SubmitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex);
 
+  [[nodiscard]] VkSwapchainKHR GetSwapChainHandle() const
+  {
+    return m_SwapChain;
+  }
+
 private:
+  void Init();
   void CreateSwapChain();
   void CreateImageViews();
   void CreateDepthResources();
@@ -80,8 +87,9 @@ private:
   VkFormat   m_SwapChainImageFormat;
   VkExtent2D m_SwapChainExtent;
 
-  std::vector<VkFramebuffer> m_SwapChainFramebuffers;
-  VkRenderPass               m_RenderPass;
+  std::vector<VkFramebuffer>     m_SwapChainFramebuffers;
+  VkRenderPass                   m_RenderPass;
+  std::shared_ptr<VulkSwapChain> m_PrevSwapChain;
 
   std::vector<VkImage>        m_DepthImages;
   std::vector<VkDeviceMemory> m_DepthImageMemorys;

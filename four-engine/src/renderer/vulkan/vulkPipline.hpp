@@ -8,14 +8,19 @@ class VulkDevice;
 
 struct PipeLineConfigInfo
 {
-  VkViewport                             viewport;
-  VkRect2D                               scissor;
+  PipeLineConfigInfo()                                     = default;
+  PipeLineConfigInfo(const PipeLineConfigInfo&)            = delete;
+  PipeLineConfigInfo& operator=(const PipeLineConfigInfo&) = delete;
+
+  VkPipelineViewportStateCreateInfo      viewportInfo;
   VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
   VkPipelineRasterizationStateCreateInfo rasterizationInfo;
   VkPipelineMultisampleStateCreateInfo   multisampleInfo;
   VkPipelineColorBlendAttachmentState    colorBlendAttachment;
   VkPipelineColorBlendStateCreateInfo    colorBlendInfo;
   VkPipelineDepthStencilStateCreateInfo  depthStencilInfo;
+  std::vector<VkDynamicState>            dynamicStateEnables;
+  VkPipelineDynamicStateCreateInfo       dynamicStateInfo;
   VkPipelineLayout                       pipelineLayout = nullptr;
   VkRenderPass                           renderPass     = nullptr;
   uint32_t                               subpass        = 0;
@@ -31,7 +36,7 @@ public:
   VulkPipeline& operator=(VulkPipeline&&)      = delete;
   ~VulkPipeline();
 
-  static PipeLineConfigInfo DefaultPipeLineConfigInfo(const uint32_t width, const uint32_t height);
+  static void DefaultPipeLineConfigInfo(PipeLineConfigInfo& configInfo);
 
   void Bind(VkCommandBuffer commandBuffer);
 

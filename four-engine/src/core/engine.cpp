@@ -97,7 +97,8 @@ void Engine::CreatePipeLineLayout()
 }
 void Engine::CreatePipeLine()
 {
-  auto pipelineConfig = VulkPipeline::DefaultPipeLineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+  PipeLineConfigInfo pipelineConfig{};
+  VulkPipeline::DefaultPipeLineConfigInfo(pipelineConfig);
   pipelineConfig.renderPass     = m_SwapChain->GetRenderPass();
   pipelineConfig.pipelineLayout = m_PipelineLayout;
   m_VulkPipeline                = std::make_unique<VulkPipeline>(*m_VulkDevice,
@@ -116,15 +117,37 @@ void Engine::ReCreateSwapChain()
   }
 
   vkDeviceWaitIdle(m_VulkDevice->GetDevice());
+
+  // if already have a valid swapchain, pass it to VulkSwapChain
   if (m_SwapChain)
   {
-    m_SwapChain.reset();
+    m_SwapChain = std::make_unique<VulkSwapChain>(*m_VulkDevice, extent, std::move(m_SwapChain));
+
+    // if ImageCount is not same as CommandBuffers, free and create new
+    if (m_SwapChain->ImageCount() != m_CommandBuffers.size())
+    {
+      FreeCommandBuffer();
+      CreateCommandBuffers();
+    }
   }
-  m_SwapChain = std::make_unique<VulkSwapChain>(*m_VulkDevice, extent);
+  else
+  {
+    m_SwapChain = std::make_unique<VulkSwapChain>(*m_VulkDevice, extent);
+  }
 
   CreatePipeLine();
 }
 
+
+void Engine::FreeCommandBuffer()
+{
+  vkFreeCommandBuffers(m_VulkDevice->GetDevice(),
+                       m_VulkDevice->GetCommandPool(),
+                       static_cast<uint32_t>(m_CommandBuffers.size()),
+                       m_CommandBuffers.data());
+
+  m_CommandBuffers.clear();
+}
 
 void Engine::CreateCommandBuffers()
 {
@@ -157,7 +180,7 @@ void Engine::RecordCommandBuffers(uint32_t imageIndex)
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass  = m_SwapChain->GetRenderPass();
-  renderPassInfo.framebuffer = m_SwapChain->GetFrameBuffer(imageIndex);
+  renderPassInfo.framebuffer = m_SwapChain->GetFrameBuffer(static_cast<int>(imageIndex));
 
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = m_SwapChain->GetSwapChainExtent();
@@ -169,6 +192,17 @@ void Engine::RecordCommandBuffers(uint32_t imageIndex)
   renderPassInfo.pClearValues    = clearValues.data();
 
   vkCmdBeginRenderPass(m_CommandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+  VkViewport viewport{};
+  viewport.x        = 0.0F;
+  viewport.y        = 0.0F;
+  viewport.width    = static_cast<float>(m_SwapChain->GetSwapChainExtent().width);
+  viewport.height   = static_cast<float>(m_SwapChain->GetSwapChainExtent().height);
+  viewport.minDepth = 0.0F;
+  viewport.maxDepth = 1.0F;
+  VkRect2D scissor{{0, 0}, m_SwapChain->GetSwapChainExtent()};
+  vkCmdSetViewport(m_CommandBuffers[imageIndex], 0, 1, &viewport);
+  vkCmdSetScissor(m_CommandBuffers[imageIndex], 0, 1, &scissor);
 
   m_VulkPipeline->Bind(m_CommandBuffers[imageIndex]);
   m_VulkModel->Bind(m_CommandBuffers[imageIndex]);
