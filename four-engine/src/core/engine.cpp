@@ -2,8 +2,21 @@
 
 #include "core/engine.hpp"
 
+// glm testing
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "glm/glm.hpp"
+
 namespace four
 {
+
+// testing push constants
+struct SimplePushConstants
+{
+  glm::vec2 offset;
+  alignas(16) glm::vec3 color;
+};
+
 std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 
 Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
@@ -83,12 +96,18 @@ void Engine::Shutdown()
 
 void Engine::CreatePipeLineLayout()
 {
+
+  VkPushConstantRange pushConstantRange{};
+  pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  pushConstantRange.offset     = 0;
+  pushConstantRange.size       = sizeof(SimplePushConstants);
+
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount         = 0;
   pipelineLayoutInfo.pSetLayouts            = nullptr;
-  pipelineLayoutInfo.pushConstantRangeCount = 0;
-  pipelineLayoutInfo.pPushConstantRanges    = nullptr;
+  pipelineLayoutInfo.pushConstantRangeCount = 1;
+  pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRange;
   if (vkCreatePipelineLayout(m_VulkDevice->GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
   {
     LOG_CORE_ERROR("Failed creating pipeline layout");
@@ -186,7 +205,7 @@ void Engine::RecordCommandBuffers(uint32_t imageIndex)
   renderPassInfo.renderArea.extent = m_SwapChain->GetSwapChainExtent();
 
   std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color           = {0.1F, 0.1F, 0.1F, 1.0F};
+  clearValues[0].color           = {0.01F, 0.01F, 0.01F, 1.0F};
   clearValues[1].depthStencil    = {1.0F, 0};
   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
   renderPassInfo.pClearValues    = clearValues.data();
@@ -206,7 +225,22 @@ void Engine::RecordCommandBuffers(uint32_t imageIndex)
 
   m_VulkPipeline->Bind(m_CommandBuffers[imageIndex]);
   m_VulkModel->Bind(m_CommandBuffers[imageIndex]);
-  m_VulkModel->Draw(m_CommandBuffers[imageIndex]);
+
+  for (int i = 0; i < 4; ++i)
+  {
+    auto                change = static_cast<float>(i);
+    SimplePushConstants push{};
+    push.offset = glm::vec2(0.0F, -0.4F + 0.2F * change);
+    push.color  = glm::vec3(0.0F, 0.0F, 0.1F * change);
+    vkCmdPushConstants(m_CommandBuffers[imageIndex],
+                       m_PipelineLayout,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                       0,
+                       sizeof(SimplePushConstants),
+                       &push);
+
+    m_VulkModel->Draw(m_CommandBuffers[imageIndex]);
+  }
 
   vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
   if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS)
