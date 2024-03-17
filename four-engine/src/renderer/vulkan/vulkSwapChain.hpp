@@ -69,6 +69,11 @@ public:
     return m_SwapChain;
   }
 
+  [[nodiscard]] bool CompareSwapFormats(const VulkSwapChain& swapChain) const
+  {
+    return (m_SwapChainImageFormat == swapChain.m_SwapChainImageFormat) && (m_DepthFormat == swapChain.m_DepthFormat);
+  }
+
 private:
   void Init();
   void CreateSwapChain();
@@ -85,6 +90,7 @@ private:
 
 private:
   VkFormat   m_SwapChainImageFormat;
+  VkFormat   m_DepthFormat;
   VkExtent2D m_SwapChainExtent;
 
   std::vector<VkFramebuffer>     m_SwapChainFramebuffers;

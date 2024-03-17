@@ -6,19 +6,12 @@
 #include "core/layerStack.hpp"
 
 // test vulkan
-#include "renderer/vulkan/vulkPipline.hpp"
 #include "renderer/vulkan/vulkDevice.hpp"
-#include "renderer/vulkan/vulkSwapChain.hpp"
 #include "renderer/vulkan/vulkModel.hpp"
-// glm testing
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "glm/gtc/constants.hpp"
+#include "renderer/renderer.hpp"
 
 // test gameobject
 #include "core/tempGameObj.hpp"
-
 
 // check to use proper window
 #ifdef FOUR_USE_SDL
@@ -36,34 +29,11 @@ namespace four
 class Engine
 {
 public:
-  /**
- * @brief Deleted Default Constructor
- */
-  Engine() = delete;
-
-  /**
-   * @brief Deleted move constructer
-   */
-  Engine(Engine&&) noexcept = delete;
-
-  /**
-   * @brief Deleted move assignment operator
-   */
+  Engine()                             = delete;
+  Engine(Engine&&) noexcept            = delete;
   Engine& operator=(Engine&&) noexcept = delete;
-
-  /**
-   * @brief Deleted copy constructer
-   */
-  Engine(const Engine&) = delete;
-
-  /**
-   * @brief Deleted copy assignment operator
-   */
-  Engine& operator=(const Engine&) = delete;
-
-  /**
-   * @brief Default destructor
-   */
+  Engine(const Engine&)                = delete;
+  Engine& operator=(const Engine&)     = delete;
   ~Engine();
 
   /**
@@ -161,18 +131,7 @@ private:
    */
   void OnResize(uint32_t width, uint32_t height);
 
-private:
-  // tesing
   void LoadGameObjects();
-
-  void CreatePipeLineLayout();
-  void CreatePipeLine();
-  void CreateCommandBuffers();
-  void FreeCommandBuffer();
-  void DrawFrame();
-  void ReCreateSwapChain();
-  void RecordCommandBuffers(uint32_t imageIndex);
-  void RenderGameObjects(VkCommandBuffer commandBuffer);
 
 private:
   /** singletone instance of Engine */
@@ -184,15 +143,8 @@ private:
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
 
-  /** TODO: will be abstracted in the future */
-  /** vulkan */
-  std::unique_ptr<VulkDevice>    m_VulkDevice;
-  std::unique_ptr<VulkSwapChain> m_SwapChain;
-  std::unique_ptr<VulkPipeline>  m_VulkPipeline;
-  VkPipelineLayout               m_PipelineLayout;
-  std::vector<VkCommandBuffer>   m_CommandBuffers;
-
-  //testing
-  std::vector<TempGameObj> m_GameObjects;
+  std::unique_ptr<VulkDevice> m_VulkDevice;
+  std::unique_ptr<Renderer>   m_Renderer;
+  std::vector<TempGameObj>    m_GameObjects;
 };
 } // namespace four

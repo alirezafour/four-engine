@@ -1,21 +1,20 @@
 #include "four-pch.h"
 
 #include "core/engine.hpp"
+#include "renderer/simpleRenderSystem.hpp"
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "glm/glm.hpp"
+#include "glm/gtc/constants.hpp"
 
 namespace four
 {
 
-// testing push constants
-struct SimplePushConstants
-{
-  glm::mat2 transform{1.0F};
-  glm::vec2 offset;
-  alignas(16) glm::vec3 color;
-};
 
 std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 
+//====================================================================================================
 Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Window(nullptr)
 {
   if (!InitLog() || !InitWindow(title, width, height))
@@ -28,31 +27,37 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
   m_ImGuiLayer.PushLayer(std::make_unique<ImGuiLayer>());
   m_VulkDevice = std::make_unique<VulkDevice>(m_Window.get());
   m_VulkDevice->InitVulkan();
+  m_Renderer = std::make_unique<Renderer>(*m_Window, *m_VulkDevice);
 
   LoadGameObjects();
-  CreatePipeLineLayout();
-  ReCreateSwapChain();
-  CreateCommandBuffers();
 }
 
+//====================================================================================================
 Engine::~Engine()
 {
-  vkDestroyPipelineLayout(m_VulkDevice->GetDevice(), m_PipelineLayout, nullptr);
   m_ImGuiLayer.Shutdown();
-  m_VulkPipeline.reset();
   m_VulkDevice->Cleanup();
   m_Window->Shutdown();
   Log::Shutdown();
 }
 
+//====================================================================================================
 void Engine::Run()
 {
   try
   {
+    SimpleRenderSystem simpleRenderSystem(*m_VulkDevice, m_Renderer->GetSwapChainRenderPass());
+
     while (!m_Window->ShouldClose())
     {
       m_Window->OnUpdate();
-      DrawFrame();
+      if (auto* commandBuffer = m_Renderer->BeginFrame())
+      {
+        m_Renderer->BeginSwapChainRenderPass(commandBuffer);
+        simpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects);
+        m_Renderer->EndSwapChainRenderPass(commandBuffer);
+        m_Renderer->EndFrame();
+      }
       m_ImGuiLayer.OnUpdate();
     }
   } catch (const std::exception& e)
@@ -63,11 +68,13 @@ void Engine::Run()
   vkDeviceWaitIdle(m_VulkDevice->GetDevice());
 }
 
+//====================================================================================================
 bool Engine::InitLog()
 {
   return Log::Init();
 }
 
+//====================================================================================================
 bool Engine::InitWindow(std::string_view title, uint32_t width, uint32_t height)
 {
   m_Window.reset();
@@ -81,185 +88,19 @@ bool Engine::InitWindow(std::string_view title, uint32_t width, uint32_t height)
   return true;
 }
 
+//====================================================================================================
 void Engine::OnResize(uint32_t width, uint32_t height)
 {
   LOG_CORE_INFO("resize: w: {}, h {}", width, height);
 }
 
+//====================================================================================================
 void Engine::Shutdown()
 {
   sm_Instance.reset();
 }
 
-void Engine::CreatePipeLineLayout()
-{
-
-  VkPushConstantRange pushConstantRange{};
-  pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-  pushConstantRange.offset     = 0;
-  pushConstantRange.size       = sizeof(SimplePushConstants);
-
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount         = 0;
-  pipelineLayoutInfo.pSetLayouts            = nullptr;
-  pipelineLayoutInfo.pushConstantRangeCount = 1;
-  pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRange;
-  if (vkCreatePipelineLayout(m_VulkDevice->GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
-  {
-    LOG_CORE_ERROR("Failed creating pipeline layout");
-    throw std::runtime_error("failed creating pipeline layout");
-  }
-}
-void Engine::CreatePipeLine()
-{
-  PipeLineConfigInfo pipelineConfig{};
-  VulkPipeline::DefaultPipeLineConfigInfo(pipelineConfig);
-  pipelineConfig.renderPass     = m_SwapChain->GetRenderPass();
-  pipelineConfig.pipelineLayout = m_PipelineLayout;
-  m_VulkPipeline                = std::make_unique<VulkPipeline>(*m_VulkDevice,
-                                                  pipelineConfig,
-                                                  "shaders/simpleShader.vert.spv",
-                                                  "shaders/simpleShader.frag.spv");
-}
-
-void Engine::ReCreateSwapChain()
-{
-  auto extent = m_Window->GetExtent();
-  while (extent.width == 0 || extent.height == 0)
-  {
-    extent = m_Window->GetExtent();
-    m_Window->WaitEvents();
-  }
-
-  vkDeviceWaitIdle(m_VulkDevice->GetDevice());
-
-  // if already have a valid swapchain, pass it to VulkSwapChain
-  if (m_SwapChain)
-  {
-    m_SwapChain = std::make_unique<VulkSwapChain>(*m_VulkDevice, extent, std::move(m_SwapChain));
-
-    // if ImageCount is not same as CommandBuffers, free and create new
-    if (m_SwapChain->ImageCount() != m_CommandBuffers.size())
-    {
-      FreeCommandBuffer();
-      CreateCommandBuffers();
-    }
-  }
-  else
-  {
-    m_SwapChain = std::make_unique<VulkSwapChain>(*m_VulkDevice, extent);
-  }
-
-  CreatePipeLine();
-}
-
-
-void Engine::FreeCommandBuffer()
-{
-  vkFreeCommandBuffers(m_VulkDevice->GetDevice(),
-                       m_VulkDevice->GetCommandPool(),
-                       static_cast<uint32_t>(m_CommandBuffers.size()),
-                       m_CommandBuffers.data());
-
-  m_CommandBuffers.clear();
-}
-
-void Engine::CreateCommandBuffers()
-{
-  m_CommandBuffers.resize(m_SwapChain->ImageCount());
-
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool        = m_VulkDevice->GetCommandPool();
-  allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
-
-  if (vkAllocateCommandBuffers(m_VulkDevice->GetDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS)
-  {
-    LOG_CORE_ERROR("failed to allocate command buffers!");
-    throw std::runtime_error("failed to allocate command buffers!");
-  }
-}
-
-void Engine::RecordCommandBuffers(uint32_t imageIndex)
-{
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  if (vkBeginCommandBuffer(m_CommandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
-  {
-    LOG_CORE_ERROR("failed to begin recording command buffer!");
-    throw std::runtime_error("failed to begin recording command buffer!");
-  }
-
-  VkRenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass  = m_SwapChain->GetRenderPass();
-  renderPassInfo.framebuffer = m_SwapChain->GetFrameBuffer(static_cast<int>(imageIndex));
-
-  renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = m_SwapChain->GetSwapChainExtent();
-
-  std::array<VkClearValue, 2> clearValues{};
-  clearValues[0].color           = {0.01F, 0.01F, 0.01F, 1.0F};
-  clearValues[1].depthStencil    = {1.0F, 0};
-  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-  renderPassInfo.pClearValues    = clearValues.data();
-
-  vkCmdBeginRenderPass(m_CommandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-  VkViewport viewport{};
-  viewport.x        = 0.0F;
-  viewport.y        = 0.0F;
-  viewport.width    = static_cast<float>(m_SwapChain->GetSwapChainExtent().width);
-  viewport.height   = static_cast<float>(m_SwapChain->GetSwapChainExtent().height);
-  viewport.minDepth = 0.0F;
-  viewport.maxDepth = 1.0F;
-  VkRect2D scissor{{0, 0}, m_SwapChain->GetSwapChainExtent()};
-  vkCmdSetViewport(m_CommandBuffers[imageIndex], 0, 1, &viewport);
-  vkCmdSetScissor(m_CommandBuffers[imageIndex], 0, 1, &scissor);
-
-  m_VulkPipeline->Bind(m_CommandBuffers[imageIndex]);
-  RenderGameObjects(m_CommandBuffers[imageIndex]);
-
-  vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
-  if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS)
-  {
-    throw std::runtime_error("failed to record command buffer!");
-  }
-}
-void Engine::DrawFrame()
-{
-  uint32_t imageIndex = 0;
-  VkResult result     = m_SwapChain->AcquireNextImage(&imageIndex);
-
-  if (result == VK_ERROR_OUT_OF_DATE_KHR)
-  {
-    ReCreateSwapChain();
-    return;
-  }
-
-  if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-  {
-    throw std::runtime_error("failed to acquire swap chain image");
-  }
-
-  RecordCommandBuffers(imageIndex);
-  result = m_SwapChain->SubmitCommandBuffers(&m_CommandBuffers[imageIndex], &imageIndex);
-
-  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Window->WasWindowResized())
-  {
-    m_Window->ResetWindowResized();
-    ReCreateSwapChain();
-    return;
-  }
-  else if (result != VK_SUCCESS)
-  {
-    throw std::runtime_error("failed to present swap chain image");
-  }
-}
-
+//====================================================================================================
 void Engine::LoadGameObjects()
 {
   std::vector<VulkModel::Vertex> vertices = {{{0.0F, -0.5F}, {1.0F, 0.0F, 0.0F}},
@@ -275,28 +116,6 @@ void Engine::LoadGameObjects()
 
 
   m_GameObjects.push_back(std::move(triangle));
-}
-
-void Engine::RenderGameObjects(VkCommandBuffer commandBuffer)
-{
-  for (auto& gameObj : m_GameObjects)
-  {
-    auto transform     = gameObj.GetTransform2D();
-    transform.rotation = glm::mod(transform.rotation + 0.0001F, glm::two_pi<float>());
-    gameObj.SetTransform2D(transform);
-    SimplePushConstants push{};
-    push.offset    = gameObj.GetTransform2D().translation;
-    push.color     = gameObj.GetColor();
-    push.transform = gameObj.GetTransform2D().mat2();
-    vkCmdPushConstants(commandBuffer,
-                       m_PipelineLayout,
-                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                       0,
-                       sizeof(SimplePushConstants),
-                       &push);
-    gameObj.GetModel()->Bind(commandBuffer);
-    gameObj.GetModel()->Draw(commandBuffer);
-  }
 }
 
 } // namespace four

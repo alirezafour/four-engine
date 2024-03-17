@@ -311,7 +311,8 @@ void VulkSwapChain::CreateFramebuffers()
 
 void VulkSwapChain::CreateDepthResources()
 {
-  VkFormat   depthFormat     = FindDepthFormat();
+  VkFormat depthFormat       = FindDepthFormat();
+  m_DepthFormat              = depthFormat;
   VkExtent2D swapChainExtent = GetSwapChainExtent();
 
   m_DepthImages.resize(ImageCount());
