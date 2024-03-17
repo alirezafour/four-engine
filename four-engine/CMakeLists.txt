@@ -48,6 +48,10 @@ elseif(FOUR_USE_GLFW)
   list(APPEND SOURCES ${GLFW_TO_ADD})
 endif(FOUR_USE_SDL)
 
+# imgui backend
+file(GLOB IMGUI_TO_ADD "vendor/imgui/*.cpp" "vendor/imgui/backends/imgui_impl_glfw.cpp" "vendor/imgui/backends/imgui_impl_vulkan.cpp")
+list(APPEND SOURCES ${IMGUI_TO_ADD})
+
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
 

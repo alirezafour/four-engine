@@ -8,11 +8,18 @@ namespace four
 class ImGuiLayer : public Layer<ImGuiLayer>
 {
 public:
-  bool Init();
-  void Shutdown();
-  void OnAttach();
-  void OnDetach();
-  void OnUpdate();
-  void OnEvent();
+  virtual ~ImGuiLayer() = default;
+
+  bool         Init();
+  void         Shutdown();
+  void         OnAttach();
+  void         OnDetach();
+  void         OnUpdate();
+  virtual void OnImGuiRender();
+  void         OnEvent();
+
+private:
+  void begin();
+  void end();
 };
 } // namespace four

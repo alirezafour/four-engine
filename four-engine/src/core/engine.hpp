@@ -7,11 +7,7 @@
 
 // test vulkan
 #include "renderer/vulkan/vulkDevice.hpp"
-#include "renderer/vulkan/vulkModel.hpp"
 #include "renderer/renderer.hpp"
-
-// test gameobject
-#include "core/tempGameObj.hpp"
 
 // check to use proper window
 #ifdef FOUR_USE_SDL
@@ -25,6 +21,8 @@ using UsingWindow = four::GlfwWindow;
 
 namespace four
 {
+
+class Application;
 
 class Engine
 {
@@ -88,6 +86,26 @@ public:
    */
   static void Shutdown();
 
+  void AddApplicaiton(Application* app)
+  {
+    m_Application = app;
+  }
+
+  void AddImGuiLayer(std::unique_ptr<ImGuiLayer> layer)
+  {
+    m_ImGuiLayer.PushLayer(std::move(layer));
+  }
+
+  [[nodiscard]] VulkDevice* GetVulkDevice() const
+  {
+    return m_VulkDevice.get();
+  }
+
+  [[nodiscard]] Renderer* GetRenderer() const
+  {
+    return m_Renderer.get();
+  }
+
 private:
   /**
    * @brief Constructor of the Engine
@@ -131,8 +149,6 @@ private:
    */
   void OnResize(uint32_t width, uint32_t height);
 
-  void LoadGameObjects();
-
 private:
   /** singletone instance of Engine */
   static std::unique_ptr<Engine> sm_Instance;
@@ -145,6 +161,6 @@ private:
 
   std::unique_ptr<VulkDevice> m_VulkDevice;
   std::unique_ptr<Renderer>   m_Renderer;
-  std::vector<TempGameObj>    m_GameObjects;
+  Application*                m_Application;
 };
 } // namespace four

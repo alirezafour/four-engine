@@ -31,6 +31,10 @@ target_link_libraries(vendor INTERFACE spdlog::spdlog)
 add_subdirectory(glm)
 target_link_libraries(vendor INTERFACE glm::glm)
 
+# imgui
+target_include_directories(vendor INTERFACE imgui)
+target_include_directories(vendor INTERFACE imgui/backends)
+
 # add vulkan with package
 find_package(Vulkan REQUIRED)
 target_include_directories(vendor INTERFACE ${Vulkan_INCLUDE_DIRS})
