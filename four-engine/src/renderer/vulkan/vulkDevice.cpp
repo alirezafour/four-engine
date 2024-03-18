@@ -383,12 +383,12 @@ void VulkDevice::PickPhysicalDevice()
   std::vector<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
 
+  // pick last device
   for (const auto& device : devices)
   {
     if (IsDeviceSuitable(device))
     {
       m_PhysicalDevice = device;
-      break;
     }
   }
 

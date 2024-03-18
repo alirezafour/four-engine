@@ -159,8 +159,10 @@ private:
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
 
-  std::unique_ptr<VulkDevice> m_VulkDevice;
-  std::unique_ptr<Renderer>   m_Renderer;
-  Application*                m_Application;
+  std::unique_ptr<VulkDevice>                        m_VulkDevice;
+  std::unique_ptr<Renderer>                          m_Renderer;
+  Application*                                       m_Application;
+  std::chrono::time_point<std::chrono::system_clock> m_LastFrameTimePoint;
+  float                                              m_LastFrameTime = 0.0F;
 };
 } // namespace four

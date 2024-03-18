@@ -50,7 +50,6 @@ void SimpleRenderSystem::CreatePipeLineLayout()
   pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRange;
   if (vkCreatePipelineLayout(m_VulkDevice.GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
   {
-    LOG_CORE_ERROR("Failed creating pipeline layout");
     throw std::runtime_error("failed creating pipeline layout");
   }
 }
@@ -71,13 +70,13 @@ void SimpleRenderSystem::CreatePipeLine(VkRenderPass renderPass)
 }
 
 //====================================================================================================
-void SimpleRenderSystem::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects)
+void SimpleRenderSystem::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects, float deltaTime)
 {
   m_VulkPipeline->Bind(commandBuffer);
   for (auto& gameObj : gameObjects)
   {
     auto transform     = gameObj.GetTransform2D();
-    transform.rotation = glm::mod(transform.rotation + 0.0001F, glm::two_pi<float>());
+    transform.rotation = glm::mod(transform.rotation + (0.5F * deltaTime), glm::two_pi<float>());
     gameObj.SetTransform2D(transform);
     SimplePushConstants push{};
     push.offset    = gameObj.GetTransform2D().translation;

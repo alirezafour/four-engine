@@ -17,7 +17,7 @@ public:
   explicit SimpleRenderSystem(VulkDevice& vulkDevice, VkRenderPass renderPass);
   ~SimpleRenderSystem();
 
-  void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects);
+  void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects, float deltaTime);
 
 private:
   void CreatePipeLineLayout();

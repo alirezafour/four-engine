@@ -16,8 +16,8 @@ public:
   Application& operator=(Application&&)      = delete;
 
   virtual void Run();
-  virtual void Init()     = 0;
-  virtual void OnUpdate() = 0;
+  virtual void Init()                    = 0;
+  virtual void OnUpdate(float deltaTime) = 0;
 
   Engine* GetEngine()
   {

@@ -38,12 +38,12 @@ void MyApp::LoadGameObjects()
 }
 
 //==================================================================================================
-void MyApp::OnUpdate()
+void MyApp::OnUpdate(float deltaTime)
 {
   if (auto* commandBuffer = GetEngine()->GetRenderer()->BeginFrame())
   {
     GetEngine()->GetRenderer()->BeginSwapChainRenderPass(commandBuffer);
-    m_SimpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects);
+    m_SimpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects, deltaTime);
     GetEngine()->GetRenderer()->EndSwapChainRenderPass(commandBuffer);
     GetEngine()->GetRenderer()->EndFrame();
   }
