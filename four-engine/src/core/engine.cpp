@@ -41,11 +41,10 @@ void Engine::Run()
       const auto startTime = std::chrono::system_clock::now();
       const auto time      = std::chrono::duration<float>(startTime - m_LastFrameTimePoint);
       m_LastFrameTimePoint = startTime;
-      m_LastFrameTime      = time.count();
       m_Window->OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(m_LastFrameTime);
+        m_Application->OnUpdate(time.count());
       }
       m_ImGuiLayer.OnUpdate();
     }

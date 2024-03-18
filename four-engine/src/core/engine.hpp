@@ -163,6 +163,5 @@ private:
   std::unique_ptr<Renderer>                          m_Renderer;
   Application*                                       m_Application;
   std::chrono::time_point<std::chrono::system_clock> m_LastFrameTimePoint;
-  float                                              m_LastFrameTime = 0.0F;
 };
 } // namespace four
