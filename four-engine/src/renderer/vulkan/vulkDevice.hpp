@@ -86,6 +86,12 @@ public:
   }
 
   //===========================================================================================
+  [[nodiscard]] inline VkPhysicalDevice GetPhysicalDevice() const
+  {
+    return m_PhysicalDevice;
+  }
+
+  //===========================================================================================
   [[nodiscard]] inline SwapChainSupportDetails GetSwapChainSupport()
   {
     return QuerySwapChainSupport(m_PhysicalDevice);
@@ -97,6 +103,12 @@ public:
   [[nodiscard]] inline QueueFamilyIndices FindPhysicalQueueFamilies()
   {
     return FindQueueFamilies(m_PhysicalDevice);
+  }
+
+  //===========================================================================================
+  [[nodiscard]] inline VkInstance* GetInstance()
+  {
+    return &m_Instance;
   }
 
   //===========================================================================================

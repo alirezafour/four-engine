@@ -1,5 +1,6 @@
 #include "MyApp.hpp"
 #include "core/engine.hpp"
+#include "core/imgui/imguiLayer.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -17,6 +18,7 @@ m_SimpleRenderSystem{*GetEngine()->GetVulkDevice(), GetEngine()->GetRenderer()->
 void MyApp::Init()
 {
   LoadGameObjects();
+  // GetEngine()->AddImGuiLayer(std::make_unique<four::ImGuiLayer>());
 }
 
 //==================================================================================================

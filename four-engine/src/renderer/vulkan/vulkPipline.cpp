@@ -88,13 +88,6 @@ void VulkPipeline::CreateGraphicPipeline(std::string_view vertPath, std::string_
   vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
   vertexInputInfo.pVertexBindingDescriptions      = bindingDescriptions.data();
 
-  // VkPipelineViewportStateCreateInfo viewportInfo{};
-  // viewportInfo.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  // viewportInfo.viewportCount = 1;
-  // viewportInfo.pViewports    = &configInfo.viewport;
-  // viewportInfo.scissorCount  = 1;
-  // viewportInfo.pScissors     = &configInfo.scissor;
-
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineInfo.stageCount          = 2;
