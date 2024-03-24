@@ -21,44 +21,39 @@ void VulkModel::CreateVertexBuffers(const std::vector<Vertex>& vertices)
 {
   m_VertexCount = static_cast<uint32_t>(vertices.size());
   assert(m_VertexCount >= 3 && "Vertex count must be at least 3");
-  VkDeviceSize bufferSize = sizeof(vertices[0]) * m_VertexCount;
+  vk::DeviceSize bufferSize = sizeof(vertices[0]) * m_VertexCount;
   m_VulkDevice.CreateBuffer(bufferSize,
-                            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            vk::BufferUsageFlagBits::eVertexBuffer,
+                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                             m_VertexBuffer,
                             m_VertexBufferMemory);
 
-  void* data = nullptr;
-  vkMapMemory(m_VulkDevice.GetDevice(), m_VertexBufferMemory, 0, bufferSize, 0, &data);
+  void* data = m_VulkDevice.GetDevice().mapMemory(m_VertexBufferMemory, 0, bufferSize);
   memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-  vkUnmapMemory(m_VulkDevice.GetDevice(), m_VertexBufferMemory);
+  m_VulkDevice.GetDevice().unmapMemory(m_VertexBufferMemory);
 }
 
-void VulkModel::Bind(VkCommandBuffer commandBuffer)
+void VulkModel::Bind(vk::CommandBuffer commandBuffer)
 {
-  std::array<VkBuffer, 1>     buffers{m_VertexBuffer};
-  std::array<VkDeviceSize, 1> offsets{0};
-  vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers.data(), offsets.data());
+  std::array<vk::Buffer, 1>     buffers{m_VertexBuffer};
+  std::array<vk::DeviceSize, 1> offsets{0};
+  commandBuffer.bindVertexBuffers(0, 1, buffers.data(), offsets.data());
 }
 
-void VulkModel::Draw(VkCommandBuffer commandBuffer)
+void VulkModel::Draw(vk::CommandBuffer commandBuffer)
 {
-  vkCmdDraw(commandBuffer, m_VertexCount, 1, 0, 0);
+  commandBuffer.draw(m_VertexCount, 1, 0, 0);
 }
 
-std::vector<VkVertexInputBindingDescription> VulkModel::Vertex::GetBindingDescriptions()
+std::vector<vk::VertexInputBindingDescription> VulkModel::Vertex::GetBindingDescriptions()
 {
-  std::vector<VkVertexInputBindingDescription> bindingDescriptions(1);
-  bindingDescriptions[0].binding   = 0;
-  bindingDescriptions[0].stride    = sizeof(Vertex);
-  bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-  return bindingDescriptions;
+  return {{0, sizeof(Vertex), vk::VertexInputRate::eVertex}};
 }
-std::vector<VkVertexInputAttributeDescription> VulkModel::Vertex::GetAttributeDescriptions()
+std::vector<vk::VertexInputAttributeDescription> VulkModel::Vertex::GetAttributeDescriptions()
 {
   // location, binding, format, offset
-  return {{0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position)},
-          {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}};
+  return {{0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, position)},
+          {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)}};
 }
 
 } // namespace four
