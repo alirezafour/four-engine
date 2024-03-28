@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
+#include "vulkan/vulkan.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -18,8 +18,8 @@ public:
     glm::vec2 position;
     glm::vec3 color;
 
-    static std::vector<VkVertexInputBindingDescription>   GetBindingDescriptions();
-    static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions();
+    static std::vector<vk::VertexInputBindingDescription>   GetBindingDescriptions();
+    static std::vector<vk::VertexInputAttributeDescription> GetAttributeDescriptions();
   };
 
   VulkModel(VulkDevice& m_VulkDevice, std::vector<Vertex>& vertices);
@@ -30,17 +30,17 @@ public:
   VulkModel& operator=(const VulkModel&) = delete;
   VulkModel& operator=(VulkModel&&)      = delete;
 
-  void Bind(VkCommandBuffer commandBuffer);
-  void Draw(VkCommandBuffer commandBuffer);
+  void Bind(vk::CommandBuffer commandBuffer);
+  void Draw(vk::CommandBuffer commandBuffer);
 
 private:
   void CreateVertexBuffers(const std::vector<Vertex>& vertices);
 
 private:
-  VulkDevice&    m_VulkDevice;
-  VkBuffer       m_VertexBuffer;
-  VkDeviceMemory m_VertexBufferMemory;
-  uint32_t       m_VertexCount;
+  VulkDevice&      m_VulkDevice;
+  vk::Buffer       m_VertexBuffer;
+  vk::DeviceMemory m_VertexBufferMemory;
+  uint32_t         m_VertexCount;
 };
 
 } //namespace four

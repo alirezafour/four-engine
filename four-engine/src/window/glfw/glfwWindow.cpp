@@ -1,6 +1,7 @@
 #include "four-pch.h"
 
 #include "window/glfw/glfwWindow.hpp"
+#include "vulkan/vulkan.hpp"
 
 #include "GLFW/glfw3.h"
 
@@ -92,5 +93,11 @@ void GlfwWindow::WaitEventsImpl() const
   glfwWaitEvents();
 }
 
+//----------------------------------------------------------------------------------------
+bool GlfwWindow::CreateVulkanSurfaceImpl(vk::Instance& instance, vk::SurfaceKHR* surface)
+{
+  VkSurfaceKHR surfaceRef = *surface;
+  return glfwCreateWindowSurface(static_cast<VkInstance>(instance), m_Window, nullptr, &surfaceRef) == VK_SUCCESS;
+}
 
 } //namespace four

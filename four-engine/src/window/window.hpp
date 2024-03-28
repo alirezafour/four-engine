@@ -4,6 +4,13 @@
 
 #include "event/windowEvent.hpp"
 
+// forward declaration
+namespace vk
+{
+class Instance;
+class SurfaceKHR;
+} // namespace vk
+
 namespace four
 {
 
@@ -145,6 +152,16 @@ public:
   void WaitEvents()
   {
     GetDerived()->WaitEventsImpl();
+  }
+
+  /**
+   * @brief create vulkan surface
+   * @param instance vulkan instance
+   * @param surface vulkan surface
+   */
+  bool CreateVulkanSurface(vk::Instance& instance, vk::SurfaceKHR* surface)
+  {
+    return GetDerived()->CreateVulkanSurfaceImpl(instance, surface);
   }
 
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
+#include "vulkan/vulkan.hpp"
 #include "window/window.hpp"
 
 namespace four
@@ -22,15 +22,15 @@ public:
   VulkSwapChain& operator=(VulkSwapChain&&)      = delete;
 
 
-  [[nodiscard]] VkFramebuffer GetFrameBuffer(int index) const
+  [[nodiscard]] vk::Framebuffer GetFrameBuffer(int index) const
   {
     return m_SwapChainFramebuffers[index];
   }
-  [[nodiscard]] VkRenderPass GetRenderPass() const
+  [[nodiscard]] vk::RenderPass GetRenderPass() const
   {
     return m_RenderPass;
   }
-  [[nodiscard]] VkImageView GetImageView(int index) const
+  [[nodiscard]] vk::ImageView GetImageView(int index) const
   {
     return m_SwapChainImageViews[index];
   }
@@ -38,11 +38,11 @@ public:
   {
     return m_SwapChainImages.size();
   }
-  [[nodiscard]] VkFormat GetSwapChainImageFormat() const
+  [[nodiscard]] vk::Format GetSwapChainImageFormat() const
   {
     return m_SwapChainImageFormat;
   }
-  [[nodiscard]] VkExtent2D GetSwapChainExtent() const
+  [[nodiscard]] vk::Extent2D GetSwapChainExtent() const
   {
     return m_SwapChainExtent;
   }
@@ -59,12 +59,12 @@ public:
   {
     return static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height);
   }
-  [[nodiscard]] VkFormat FindDepthFormat();
+  [[nodiscard]] vk::Format FindDepthFormat();
 
-  [[nodiscard]] VkResult AcquireNextImage(uint32_t* imageIndex);
-  [[nodiscard]] VkResult SubmitCommandBuffers(const VkCommandBuffer* buffers, uint32_t* imageIndex);
+  [[nodiscard]] vk::Result AcquireNextImage(uint32_t* imageIndex);
+  [[nodiscard]] vk::Result SubmitCommandBuffers(const vk::CommandBuffer* buffers, uint32_t* imageIndex);
 
-  [[nodiscard]] VkSwapchainKHR GetSwapChainHandle() const
+  [[nodiscard]] vk::SwapchainKHR GetSwapChainHandle() const
   {
     return m_SwapChain;
   }
@@ -84,35 +84,35 @@ private:
   void CreateSyncObjects();
 
   // Helper functions
-  [[nodiscard]] VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-  [[nodiscard]] VkPresentModeKHR   ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-  [[nodiscard]] VkExtent2D         ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+  [[nodiscard]] vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+  [[nodiscard]] vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+  [[nodiscard]] vk::Extent2D       ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 
 private:
-  VkFormat   m_SwapChainImageFormat;
-  VkFormat   m_DepthFormat;
-  VkExtent2D m_SwapChainExtent;
+  vk::Format   m_SwapChainImageFormat;
+  vk::Format   m_DepthFormat;
+  vk::Extent2D m_SwapChainExtent;
 
-  std::vector<VkFramebuffer>     m_SwapChainFramebuffers;
-  VkRenderPass                   m_RenderPass;
+  std::vector<vk::Framebuffer>   m_SwapChainFramebuffers;
+  vk::RenderPass                 m_RenderPass;
   std::shared_ptr<VulkSwapChain> m_PrevSwapChain;
 
-  std::vector<VkImage>        m_DepthImages;
-  std::vector<VkDeviceMemory> m_DepthImageMemorys;
-  std::vector<VkImageView>    m_DepthImageViews;
-  std::vector<VkImage>        m_SwapChainImages;
-  std::vector<VkImageView>    m_SwapChainImageViews;
+  std::vector<vk::Image>        m_DepthImages;
+  std::vector<vk::DeviceMemory> m_DepthImageMemorys;
+  std::vector<vk::ImageView>    m_DepthImageViews;
+  std::vector<vk::Image>        m_SwapChainImages;
+  std::vector<vk::ImageView>    m_SwapChainImageViews;
 
   VulkDevice&  m_VulkDevice;
   WindowExtent m_WindowExtent;
 
-  VkSwapchainKHR m_SwapChain;
+  vk::SwapchainKHR m_SwapChain;
 
-  std::vector<VkSemaphore> m_ImageAvailableSemaphores;
-  std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-  std::vector<VkFence>     m_InFlightFences;
-  std::vector<VkFence>     m_ImagesInFlight;
-  size_t                   m_CurrentFrame = 0;
+  std::vector<vk::Semaphore> m_ImageAvailableSemaphores;
+  std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
+  std::vector<vk::Fence>     m_InFlightFences;
+  std::vector<vk::Fence>     m_ImagesInFlight;
+  size_t                     m_CurrentFrame = 0;
 };
 
 } // namespace four

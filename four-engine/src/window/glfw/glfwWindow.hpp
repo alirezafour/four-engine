@@ -7,6 +7,7 @@
 
 struct GLFWwindow;
 
+
 namespace four
 {
 
@@ -122,17 +123,23 @@ private:
   void WaitEventsImpl() const;
 
   /**
+   * @brief Create window surface for vulkan surface
+   *
+   * @param instance vulkan instance
+   * @param surface vulkan surface
+   */
+  [[nodiscard]] bool CreateVulkanSurfaceImpl(vk::Instance& instance, vk::SurfaceKHR* surface);
+
+  /**
    * @brief Callback for glfw errors
    *
    * @param descripton Error descripton
    */
   static void GlfwErrorsCallback(int32_t /*error*/, const char* descripton);
 
-private:
   static void FrameBufferResizedCallback(GLFWwindow* window, int32_t width, int32_t height);
 
 private:
-  /** Reference to glfw window */
   GLFWwindow* m_Window;
   std::string m_Title;
   uint32_t    m_Width;

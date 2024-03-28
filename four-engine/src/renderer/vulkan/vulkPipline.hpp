@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
+#include "vulkan/vulkan.hpp"
 
 namespace four
 {
@@ -12,18 +12,17 @@ struct PipeLineConfigInfo
   PipeLineConfigInfo(const PipeLineConfigInfo&)            = delete;
   PipeLineConfigInfo& operator=(const PipeLineConfigInfo&) = delete;
 
-  VkPipelineViewportStateCreateInfo      viewportInfo;
-  VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
-  VkPipelineRasterizationStateCreateInfo rasterizationInfo;
-  VkPipelineMultisampleStateCreateInfo   multisampleInfo;
-  VkPipelineColorBlendAttachmentState    colorBlendAttachment;
-  VkPipelineColorBlendStateCreateInfo    colorBlendInfo;
-  VkPipelineDepthStencilStateCreateInfo  depthStencilInfo;
-  std::vector<VkDynamicState>            dynamicStateEnables;
-  VkPipelineDynamicStateCreateInfo       dynamicStateInfo;
-  VkPipelineLayout                       pipelineLayout = nullptr;
-  VkRenderPass                           renderPass     = nullptr;
-  uint32_t                               subpass        = 0;
+  vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
+  vk::PipelineViewportStateCreateInfo      viewportInfo;
+  vk::PipelineRasterizationStateCreateInfo rasterizationInfo;
+  vk::PipelineMultisampleStateCreateInfo   multisampleInfo;
+  vk::PipelineColorBlendAttachmentState    colorBlendAttachment;
+  vk::PipelineColorBlendStateCreateInfo    colorBlendInfo;
+  vk::PipelineDepthStencilStateCreateInfo  depthStencilInfo;
+  vk::PipelineDynamicStateCreateInfo       dynamicStateInfo;
+  vk::PipelineLayout                       pipelineLayout = nullptr;
+  vk::RenderPass                           renderPass     = nullptr;
+  uint32_t                                 subpass        = 0;
 };
 
 class VulkPipeline
@@ -38,20 +37,20 @@ public:
 
   static void DefaultPipeLineConfigInfo(PipeLineConfigInfo& configInfo);
 
-  void Bind(VkCommandBuffer commandBuffer);
+  void Bind(vk::CommandBuffer commandBuffer);
 
 private:
   static std::vector<char> ReadFile(std::string_view filePath);
 
   void CreateGraphicPipeline(std::string_view vertPath, std::string_view fragPath, const PipeLineConfigInfo& configInfo);
 
-  void CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
+  [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
 
 private:
-  VulkDevice&    m_Device;
-  VkPipeline     m_GraphicsPipeline;
-  VkShaderModule m_VertShaderModule;
-  VkShaderModule m_FragShaderModule;
+  VulkDevice&      m_Device;
+  vk::Pipeline     m_GraphicsPipeline;
+  vk::ShaderModule m_VertShaderModule;
+  vk::ShaderModule m_FragShaderModule;
 };
 
 

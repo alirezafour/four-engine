@@ -17,3 +17,6 @@
 [submodule "four-engine/vendor/imgui"]
 	path = four-engine/vendor/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "four-engine/vendor/Vulkan-Hpp"]
+	path = four-engine/vendor/Vulkan-Hpp
+	url = https://github.com/KhronosGroup/Vulkan-Hpp.git
