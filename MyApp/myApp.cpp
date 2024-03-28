@@ -42,7 +42,7 @@ void MyApp::LoadGameObjects()
 //==================================================================================================
 void MyApp::OnUpdate(float deltaTime)
 {
-  if (auto* commandBuffer = GetEngine()->GetRenderer()->BeginFrame())
+  if (auto commandBuffer = GetEngine()->GetRenderer()->BeginFrame())
   {
     GetEngine()->GetRenderer()->BeginSwapChainRenderPass(commandBuffer);
     m_SimpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects, deltaTime);
