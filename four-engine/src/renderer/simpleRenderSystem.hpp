@@ -14,18 +14,18 @@ namespace four
 class SimpleRenderSystem
 {
 public:
-  explicit SimpleRenderSystem(VulkDevice& vulkDevice, VkRenderPass renderPass);
+  explicit SimpleRenderSystem(VulkDevice& vulkDevice, vk::RenderPass renderPass);
   ~SimpleRenderSystem();
 
-  void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects, float deltaTime);
+  void RenderGameObjects(vk::CommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects, float deltaTime);
 
 private:
   void CreatePipeLineLayout();
-  void CreatePipeLine(VkRenderPass renderPass);
+  void CreatePipeLine(vk::RenderPass renderPass);
 
 private:
   VulkDevice&                   m_VulkDevice;
   std::unique_ptr<VulkPipeline> m_VulkPipeline;
-  VkPipelineLayout              m_PipelineLayout;
+  vk::PipelineLayout            m_PipelineLayout;
 };
 } // namespace four

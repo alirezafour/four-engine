@@ -22,7 +22,7 @@ public:
   Renderer(Renderer&&) noexcept            = delete;
   Renderer& operator=(Renderer&&) noexcept = delete;
 
-  [[nodiscard]] VkRenderPass GetSwapChainRenderPass() const
+  [[nodiscard]] vk::RenderPass GetSwapChainRenderPass() const
   {
     return m_SwapChain->GetRenderPass();
   }
@@ -32,7 +32,7 @@ public:
     return m_IsFrameStarted;
   }
 
-  [[nodiscard]] VkCommandBuffer GetCommandBuffer()
+  [[nodiscard]] vk::CommandBuffer GetCommandBuffer()
   {
     assert(m_IsFrameStarted && "Cannot get command buffer when frame not started");
     return m_CommandBuffers[m_CurrentFrameIndex];
@@ -44,10 +44,10 @@ public:
     return m_CurrentFrameIndex;
   }
 
-  VkCommandBuffer BeginFrame();
-  void            EndFrame();
-  void            BeginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-  void            EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
+  vk::CommandBuffer BeginFrame();
+  void              EndFrame();
+  void              BeginSwapChainRenderPass(vk::CommandBuffer commandBuffer);
+  void              EndSwapChainRenderPass(vk::CommandBuffer commandBuffer);
 
 private:
   void CreateCommandBuffers();
@@ -59,7 +59,7 @@ private:
   VulkDevice&                    m_VulkDevice;
   Window<GlfwWindow>&            m_Window;
   std::unique_ptr<VulkSwapChain> m_SwapChain;
-  std::vector<VkCommandBuffer>   m_CommandBuffers;
+  std::vector<vk::CommandBuffer> m_CommandBuffers;
 
   uint32_t m_CurrentImageIndex = 0;
   int      m_CurrentFrameIndex = 0;

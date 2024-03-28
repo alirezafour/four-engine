@@ -156,7 +156,7 @@ private:
                                                       const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                       void*                                       pUserData)
   {
-    LOG_CORE_ERROR("validation layer: {}", pCallbackData->pMessage);
+    LOG_CORE_ERROR("validation layer: {}", pCallbackData->pMessageIdName);
 
     return VK_FALSE;
   }

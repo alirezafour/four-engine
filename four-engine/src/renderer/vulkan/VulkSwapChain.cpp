@@ -58,7 +58,7 @@ VulkSwapChain::~VulkSwapChain()
     device.freeMemory(m_DepthImageMemorys[i]);
   }
 
-  for (auto* framebuffer : m_SwapChainFramebuffers)
+  for (auto framebuffer : m_SwapChainFramebuffers)
   {
     device.destroyFramebuffer(framebuffer);
   }
@@ -202,10 +202,8 @@ void VulkSwapChain::CreateSwapChain()
   createInfo.oldSwapchain = m_PrevSwapChain ? m_PrevSwapChain->GetSwapChainHandle() : nullptr;
 
   auto device = m_VulkDevice.GetDevice();
-  if (auto result = device.createSwapchainKHR(createInfo, nullptr, &m_SwapChain); !result)
-  {
-    throw std::runtime_error("failed to create swap chain!");
-  }
+
+  m_SwapChain = device.createSwapchainKHR(createInfo);
 
   // we only specified a minimum number of images in the swap chain, so the implementation is
   // allowed to create a swap chain with more. That's why we'll first query the final number of
@@ -424,7 +422,8 @@ vk::SurfaceFormatKHR VulkSwapChain::ChooseSwapSurfaceFormat(const std::vector<vk
 {
   for (const auto& availableFormat : availableFormats)
   {
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+    if (availableFormat.format == vk::Format::eB8G8R8A8Unorm &&
+        availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
     {
       return availableFormat;
     }

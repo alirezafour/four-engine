@@ -117,11 +117,8 @@ void VulkDevice::CreateBuffer(vk::DeviceSize          size,
   allocInfo.allocationSize  = memRequirements.size;
   allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
 
-  if (m_Device.allocateMemory(allocInfo, nullptr, &bufferMemory))
-  {
-    throw std::runtime_error("failed to allocate vertex buffer memory!");
-  }
 
+  bufferMemory = m_Device.allocateMemory(allocInfo);
   m_Device.bindBufferMemory(buffer, bufferMemory, 0);
 }
 
@@ -203,23 +200,11 @@ void VulkDevice::CreateImageWithInfo(const vk::ImageCreateInfo& imageInfo,
                                      vk::DeviceMemory&          imageMemory)
 {
 
-  if (m_Device.createImage(imageInfo, nullptr, &image))
-  {
-    throw std::runtime_error("failed to create image!");
-  }
+  image = m_Device.createImage(imageInfo, nullptr);
 
   vk::MemoryRequirements memRequirements = m_Device.getImageMemoryRequirements(image);
-
-  vk::MemoryAllocateInfo allocInfo{};
-  allocInfo.sType           = vk::StructureType::eMemoryAllocateInfo;
-  allocInfo.allocationSize  = memRequirements.size;
-  allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-
-  if (m_Device.allocateMemory(allocInfo, nullptr, &imageMemory))
-  {
-    throw std::runtime_error("failed to allocate image memory!");
-  }
+  uint32_t               memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
+  imageMemory = m_Device.allocateMemory(vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
 
   m_Device.bindImageMemory(image, imageMemory, 0);
 }
@@ -232,7 +217,8 @@ void VulkDevice::CreateInstance()
     throw std::runtime_error("validation layers requested, but not available!");
   }
 
-  vk::ApplicationInfo appInfo{"Hello Vulkan", VK_MAKE_VERSION(1, 0, 0), "No Engine", VK_MAKE_VERSION(1, 0, 0)};
+
+  vk::ApplicationInfo appInfo{"Hello Vulkan", 1, "No Engine", 1, VK_API_VERSION_1_1};
 
   vk::InstanceCreateInfo createInfo{{}, &appInfo};
 
@@ -255,15 +241,11 @@ void VulkDevice::CreateInstance()
     createInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
   }
 
-
   createInfo.enabledLayerCount = 0;
   createInfo.pNext             = nullptr;
 
-  if (auto result = vk::createInstance(&createInfo, nullptr, &m_Instance); result != vk::Result::eSuccess)
-  {
-    throw std::runtime_error("failed to create instance!");
-  }
 
+  m_Instance = vk::createInstance(createInfo);
   // HasGflwRequiredInstanceExtensions();
 }
 
@@ -512,7 +494,7 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
 //===========================================================================================
 bool VulkDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
 {
-  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties(nullptr, nullptr);
+  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
 
   std::set<std::string> requiredExtensions{m_DeviceExtensions.begin(), m_DeviceExtensions.end()};
 

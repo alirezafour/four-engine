@@ -20,7 +20,7 @@ struct SimplePushConstants
 
 
 //====================================================================================================
-SimpleRenderSystem::SimpleRenderSystem(VulkDevice& vulkDevice, VkRenderPass renderPass) : m_VulkDevice{vulkDevice}
+SimpleRenderSystem::SimpleRenderSystem(VulkDevice& vulkDevice, vk::RenderPass renderPass) : m_VulkDevice{vulkDevice}
 {
   CreatePipeLineLayout();
   CreatePipeLine(renderPass);
@@ -37,25 +37,23 @@ SimpleRenderSystem::~SimpleRenderSystem()
 void SimpleRenderSystem::CreatePipeLineLayout()
 {
 
-  VkPushConstantRange pushConstantRange{};
-  pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  vk::PushConstantRange pushConstantRange{};
+  pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
   pushConstantRange.offset     = 0;
   pushConstantRange.size       = sizeof(SimplePushConstants);
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+  pipelineLayoutInfo.sType                  = vk::StructureType::ePipelineLayoutCreateInfo;
   pipelineLayoutInfo.setLayoutCount         = 0;
   pipelineLayoutInfo.pSetLayouts            = nullptr;
   pipelineLayoutInfo.pushConstantRangeCount = 1;
   pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRange;
-  if (vkCreatePipelineLayout(m_VulkDevice.GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
-  {
-    throw std::runtime_error("failed creating pipeline layout");
-  }
+
+  m_PipelineLayout = m_VulkDevice.GetDevice().createPipelineLayout(pipelineLayoutInfo, nullptr);
 }
 
 //====================================================================================================
-void SimpleRenderSystem::CreatePipeLine(VkRenderPass renderPass)
+void SimpleRenderSystem::CreatePipeLine(vk::RenderPass renderPass)
 {
   assert(m_PipelineLayout != nullptr && "Cannot create pipeline without pipeline layout");
 
@@ -70,7 +68,7 @@ void SimpleRenderSystem::CreatePipeLine(VkRenderPass renderPass)
 }
 
 //====================================================================================================
-void SimpleRenderSystem::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects, float deltaTime)
+void SimpleRenderSystem::RenderGameObjects(vk::CommandBuffer commandBuffer, std::vector<TempGameObj>& gameObjects, float deltaTime)
 {
   m_VulkPipeline->Bind(commandBuffer);
   for (auto& gameObj : gameObjects)
@@ -82,12 +80,12 @@ void SimpleRenderSystem::RenderGameObjects(VkCommandBuffer commandBuffer, std::v
     push.offset    = gameObj.GetTransform2D().translation;
     push.color     = gameObj.GetColor();
     push.transform = gameObj.GetTransform2D().mat2();
-    vkCmdPushConstants(commandBuffer,
-                       m_PipelineLayout,
-                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                       0,
-                       sizeof(SimplePushConstants),
-                       &push);
+
+    commandBuffer.pushConstants(m_PipelineLayout,
+                                vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+                                0,
+                                sizeof(SimplePushConstants),
+                                &push);
     gameObj.GetModel()->Bind(commandBuffer);
     gameObj.GetModel()->Draw(commandBuffer);
   }
