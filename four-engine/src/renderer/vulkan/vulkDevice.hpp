@@ -183,9 +183,9 @@ private:
   void CreateWindowSurface(vk::Instance instance, vk::SurfaceKHR* surface);
 
 private:
-  Window<GlfwWindow>*      m_Window{nullptr};
-  vk::Instance             m_Instance;
-  VkDebugUtilsMessengerEXT m_DebugMessenger;
+  Window<GlfwWindow>*        m_Window{nullptr};
+  vk::Instance               m_Instance;
+  vk::DebugUtilsMessengerEXT m_DebugMessenger;
 
   vk::PhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
   vk::CommandPool    m_CommandPool;

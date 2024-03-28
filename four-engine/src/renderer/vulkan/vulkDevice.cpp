@@ -117,6 +117,7 @@ void VulkDevice::CreateBuffer(vk::DeviceSize          size,
   allocInfo.allocationSize  = memRequirements.size;
   allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
 
+
   bufferMemory = m_Device.allocateMemory(allocInfo);
   m_Device.bindBufferMemory(buffer, bufferMemory, 0);
 }
@@ -216,6 +217,7 @@ void VulkDevice::CreateInstance()
     throw std::runtime_error("validation layers requested, but not available!");
   }
 
+
   vk::ApplicationInfo appInfo{"Hello Vulkan", 1, "No Engine", 1, VK_API_VERSION_1_1};
 
   vk::InstanceCreateInfo createInfo{{}, &appInfo};
@@ -241,6 +243,7 @@ void VulkDevice::CreateInstance()
 
   createInfo.enabledLayerCount = 0;
   createInfo.pNext             = nullptr;
+
 
   m_Instance = vk::createInstance(createInfo);
   // HasGflwRequiredInstanceExtensions();
@@ -491,7 +494,7 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
 //===========================================================================================
 bool VulkDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
 {
-  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
+  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
 
   std::set<std::string> requiredExtensions{m_DeviceExtensions.begin(), m_DeviceExtensions.end()};
 

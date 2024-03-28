@@ -202,6 +202,7 @@ void VulkSwapChain::CreateSwapChain()
   createInfo.oldSwapchain = m_PrevSwapChain ? m_PrevSwapChain->GetSwapChainHandle() : nullptr;
 
   auto device = m_VulkDevice.GetDevice();
+
   m_SwapChain = device.createSwapchainKHR(createInfo);
 
   // we only specified a minimum number of images in the swap chain, so the implementation is
