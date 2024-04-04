@@ -75,6 +75,8 @@ VulkSwapChain::~VulkSwapChain()
 
 vk::Result VulkSwapChain::AcquireNextImage(uint32_t* imageIndex)
 {
+  assert(imageIndex != nullptr && "Cannot acquire next image: image index pointer is null!");
+
   auto device = m_VulkDevice.GetDevice();
   if (vk::Result result = device.waitForFences(1,
                                                &m_InFlightFences[m_CurrentFrame],
@@ -94,6 +96,9 @@ vk::Result VulkSwapChain::AcquireNextImage(uint32_t* imageIndex)
 
 vk::Result VulkSwapChain::SubmitCommandBuffers(const vk::CommandBuffer* buffers, uint32_t* imageIndex)
 {
+  assert(buffers != nullptr && "Cannot submit command buffers: command buffer pointer is null!");
+  assert(imageIndex != nullptr && "Cannot submit command buffers: image index pointer is null!");
+
   auto device = m_VulkDevice.GetDevice();
   if (m_ImagesInFlight[*imageIndex] != nullptr)
   {

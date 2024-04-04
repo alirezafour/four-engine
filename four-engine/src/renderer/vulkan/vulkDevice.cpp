@@ -7,24 +7,74 @@
 
 namespace four
 {
-PFN_vkCreateDebugUtilsMessengerEXT  pfnVkCreateDebugUtilsMessengerEXT;
-PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT;
 
-[[nodiscard]] static VkResult CreateDebugUtilsMessengerEXT(
-  vk::Instance                              instance,
-  const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-  const VkAllocationCallbacks*              pAllocator,
-  VkDebugUtilsMessengerEXT*                 pDebugMessenger)
+//===========================================================================================
+static VkBool32 DebugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+                                            VkDebugUtilsMessageTypeFlagsEXT             messageTypes,
+                                            VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+                                            void* /*pUserData*/)
 {
-  return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
+#if !defined(NDEBUG)
+  if (static_cast<uint32_t>(pCallbackData->messageIdNumber) == 0x822806fa)
+  {
+    // Validation Warning: vkCreateInstance(): to enable extension VK_EXT_debug_utils, but this extension is intended to support use by applications when
+    // debugging and it is strongly recommended that it be otherwise avoided.
+    return vk::False;
+  }
+  else if (static_cast<uint32_t>(pCallbackData->messageIdNumber) == 0xe8d1a9fe)
+  {
+    // Validation Performance Warning: Using debug builds of the validation layers *will* adversely affect performance.
+    return vk::False;
+  }
+#endif
+
+  LOG_INFO("{}: {}:\n\tmessageIdName       = <{}>\n\tmessageIdNumber        = {}\n\tmessage        = {}",
+           vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)),
+           vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)),
+           pCallbackData->pMessageIdName,
+           pCallbackData->messageIdNumber,
+           pCallbackData->pMessage);
+  if (0 < pCallbackData->queueLabelCount)
+  {
+    LOG_INFO("Queue Labels:");
+    for (uint32_t i = 0; i < pCallbackData->queueLabelCount; ++i)
+    {
+      LOG_INFO("\tlabelName = <{}>", pCallbackData->pQueueLabels[i].pLabelName);
+    }
+  }
+  if (0 < pCallbackData->cmdBufLabelCount)
+  {
+    LOG_INFO("CommandBuffer Labels:");
+    for (uint32_t i = 0; i < pCallbackData->cmdBufLabelCount; ++i)
+    {
+      LOG_INFO("\tlabelName = <{}>", pCallbackData->pCmdBufLabels[i].pLabelName);
+    }
+  }
+  if (0 < pCallbackData->objectCount)
+  {
+    LOG_INFO("Objects:");
+    for (uint32_t i = 0; i < pCallbackData->objectCount; ++i)
+    {
+      LOG_INFO("\tObject {}:", std::to_string(i));
+      LOG_INFO("\t\tobjectType   = {}", vk::to_string(static_cast<vk::ObjectType>(pCallbackData->pObjects[i].objectType)));
+      LOG_INFO("\t\tobjectHandle = {}", std::to_string(pCallbackData->pObjects[i].objectHandle));
+      if (pCallbackData->pObjects[i].pObjectName)
+      {
+        LOG_INFO("\t\tobjectName   = <{}>", pCallbackData->pObjects[i].pObjectName);
+      }
+    }
+  }
+  return vk::False;
 }
 
 //===========================================================================================
-static void DestroyDebugUtilsMessengerEXT(VkInstance                   instance,
-                                          VkDebugUtilsMessengerEXT     debugMessenger,
-                                          const VkAllocationCallbacks* pAllocator)
+static vk::DebugUtilsMessengerCreateInfoEXT CreateDebugMessageInfoEXT()
 {
-  pfnVkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, pAllocator);
+  return {{},
+          vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
+          vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+          &DebugUtilsMessengerCallback};
 }
 
 //===========================================================================================
@@ -48,11 +98,11 @@ void VulkDevice::Cleanup()
 {
   m_Device.destroyCommandPool(m_CommandPool);
   m_Device.destroy();
+  m_Instance.destroySurfaceKHR(m_Surface);
   if (enableValidationLayers)
   {
-    DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+    // m_Instance.destroyDebugUtilsMessengerEXT(m_DebugMessenger);
   }
-  m_Instance.destroySurfaceKHR(m_Surface);
   m_Instance.destroy();
 }
 
@@ -221,28 +271,20 @@ void VulkDevice::CreateInstance()
   vk::ApplicationInfo appInfo{"Hello Vulkan", 1, "No Engine", 1, VK_API_VERSION_1_1};
 
   vk::InstanceCreateInfo createInfo{{}, &appInfo};
-
-  uint32_t     glfwExtensionCount = 0;
-  const char** glfwExtensions     = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-  createInfo.enabledExtensionCount   = glfwExtensionCount;
-  createInfo.ppEnabledExtensionNames = glfwExtensions;
-
-  auto extentions                    = GetRequiredExtensions();
-  createInfo.enabledExtensionCount   = static_cast<uint32_t>(extentions.size());
-  createInfo.ppEnabledExtensionNames = extentions.data();
-
-  vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo;
   if (enableValidationLayers)
   {
     createInfo.enabledLayerCount   = static_cast<uint32_t>(m_ValidationLayers.size());
     createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
-    PopulateDebugMessengerCreateInfo(debugCreateInfo);
-    createInfo.pNext = (vk::DebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+  }
+  else
+  {
+    createInfo.enabledLayerCount = 0;
+    createInfo.pNext             = nullptr;
   }
 
-  createInfo.enabledLayerCount = 0;
-  createInfo.pNext             = nullptr;
+  auto extentions                    = GetRequiredExtensions();
+  createInfo.enabledExtensionCount   = static_cast<uint32_t>(extentions.size());
+  createInfo.ppEnabledExtensionNames = extentions.data();
 
 
   m_Instance = vk::createInstance(createInfo);
@@ -250,16 +292,6 @@ void VulkDevice::CreateInstance()
 }
 
 //===========================================================================================
-void VulkDevice::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-  createInfo       = {};
-  createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  createInfo.pfnUserCallback = DebugCallback;
-  createInfo.pUserData       = nullptr; // Optional
-}
 
 //===========================================================================================
 void VulkDevice::SetupDebugMessenger()
@@ -269,13 +301,7 @@ void VulkDevice::SetupDebugMessenger()
     return;
   }
 
-  VkDebugUtilsMessengerCreateInfoEXT createInfo;
-  PopulateDebugMessengerCreateInfo(createInfo);
-
-  if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS)
-  {
-    throw std::runtime_error("failed to set up debug messenger!");
-  }
+  // m_DebugMessenger = m_Instance.createDebugUtilsMessengerEXT(CreateDebugMessageInfoEXT());
 }
 
 //===========================================================================================
@@ -321,7 +347,13 @@ bool VulkDevice::CheckValidationLayerSupport()
 //===========================================================================================
 void VulkDevice::CreateSurface()
 {
-  CreateWindowSurface(m_Instance, &m_Surface);
+  auto*        window  = m_Window->GetWindow();
+  VkSurfaceKHR surface = nullptr;
+  if (glfwCreateWindowSurface(m_Instance, window, nullptr, &surface) != VK_SUCCESS)
+  {
+    throw std::runtime_error("failed to create window surface!");
+  }
+  m_Surface = vk::SurfaceKHR(surface);
 }
 
 //===========================================================================================
@@ -408,7 +440,7 @@ void VulkDevice::CreateCommandPool()
 }
 
 //===========================================================================================
-bool VulkDevice::IsDeviceSuitable(vk::PhysicalDevice device)
+bool VulkDevice::IsDeviceSuitable(const vk::PhysicalDevice& device)
 {
   auto indices = FindQueueFamilies(device);
   if (!indices.IsComplete())
@@ -436,7 +468,7 @@ bool VulkDevice::IsDeviceSuitable(vk::PhysicalDevice device)
 }
 
 //===========================================================================================
-QueueFamilyIndices VulkDevice::FindQueueFamilies(vk::PhysicalDevice device)
+QueueFamilyIndices VulkDevice::FindQueueFamilies(const vk::PhysicalDevice& device)
 {
   QueueFamilyIndices indices;
 
@@ -450,8 +482,14 @@ QueueFamilyIndices VulkDevice::FindQueueFamilies(vk::PhysicalDevice device)
       indices.graphicsFamilyHasValue = true;
     }
 
-    vk::Bool32 presentSupport = device.getSurfaceSupportKHR(index, m_Surface);
-    if (queueFamily.queueCount > 0 && (presentSupport != 0U))
+    vk::Bool32 presentSupport = 0U;
+    vk::Result result         = device.getSurfaceSupportKHR(index, m_Surface, &presentSupport);
+    if (result != vk::Result::eSuccess)
+    {
+      LOG_CORE_ERROR("failed to get surface support");
+      throw std::runtime_error("failed to get surface support");
+    }
+    if (queueFamily.queueCount > 0 && (presentSupport == 0))
     {
       indices.presentFamily         = index;
       indices.presentFamilyHasValue = true;
@@ -492,7 +530,7 @@ void VulkDevice::HasGflwRequiredInstanceExtensions()
 }
 
 //===========================================================================================
-bool VulkDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
+bool VulkDevice::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device)
 {
   std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
 
@@ -507,7 +545,7 @@ bool VulkDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
 }
 
 //===========================================================================================
-SwapChainSupportDetails VulkDevice::QuerySwapChainSupport(vk::PhysicalDevice device)
+SwapChainSupportDetails VulkDevice::QuerySwapChainSupport(const vk::PhysicalDevice& device)
 {
   SwapChainSupportDetails details{};
   details.capabilities = device.getSurfaceCapabilitiesKHR(m_Surface);
@@ -515,13 +553,5 @@ SwapChainSupportDetails VulkDevice::QuerySwapChainSupport(vk::PhysicalDevice dev
   details.presentModes = device.getSurfacePresentModesKHR(m_Surface);
 
   return details;
-}
-//===========================================================================================
-void VulkDevice::CreateWindowSurface(vk::Instance instance, vk::SurfaceKHR* surface)
-{
-  if (!m_Window->CreateVulkanSurface(instance, surface))
-  {
-    throw std::runtime_error("glfw failed to create surface");
-  }
 }
 } // namespace four

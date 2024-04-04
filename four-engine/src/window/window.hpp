@@ -154,16 +154,6 @@ public:
     GetDerived()->WaitEventsImpl();
   }
 
-  /**
-   * @brief create vulkan surface
-   * @param instance vulkan instance
-   * @param surface vulkan surface
-   */
-  bool CreateVulkanSurface(vk::Instance& instance, vk::SurfaceKHR* surface)
-  {
-    return GetDerived()->CreateVulkanSurfaceImpl(instance, surface);
-  }
-
 
 private:
   Window() = default;

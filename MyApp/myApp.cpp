@@ -1,4 +1,4 @@
-#include "MyApp.hpp"
+#include "myApp.hpp"
 #include "core/engine.hpp"
 #include "core/imgui/imguiLayer.hpp"
 

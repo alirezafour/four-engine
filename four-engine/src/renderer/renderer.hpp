@@ -61,8 +61,8 @@ private:
   std::unique_ptr<VulkSwapChain> m_SwapChain;
   std::vector<vk::CommandBuffer> m_CommandBuffers;
 
-  uint32_t m_CurrentImageIndex = 0;
-  int      m_CurrentFrameIndex = 0;
-  bool     m_IsFrameStarted    = false;
+  uint32_t m_CurrentImageIndex{};
+  int      m_CurrentFrameIndex{};
+  bool     m_IsFrameStarted{false};
 };
 } // namespace four

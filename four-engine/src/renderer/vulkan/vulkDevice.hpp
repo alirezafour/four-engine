@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan_to_string.hpp"
 #include "core/core.hpp"
 
 namespace four
@@ -143,8 +144,6 @@ public:
 private:
   void CreateInstance();
 
-  void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-
   void SetupDebugMessenger();
 
   std::vector<const char*> GetRequiredExtensions();
@@ -170,22 +169,22 @@ private:
   void CreateCommandPool();
 
   // helper functions
-  [[nodiscard]] bool IsDeviceSuitable(vk::PhysicalDevice device);
+  [[nodiscard]] bool IsDeviceSuitable(const vk::PhysicalDevice& device);
 
-  [[nodiscard]] QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
+  [[nodiscard]] QueueFamilyIndices FindQueueFamilies(const vk::PhysicalDevice& device);
 
   void HasGflwRequiredInstanceExtensions();
 
-  [[nodiscard]] bool CheckDeviceExtensionSupport(vk::PhysicalDevice device);
+  [[nodiscard]] bool CheckDeviceExtensionSupport(const vk::PhysicalDevice& device);
 
-  [[nodiscard]] SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
+  [[nodiscard]] SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& device);
 
-  void CreateWindowSurface(vk::Instance instance, vk::SurfaceKHR* surface);
+  void CreateWindowSurface(vk::Instance& instance, vk::SurfaceKHR* surface);
 
 private:
-  Window<GlfwWindow>*      m_Window{nullptr};
-  vk::Instance             m_Instance;
-  VkDebugUtilsMessengerEXT m_DebugMessenger;
+  Window<GlfwWindow>*        m_Window{nullptr};
+  vk::Instance               m_Instance;
+  vk::DebugUtilsMessengerEXT m_DebugMessenger;
 
   vk::PhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
   vk::CommandPool    m_CommandPool;

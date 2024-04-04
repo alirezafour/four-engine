@@ -66,12 +66,9 @@ void Renderer::CreateCommandBuffers()
 {
   m_CommandBuffers.resize(VulkSwapChain::MAX_FRAMES_IN_FLIGHT);
 
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = vk::StructureType::eCommandBufferAllocateInfo;
-  allocInfo.level              = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool        = m_VulkDevice.GetCommandPool();
-  allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
-
+  vk::CommandBufferAllocateInfo allocInfo{m_VulkDevice.GetCommandPool(),
+                                          vk::CommandBufferLevel::ePrimary,
+                                          static_cast<uint32_t>(m_CommandBuffers.size())};
   m_CommandBuffers = m_VulkDevice.GetDevice().allocateCommandBuffers(allocInfo);
 }
 
@@ -166,7 +163,8 @@ void Renderer::EndSwapChainRenderPass(vk::CommandBuffer commandBuffer)
   assert(commandBuffer == GetCommandBuffer() &&
          "Can't end render pass on command buffer from a different "
          "frame");
-  commandBuffer.end();
+
+  commandBuffer.endRenderPass();
 }
 
 } // namespace four

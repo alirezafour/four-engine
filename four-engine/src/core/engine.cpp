@@ -36,7 +36,6 @@ void Engine::Run()
 {
   try
   {
-    LOG_CORE_INFO("Engine Loop started.");
     while (!m_Window->ShouldClose())
     {
       const auto startTime = std::chrono::system_clock::now();

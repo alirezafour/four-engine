@@ -123,14 +123,6 @@ private:
   void WaitEventsImpl() const;
 
   /**
-   * @brief Create window surface for vulkan surface
-   *
-   * @param instance vulkan instance
-   * @param surface vulkan surface
-   */
-  [[nodiscard]] bool CreateVulkanSurfaceImpl(vk::Instance& instance, vk::SurfaceKHR* surface);
-
-  /**
    * @brief Callback for glfw errors
    *
    * @param descripton Error descripton
