@@ -154,6 +154,11 @@ public:
     GetDerived()->WaitEventsImpl();
   }
 
+  std::vector<const char*> GetVulkanRequiredExtensions()
+  {
+    return GetConstDerived()->GetVulkanRequiredExtensionsImpl();
+  }
+
 
 private:
   Window() = default;

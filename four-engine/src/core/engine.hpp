@@ -5,6 +5,8 @@
 #include "core/imgui/imguiLayer.hpp"
 #include "core/layerStack.hpp"
 
+// renderer
+#include "renderer/renderer.hpp"
 
 // setup using window glfw
 #include "window/glfw/glfwWindow.hpp"
@@ -133,6 +135,9 @@ private:
 private:
   /** singletone instance of Engine */
   static std::unique_ptr<Engine> sm_Instance;
+
+  /** renderer */
+  std::unique_ptr<Renderer> m_Renderer;
 
   /** imgui layer stacks for UI */
   LayerStack<ImGuiLayer> m_ImGuiLayer;
