@@ -32,30 +32,11 @@ bool ImGuiLayer::Init()
     return false;
   }
 
-  // TODO: init vulkan for imgui setup reqired
-  auto* vulkDevice = Engine::Get()->GetVulkDevice();
 
   io.BackendRendererName = "imgui_impl_vulkan";
   io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+  //TODO: vulkan fix
   //
-  ImGui_ImplVulkan_InitInfo initInfo{};
-  initInfo.Instance       = *vulkDevice->GetInstance();
-  initInfo.PhysicalDevice = vulkDevice->GetPhysicalDevice();
-  initInfo.Device         = vulkDevice->GetDevice();
-  initInfo.Queue          = vulkDevice->GetGraphicsQueue();
-  // TODO: need DescriptorPool
-  // initInfo.DescriptorPool  = ?? ;
-  initInfo.PipelineCache   = VK_NULL_HANDLE;
-  initInfo.Allocator       = nullptr;
-  initInfo.MinImageCount   = 2;
-  initInfo.ImageCount      = 2;
-  initInfo.CheckVkResultFn = nullptr;
-  if (!ImGui_ImplVulkan_Init(&initInfo))
-  {
-    LOG_CORE_ERROR("ImGui_ImplVulkan_Init failed.");
-    return false;
-  }
-
   return true;
 }
 

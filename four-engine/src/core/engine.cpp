@@ -1,5 +1,6 @@
 #include "four-pch.h"
 
+
 #include "core/engine.hpp"
 #include "core/application.hpp"
 
@@ -16,17 +17,12 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
     LOG_CORE_ERROR("Failed Initializing Engine.");
     return;
   }
-
-  m_VulkDevice = std::make_unique<VulkDevice>(m_Window.get());
-  m_VulkDevice->InitVulkan();
-  m_Renderer = std::make_unique<Renderer>(*m_Window, *m_VulkDevice);
 }
 
 //====================================================================================================
 Engine::~Engine()
 {
   m_ImGuiLayer.Shutdown();
-  m_VulkDevice->Cleanup();
   m_Window->Shutdown();
   Log::Shutdown();
 }
@@ -52,8 +48,6 @@ void Engine::Run()
   {
     LOG_CORE_ERROR("Exception: {}", e.what());
   }
-
-  vkDeviceWaitIdle(m_VulkDevice->GetDevice());
 }
 
 //====================================================================================================

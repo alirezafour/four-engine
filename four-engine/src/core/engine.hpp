@@ -5,10 +5,6 @@
 #include "core/imgui/imguiLayer.hpp"
 #include "core/layerStack.hpp"
 
-// test vulkan
-#include "renderer/vulkan/vulkDevice.hpp"
-#include "renderer/renderer.hpp"
-
 
 // setup using window glfw
 #include "window/glfw/glfwWindow.hpp"
@@ -91,16 +87,6 @@ public:
     m_ImGuiLayer.PushLayer(std::move(layer));
   }
 
-  [[nodiscard]] VulkDevice* GetVulkDevice() const
-  {
-    return m_VulkDevice.get();
-  }
-
-  [[nodiscard]] Renderer* GetRenderer() const
-  {
-    return m_Renderer.get();
-  }
-
 private:
   /**
    * @brief Constructor of the Engine
@@ -154,8 +140,6 @@ private:
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
 
-  std::unique_ptr<VulkDevice>                        m_VulkDevice;
-  std::unique_ptr<Renderer>                          m_Renderer;
   Application*                                       m_Application;
   std::chrono::time_point<std::chrono::system_clock> m_LastFrameTimePoint;
 };
