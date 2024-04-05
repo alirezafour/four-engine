@@ -6,15 +6,8 @@
 
 #include <memory>
 
-// Check what window is used and test base on that
-#ifdef FOUR_USE_SDL
-#include "window/sdl/sdlWindow.hpp"
-using UsedWindow = four::SdlWindow;
-#include "SDL_events.h"
-#elif FOUR_USE_GLFW
 #include "window/glfw/glfwWindow.hpp"
 using UsedWindow = four::GlfwWindow;
-#endif // FOUR_USE_SDL
 
 
 TEST_CASE("Constrcut Window")
@@ -30,7 +23,7 @@ TEST_CASE("Constrcut Window")
     REQUIRE(window->GetWidth() == 200);
     REQUIRE(window->GetHeight() == 300);
 
-    auto* sdlWindow = window->GetWindow();
+    auto* sdlWindow = window->GetHandle();
     REQUIRE(sdlWindow != nullptr);
   }
 

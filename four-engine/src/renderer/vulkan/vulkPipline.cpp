@@ -65,19 +65,20 @@ void VulkPipeline::CreateGraphicPipeline(std::string_view vertPath, std::string_
   m_VertShaderModule = CreateShaderModule(vertCode);
   m_FragShaderModule = CreateShaderModule(fragCode);
 
-  std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages{
-    {vk::PipelineShaderStageCreateInfo{vk::PipelineShaderStageCreateFlags{},
-                                       vk::ShaderStageFlagBits::eVertex,
-                                       m_VertShaderModule,
-                                       "main",
-                                       nullptr,
-                                       nullptr},
-     vk::PipelineShaderStageCreateInfo{vk::PipelineShaderStageCreateFlags{},
-                                       vk::ShaderStageFlagBits::eFragment,
-                                       m_FragShaderModule,
-                                       "main",
-                                       nullptr,
-                                       nullptr}}};
+  std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages{};
+  shaderStages[0].sType               = vk::StructureType::ePipelineShaderStageCreateInfo;
+  shaderStages[0].stage               = vk::ShaderStageFlagBits::eVertex;
+  shaderStages[0].module              = m_VertShaderModule;
+  shaderStages[0].pName               = "main";
+  shaderStages[0].pSpecializationInfo = nullptr;
+  shaderStages[0].pNext               = nullptr;
+
+  shaderStages[1].sType               = vk::StructureType::ePipelineShaderStageCreateInfo;
+  shaderStages[1].stage               = vk::ShaderStageFlagBits::eFragment;
+  shaderStages[1].module              = m_FragShaderModule;
+  shaderStages[1].pName               = "main";
+  shaderStages[1].pSpecializationInfo = nullptr;
+  shaderStages[1].pNext               = nullptr;
 
   auto bindingDescriptions   = VulkModel::Vertex::GetBindingDescriptions();
   auto attributeDescriptions = VulkModel::Vertex::GetAttributeDescriptions();
@@ -86,29 +87,25 @@ void VulkPipeline::CreateGraphicPipeline(std::string_view vertPath, std::string_
   vertexInputInfo.sType                           = vk::StructureType::ePipelineVertexInputStateCreateInfo;
   vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
   vertexInputInfo.vertexBindingDescriptionCount   = static_cast<uint32_t>(bindingDescriptions.size());
+  vertexInputInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
+  vertexInputInfo.pVertexBindingDescriptions      = bindingDescriptions.data();
 
-  vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-  vertexInputInfo.pVertexBindingDescriptions   = bindingDescriptions.data();
+  vk::GraphicsPipelineCreateInfo pipelineInfo{};
+  pipelineInfo.sType               = vk::StructureType::eGraphicsPipelineCreateInfo;
+  pipelineInfo.stageCount          = static_cast<uint32_t>(shaderStages.size());
+  pipelineInfo.pStages             = shaderStages.data();
+  pipelineInfo.pVertexInputState   = &vertexInputInfo;
+  pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
+  pipelineInfo.pViewportState      = &configInfo.viewportInfo;
+  pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
+  pipelineInfo.pMultisampleState   = &configInfo.multisampleInfo;
+  pipelineInfo.pDepthStencilState  = &configInfo.depthStencilInfo;
+  pipelineInfo.pColorBlendState    = &configInfo.colorBlendInfo;
+  pipelineInfo.pDynamicState       = &configInfo.dynamicStateInfo;
 
-  vk::GraphicsPipelineCreateInfo pipelineInfo{
-    vk::PipelineCreateFlags{},                  // flags
-    static_cast<uint32_t>(shaderStages.size()), //stages count
-    shaderStages.data(),                        // stages
-    &vertexInputInfo,                           // vertex input state
-    &configInfo.inputAssemblyInfo,              // input assembly state
-    {},                                         // tessellation state
-    &configInfo.viewportInfo,                   // viewport state
-    &configInfo.rasterizationInfo,              // rasterization state
-    &configInfo.multisampleInfo,                // multisample state
-    &configInfo.depthStencilInfo,               // depth stencil state
-    &configInfo.colorBlendInfo,                 // color blend state
-    &configInfo.dynamicStateInfo,               // dynamic state
-    configInfo.pipelineLayout,                  // layout
-    configInfo.renderPass,                      // render pass
-    configInfo.subpass,                         // subpass
-    VK_NULL_HANDLE,                             // base pipeline handle
-    -1                                          // base pipeline index
-  };
+  pipelineInfo.layout     = configInfo.pipelineLayout;
+  pipelineInfo.renderPass = configInfo.renderPass;
+  pipelineInfo.subpass    = configInfo.subpass;
 
 
   if (vk::Result result = m_Device.GetDevice().createGraphicsPipelines(VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline);
@@ -121,11 +118,10 @@ void VulkPipeline::CreateGraphicPipeline(std::string_view vertPath, std::string_
 
 vk::ShaderModule VulkPipeline::CreateShaderModule(const std::vector<char>& code)
 {
-  vk::ShaderModuleCreateInfo createInfo{
-    vk::ShaderModuleCreateFlags{},                 // flags
-    static_cast<uint32_t>(code.size()),            // code size
-    reinterpret_cast<const uint32_t*>(code.data()) // code
-  };
+  vk::ShaderModuleCreateInfo createInfo{};
+  createInfo.sType    = vk::StructureType::eShaderModuleCreateInfo;
+  createInfo.codeSize = code.size();
+  createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
 
   auto shaderModule = m_Device.GetDevice().createShaderModule(createInfo, nullptr);
   if (!shaderModule)
@@ -138,7 +134,6 @@ vk::ShaderModule VulkPipeline::CreateShaderModule(const std::vector<char>& code)
 
 void VulkPipeline::DefaultPipeLineConfigInfo(PipeLineConfigInfo& configInfo)
 {
-
   configInfo.inputAssemblyInfo.sType                  = vk::StructureType::ePipelineInputAssemblyStateCreateInfo;
   configInfo.inputAssemblyInfo.topology               = vk::PrimitiveTopology::eTriangleList;
   configInfo.inputAssemblyInfo.primitiveRestartEnable = vk::Bool32(false);

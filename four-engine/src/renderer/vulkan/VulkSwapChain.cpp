@@ -90,7 +90,7 @@ vk::Result VulkSwapChain::AcquireNextImage(uint32_t* imageIndex)
   return device.acquireNextImageKHR(m_SwapChain,
                                     std::numeric_limits<uint64_t>::max(),
                                     m_ImageAvailableSemaphores[m_CurrentFrame],
-                                    nullptr,
+                                    VK_NULL_HANDLE,
                                     imageIndex);
 }
 
@@ -171,16 +171,14 @@ void VulkSwapChain::CreateSwapChain()
     imageCount = swapChainSupport.capabilities.maxImageCount;
   }
 
-  vk::SwapchainCreateInfoKHR createInfo = {};
-  createInfo.sType                      = vk::StructureType::eSwapchainCreateInfoKHR;
-  createInfo.surface                    = m_VulkDevice.GetSurface();
-
-  createInfo.minImageCount    = imageCount;
-  createInfo.imageFormat      = surfaceFormat.format;
-  createInfo.imageColorSpace  = surfaceFormat.colorSpace;
-  createInfo.imageExtent      = extent;
-  createInfo.imageArrayLayers = 1;
-  createInfo.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment;
+  vk::SwapchainCreateInfoKHR createInfo{vk::SwapchainCreateFlagsKHR(),
+                                        m_VulkDevice.GetSurface(),
+                                        imageCount,
+                                        surfaceFormat.format,
+                                        surfaceFormat.colorSpace,
+                                        extent,
+                                        1,
+                                        vk::ImageUsageFlagBits::eColorAttachment};
 
   QueueFamilyIndices indices = m_VulkDevice.FindPhysicalQueueFamilies();
   std::array         queueFamilyIndices{indices.graphicsFamily, indices.presentFamily};
@@ -427,7 +425,7 @@ vk::SurfaceFormatKHR VulkSwapChain::ChooseSwapSurfaceFormat(const std::vector<vk
 {
   for (const auto& availableFormat : availableFormats)
   {
-    if (availableFormat.format == vk::Format::eB8G8R8A8Unorm &&
+    if (availableFormat.format == vk::Format::eB8G8R8A8Srgb &&
         availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
     {
       return availableFormat;

@@ -1,6 +1,3 @@
-[submodule "four-engine/vendor/SDL"]
-	path = four-engine/vendor/SDL
-	url = https://github.com/libsdl-org/SDL.git
 [submodule "four-engine/test/vendor/Catch2"]
 	path = four-engine/test/vendor/Catch2
 	url = https://github.com/catchorg/Catch2.git

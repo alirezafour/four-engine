@@ -9,15 +9,10 @@
 #include "renderer/vulkan/vulkDevice.hpp"
 #include "renderer/renderer.hpp"
 
-// check to use proper window
-#ifdef FOUR_USE_SDL
-#include "window/sdl/sdlWindow.hpp"
-using UsingWindow = four::SdlWindow;
 
-#elif FOUR_USE_GLFW
+// setup using window glfw
 #include "window/glfw/glfwWindow.hpp"
 using UsingWindow = four::GlfwWindow;
-#endif // FOUR_USE_SDL
 
 namespace four
 {

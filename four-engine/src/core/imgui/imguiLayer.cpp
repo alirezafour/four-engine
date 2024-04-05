@@ -26,7 +26,7 @@ bool ImGuiLayer::Init()
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
 
-  if (!ImGui_ImplGlfw_InitForVulkan(Engine::Get()->GetWindow()->GetWindow(), false))
+  if (!ImGui_ImplGlfw_InitForVulkan(Engine::Get()->GetWindow()->GetHandle(), false))
   {
     LOG_CORE_ERROR("ImGui_ImplGlfw_InitForVulkan failed.");
     return false;

@@ -347,7 +347,7 @@ bool VulkDevice::CheckValidationLayerSupport()
 //===========================================================================================
 void VulkDevice::CreateSurface()
 {
-  auto*        window  = m_Window->GetWindow();
+  auto*        window  = m_Window->GetHandle();
   VkSurfaceKHR surface = nullptr;
   if (glfwCreateWindowSurface(m_Instance, window, nullptr, &surface) != VK_SUCCESS)
   {

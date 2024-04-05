@@ -61,9 +61,9 @@ public:
     return std::move(window);
   }
 
-  [[nodiscard]] auto GetWindow() const noexcept
+  [[nodiscard]] auto GetHandle() const noexcept
   {
-    return GetConstDerived()->GetWindowImpl();
+    return GetConstDerived()->GetHandleImpl();
   }
 
   /**
@@ -108,7 +108,7 @@ public:
    */
   explicit operator bool() const
   {
-    return GetWindow() != nullptr;
+    return GetHandle() != nullptr;
   }
 
   /**

@@ -56,11 +56,11 @@ public:
 
 private:
   /**
-   * @brief Get reference to glfw window
+   * @brief Get reference to glfw window handle
    *
-   * @return Reference to glfw window
+   * @return Reference to glfw window handle  
    */
-  [[nodiscard]] auto* GetWindowImpl() const noexcept
+  [[nodiscard]] auto* GetHandleImpl() const noexcept
   {
     return m_Window;
   }
