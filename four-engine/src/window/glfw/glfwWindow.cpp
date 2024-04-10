@@ -61,6 +61,7 @@ std::vector<const char*> GlfwWindow::GetVulkanRequiredExtensionsImpl()
   return {glfwExtensions, glfwExtensions + glfwExtensionCount};
 }
 
+
 //----------------------------------------------------------------------------------------
 void GlfwWindow::ShutdownImpl()
 {

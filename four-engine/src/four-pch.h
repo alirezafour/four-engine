@@ -19,3 +19,4 @@
 #include <variant>
 #include <ranges>
 #include <xutility>
+#include <optional>

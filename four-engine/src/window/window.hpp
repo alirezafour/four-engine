@@ -4,13 +4,6 @@
 
 #include "event/windowEvent.hpp"
 
-// forward declaration
-namespace vk
-{
-class Instance;
-class SurfaceKHR;
-} // namespace vk
-
 namespace four
 {
 
