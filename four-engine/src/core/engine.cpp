@@ -17,7 +17,6 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
     LOG_CORE_ERROR("Failed Initializing Engine.");
     return;
   }
-
   m_Renderer = std::make_unique<Renderer>(*m_Window);
   m_Renderer->Init();
 }

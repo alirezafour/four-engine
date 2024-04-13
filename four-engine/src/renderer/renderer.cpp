@@ -22,7 +22,14 @@ Renderer::~Renderer()
 //===============================================================================
 bool Renderer::Init()
 {
-  InitVulkan();
+  try
+  {
+    InitVulkan();
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR(e.what());
+    return false;
+  }
   return true;
 }
 
@@ -78,10 +85,13 @@ void Renderer::CreateVulkanInstance()
   }
 
   m_Instance = vk::createInstance(createInfo);
+  LOG_CORE_INFO("check point");
   if (!m_Instance)
   {
     throw std::runtime_error("failed to create instance!");
   }
+
+  LOG_CORE_INFO("Vulkan instance created");
 }
 
 //===============================================================================
@@ -107,6 +117,7 @@ void Renderer::SetupDebugMessenger()
   // {
   //   throw std::runtime_error("failed to set up debug messenger!");
   // }
+  LOG_CORE_INFO("Vulkan debug messenger created");
 }
 
 //===============================================================================
@@ -121,7 +132,7 @@ void Renderer::PickPhysicalDevice()
 
   for (const auto& device : physicalDevices)
   {
-    if (IsDeviceSuitable(device, m_Surface))
+    if (IsDeviceSuitable(device))
     {
       m_PhysicalDevice = device;
     }
@@ -132,21 +143,34 @@ void Renderer::PickPhysicalDevice()
   {
     throw std::runtime_error("failed to find a suitable GPU!");
   }
+
+  LOG_CORE_INFO("Vulkan physical device picked");
 }
 
 //===============================================================================
 void Renderer::CreateLogicalDevice()
 {
-  auto                      indices       = FindQueueFamilies(m_PhysicalDevice, m_Surface);
-  float                     queuePriority = 1.0f;
-  vk::DeviceQueueCreateInfo queueCreateInfo{{}, indices.graphicsFamily.value(), 1, &queuePriority};
-  auto                      features = m_PhysicalDevice.getFeatures();
+  auto                                   indices = FindQueueFamilies(m_PhysicalDevice);
+  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+  std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+  for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
+  {
+    vk::DeviceQueueCreateInfo queueInfo{};
+    queueInfo.sType            = vk::StructureType::eDeviceQueueCreateInfo;
+    queueInfo.queueFamilyIndex = queueFamily;
+    queueInfo.queueCount       = 1;
+    queueInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfos.push_back(queueInfo);
+  }
+  auto features = m_PhysicalDevice.getFeatures();
 
   vk::DeviceCreateInfo createInfo{};
-  createInfo.sType                = vk::StructureType::eDeviceCreateInfo;
-  createInfo.pQueueCreateInfos    = &queueCreateInfo;
-  createInfo.queueCreateInfoCount = 1;
-  createInfo.pEnabledFeatures     = &features;
+  createInfo.sType                   = vk::StructureType::eDeviceCreateInfo;
+  createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
+  createInfo.pQueueCreateInfos       = queueCreateInfos.data();
+  createInfo.pEnabledFeatures        = &features;
+  createInfo.enabledExtensionCount   = static_cast<uint32_t>(m_DeviceExtensions.size());
+  createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
 
   m_Device = m_PhysicalDevice.createDevice(createInfo);
   if (!m_Device)
@@ -156,6 +180,11 @@ void Renderer::CreateLogicalDevice()
 
   // get handle to graphics queue that created by the device
   m_GraphicsQueue = m_Device.getQueue(indices.graphicsFamily.value(), 0);
+
+  // get handle to present queue that created by the device
+  m_PresentQueue = m_Device.getQueue(indices.presentFamily.value(), 0);
+
+  LOG_CORE_INFO("Vulkan logical device created");
 }
 
 //===============================================================================
@@ -163,6 +192,7 @@ void Renderer::CreateSurface()
 {
   auto* window = m_Window.GetHandle();
   assert(window != nullptr && "Window handle is null");
+
   VkSurfaceKHR surface = VK_NULL_HANDLE;
   if (glfwCreateWindowSurface(m_Instance, window, nullptr, &surface) != VK_SUCCESS)
   {
@@ -173,6 +203,8 @@ void Renderer::CreateSurface()
   {
     throw std::runtime_error("failed to create window surface!");
   }
+
+  LOG_CORE_INFO("Vulkan surface created");
 }
 
 //===============================================================================
@@ -212,8 +244,10 @@ bool Renderer::CheckValidationLayerSupport()
 //===============================================================================
 std::vector<const char*> Renderer::GetRequiredExtensions()
 {
+  // add window extension enable
   std::vector<const char*> extensions = m_Window.GetVulkanRequiredExtensions();
 
+  // check for vaidation layer
   if (EnableValidationLayers)
   {
     extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -236,10 +270,25 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::DebugMessengerCallBack(
 }
 
 //===============================================================================
-bool Renderer::IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
+bool Renderer::IsDeviceSuitable(const vk::PhysicalDevice& device)
 {
-  auto indices = FindQueueFamilies(device, surface);
-  return indices.IsComplete();
+  auto indices             = FindQueueFamilies(device);
+  bool extensionsSupported = CheckDeviceExtensionSupport(device);
+  return indices.IsComplete() && extensionsSupported;
+}
+
+//===============================================================================
+bool Renderer::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device)
+{
+  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
+
+  std::set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
+  for (const auto& extension : availableExtensions)
+  {
+    requiredExtensions.erase(extension.extensionName);
+  }
+
+  return requiredExtensions.empty();
 }
 
 //===============================================================================
@@ -268,7 +317,7 @@ int Renderer::RateDeviceSuitability(const vk::PhysicalDevice& device)
 }
 
 //===============================================================================
-Renderer::QueueFamilyIndices Renderer::FindQueueFamilies(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
+Renderer::QueueFamilyIndices Renderer::FindQueueFamilies(const vk::PhysicalDevice& device)
 {
   // logic to find queue families
   auto queueFamilies = device.getQueueFamilyProperties();
@@ -279,7 +328,7 @@ Renderer::QueueFamilyIndices Renderer::FindQueueFamilies(const vk::PhysicalDevic
     if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
     {
       indices.graphicsFamily = index;
-      if (device.getSurfaceSupportKHR(index, surface) != 0u)
+      if (device.getSurfaceSupportKHR(index, m_Surface) != 0u)
       {
         indices.presentFamily = index;
       }

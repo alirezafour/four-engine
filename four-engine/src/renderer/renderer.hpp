@@ -61,9 +61,10 @@ private:
     VkDebugUtilsMessageTypeFlagsEXT             messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* /*pUserData*/);
-  [[nodiscard]] static bool IsDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface);
-  [[nodiscard]] static int  RateDeviceSuitability(const vk::PhysicalDevice& device);
-  [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface);
+  [[nodiscard]] bool               IsDeviceSuitable(const vk::PhysicalDevice& device);
+  [[nodiscard]] bool               CheckDeviceExtensionSupport(const vk::PhysicalDevice& device);
+  [[nodiscard]] int                RateDeviceSuitability(const vk::PhysicalDevice& device);
+  [[nodiscard]] QueueFamilyIndices FindQueueFamilies(const vk::PhysicalDevice& device);
 
 private:
   Window<GlfwWindow>&        m_Window;
@@ -73,5 +74,7 @@ private:
   vk::Device                 m_Device;
   vk::Queue                  m_GraphicsQueue;
   vk::SurfaceKHR             m_Surface;
+  vk::Queue                  m_PresentQueue;
+  std::vector<const char*>   m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 };
 } // namespace four
