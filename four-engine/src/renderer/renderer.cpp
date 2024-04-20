@@ -22,15 +22,23 @@ Renderer::~Renderer()
 //===============================================================================
 bool Renderer::Init()
 {
+  bool result = false;
   try
   {
-    InitVulkan();
+    result = InitVulkan();
   } catch (const std::exception& e)
   {
     LOG_CORE_ERROR(e.what());
     return false;
   }
-  return true;
+
+  if (result)
+  {
+    return true;
+  }
+
+  LOG_CORE_ERROR("Failed to initialize Vulkan");
+  return false;
 }
 
 //===============================================================================
@@ -38,31 +46,31 @@ void Renderer::Shutdown()
 {
   if (m_Instance)
   {
+    for (auto imageView : m_SwapChainImageViews)
+    {
+      m_Device.destroyImageView(imageView);
+    }
+    m_Device.destroySwapchainKHR(m_SwapChain);
     m_Device.destroy();
     m_Instance.destroySurfaceKHR(m_Surface);
     m_Instance.destroy();
-    LOG_CORE_INFO("Vulkan uninitialized");
   }
 }
 
 //===============================================================================
 bool Renderer::InitVulkan()
 {
-  CreateVulkanInstance();
-  SetupDebugMessenger();
-  CreateSurface();
-  PickPhysicalDevice();
-  CreateLogicalDevice();
-  LOG_CORE_INFO("Vulkan initialized");
-  return true;
+  return CreateVulkanInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() &&
+         CreateLogicalDevice() && CreateSwapChain() && CreateImageView();
 }
 
 //===============================================================================
-void Renderer::CreateVulkanInstance()
+bool Renderer::CreateVulkanInstance()
 {
   if (EnableValidationLayers && !CheckValidationLayerSupport())
   {
-    throw std::runtime_error("validation layers requested, but not available!");
+    LOG_CORE_ERROR("validation layers requested, but not available!");
+    return false;
   }
 
   vk::ApplicationInfo    appInfo{"four-engine", 1, "four-engine", 1, VK_API_VERSION_1_3};
@@ -85,21 +93,20 @@ void Renderer::CreateVulkanInstance()
   }
 
   m_Instance = vk::createInstance(createInfo);
-  LOG_CORE_INFO("check point");
   if (!m_Instance)
   {
-    throw std::runtime_error("failed to create instance!");
+    LOG_CORE_ERROR("failed to create instance!");
+    return false;
   }
-
-  LOG_CORE_INFO("Vulkan instance created");
+  return true;
 }
 
 //===============================================================================
-void Renderer::SetupDebugMessenger()
+bool Renderer::SetupDebugMessenger()
 {
   if (!EnableValidationLayers)
   {
-    return;
+    return true;
   }
 
   vk::DebugUtilsMessengerCreateInfoEXT createInfo;
@@ -117,17 +124,18 @@ void Renderer::SetupDebugMessenger()
   // {
   //   throw std::runtime_error("failed to set up debug messenger!");
   // }
-  LOG_CORE_INFO("Vulkan debug messenger created");
+  return true;
 }
 
 //===============================================================================
-void Renderer::PickPhysicalDevice()
+bool Renderer::PickPhysicalDevice()
 {
   m_PhysicalDevice     = VK_NULL_HANDLE;
   auto physicalDevices = m_Instance.enumeratePhysicalDevices();
   if (physicalDevices.empty())
   {
-    throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    LOG_CORE_ERROR("failed to find GPUs with Vulkan support!");
+    return false;
   }
 
   for (const auto& device : physicalDevices)
@@ -141,14 +149,14 @@ void Renderer::PickPhysicalDevice()
   // if could not find a suitable GPU
   if (m_PhysicalDevice == VK_NULL_HANDLE)
   {
-    throw std::runtime_error("failed to find a suitable GPU!");
+    LOG_CORE_ERROR("failed to find a suitable GPU!");
+    return false;
   }
-
-  LOG_CORE_INFO("Vulkan physical device picked");
+  return true;
 }
 
 //===============================================================================
-void Renderer::CreateLogicalDevice()
+bool Renderer::CreateLogicalDevice()
 {
   auto                                   indices = FindQueueFamilies(m_PhysicalDevice);
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -175,7 +183,8 @@ void Renderer::CreateLogicalDevice()
   m_Device = m_PhysicalDevice.createDevice(createInfo);
   if (!m_Device)
   {
-    throw std::runtime_error("failed to create logical device!");
+    LOG_CORE_ERROR("failed to create logical device!");
+    return false;
   }
 
   // get handle to graphics queue that created by the device
@@ -184,11 +193,11 @@ void Renderer::CreateLogicalDevice()
   // get handle to present queue that created by the device
   m_PresentQueue = m_Device.getQueue(indices.presentFamily.value(), 0);
 
-  LOG_CORE_INFO("Vulkan logical device created");
+  return true;
 }
 
 //===============================================================================
-void Renderer::CreateSurface()
+bool Renderer::CreateSurface()
 {
   auto* window = m_Window.GetHandle();
   assert(window != nullptr && "Window handle is null");
@@ -196,22 +205,120 @@ void Renderer::CreateSurface()
   VkSurfaceKHR surface = VK_NULL_HANDLE;
   if (glfwCreateWindowSurface(m_Instance, window, nullptr, &surface) != VK_SUCCESS)
   {
-    throw std::runtime_error("failed to create window surface!");
+    LOG_CORE_ERROR("failed to create window surface!");
+    return false;
   }
   m_Surface = vk::SurfaceKHR(surface);
   if (m_Surface == VK_NULL_HANDLE)
   {
-    throw std::runtime_error("failed to create window surface!");
+    LOG_CORE_ERROR("failed to create window surface!");
+    return false;
+  }
+  return true;
+}
+
+//===============================================================================
+bool Renderer::CreateSwapChain()
+{
+  auto swapchainSupport = QuerySwapChainSupport(m_PhysicalDevice);
+  auto surfaceFormat    = ChooseSwapSurfaceFormat(swapchainSupport.formats);
+  auto presentMode      = ChooseSwapPresentMode(swapchainSupport.presentModes);
+  auto extent           = ChooseSwapExtent(swapchainSupport.capabilities);
+
+  uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+  if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
+  {
+    imageCount = swapchainSupport.capabilities.maxImageCount;
   }
 
-  LOG_CORE_INFO("Vulkan surface created");
+  vk::SwapchainCreateInfoKHR createInfo{};
+  createInfo.sType            = vk::StructureType::eSwapchainCreateInfoKHR;
+  createInfo.surface          = m_Surface;
+  createInfo.minImageCount    = imageCount;
+  createInfo.imageFormat      = surfaceFormat.format;
+  createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+  createInfo.imageExtent      = extent;
+  createInfo.imageArrayLayers = 1;
+  createInfo.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment;
+
+  auto                    indices            = FindQueueFamilies(m_PhysicalDevice);
+  std::array<uint32_t, 2> queueFamilyIndices = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+
+  if (indices.graphicsFamily != indices.presentFamily)
+  {
+    createInfo.imageSharingMode      = vk::SharingMode::eConcurrent;
+    createInfo.queueFamilyIndexCount = 2;
+    createInfo.pQueueFamilyIndices   = queueFamilyIndices.data();
+  }
+  else
+  {
+    createInfo.imageSharingMode      = vk::SharingMode::eExclusive;
+    createInfo.queueFamilyIndexCount = 0;       // Optional
+    createInfo.pQueueFamilyIndices   = nullptr; // Optional
+  }
+
+  createInfo.preTransform   = swapchainSupport.capabilities.currentTransform;
+  createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  createInfo.presentMode    = presentMode;
+  createInfo.clipped        = VK_TRUE;
+
+  createInfo.oldSwapchain = nullptr;
+
+  m_SwapChain = m_Device.createSwapchainKHR(createInfo);
+  if (!m_SwapChain)
+  {
+    LOG_CORE_ERROR("failed to create swap chain!");
+    return false;
+  }
+
+  m_SwapChainImages      = m_Device.getSwapchainImagesKHR(m_SwapChain);
+  m_SwapChainImageFormat = surfaceFormat.format;
+  m_SwapChainExtent      = extent;
+
+  return true;
+}
+
+//===============================================================================
+bool Renderer::CreateImageView()
+{
+  m_SwapChainImageViews.resize(m_SwapChainImages.size());
+
+  for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
+  {
+    vk::ImageViewCreateInfo createInfo{};
+    createInfo.sType = vk::StructureType::eImageViewCreateInfo;
+    createInfo.image = m_SwapChainImages[i]; // swapchain image.
+
+    createInfo.viewType = vk::ImageViewType::e2D;
+    createInfo.format   = m_SwapChainImageFormat;
+
+    createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+    createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+    createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+    createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+
+    createInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
+    createInfo.subresourceRange.baseMipLevel   = 0;
+    createInfo.subresourceRange.levelCount     = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount     = 1;
+
+    m_SwapChainImageViews[i] = m_Device.createImageView(createInfo);
+    if (!m_SwapChainImageViews[i])
+    {
+      LOG_CORE_ERROR("failed to create image views!");
+      return false;
+    }
+  }
+
+  return true;
 }
 
 //===============================================================================
 void Renderer::PrintExtensionsSupport()
 {
   LOG_CORE_INFO("available extensions:");
-  std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
+  const std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
   for (const auto& extension : availableExtensions)
   {
     LOG_CORE_INFO("\tExtension: {}", extension.extensionName);
@@ -242,7 +349,7 @@ bool Renderer::CheckValidationLayerSupport()
 }
 
 //===============================================================================
-std::vector<const char*> Renderer::GetRequiredExtensions()
+std::vector<const char*> Renderer::GetRequiredExtensions() const
 {
   // add window extension enable
   std::vector<const char*> extensions = m_Window.GetVulkanRequiredExtensions();
@@ -270,15 +377,22 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::DebugMessengerCallBack(
 }
 
 //===============================================================================
-bool Renderer::IsDeviceSuitable(const vk::PhysicalDevice& device)
+bool Renderer::IsDeviceSuitable(const vk::PhysicalDevice& device) const
 {
-  auto indices             = FindQueueFamilies(device);
-  bool extensionsSupported = CheckDeviceExtensionSupport(device);
-  return indices.IsComplete() && extensionsSupported;
+  const auto indices             = FindQueueFamilies(device);
+  const bool extensionsSupported = CheckDeviceExtensionSupport(device);
+  bool       swapChainAquate     = false;
+  if (extensionsSupported)
+  {
+    const auto swapChainSupport = QuerySwapChainSupport(device);
+    swapChainAquate             = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+  }
+
+  return indices.IsComplete() && extensionsSupported && swapChainAquate;
 }
 
 //===============================================================================
-bool Renderer::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device)
+bool Renderer::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) const
 {
   std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
 
@@ -292,7 +406,7 @@ bool Renderer::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device)
 }
 
 //===============================================================================
-int Renderer::RateDeviceSuitability(const vk::PhysicalDevice& device)
+int Renderer::RateDeviceSuitability(const vk::PhysicalDevice& device) const
 {
   // TODO: temporary scoring
   int score = 0;
@@ -317,7 +431,7 @@ int Renderer::RateDeviceSuitability(const vk::PhysicalDevice& device)
 }
 
 //===============================================================================
-Renderer::QueueFamilyIndices Renderer::FindQueueFamilies(const vk::PhysicalDevice& device)
+Renderer::QueueFamilyIndices Renderer::FindQueueFamilies(const vk::PhysicalDevice& device) const
 {
   // logic to find queue families
   auto queueFamilies = device.getQueueFamilyProperties();
@@ -342,4 +456,61 @@ Renderer::QueueFamilyIndices Renderer::FindQueueFamilies(const vk::PhysicalDevic
   }
   return indices;
 }
+
+//===============================================================================
+Renderer::SwapChainSupportDetails Renderer::QuerySwapChainSupport(const vk::PhysicalDevice& device) const
+{
+  return {.capabilities = device.getSurfaceCapabilitiesKHR(m_Surface),
+          .formats      = device.getSurfaceFormatsKHR(m_Surface),
+          .presentModes = device.getSurfacePresentModesKHR(m_Surface)};
+}
+
+
+//===============================================================================
+vk::SurfaceFormatKHR Renderer::ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
+{
+  assert(!availableFormats.empty() && "No available formats found");
+
+  for (const auto& availableFormat : availableFormats)
+  {
+    if (availableFormat.format == vk::Format::eB8G8R8A8Srgb &&
+        availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+    {
+      return availableFormat;
+    }
+  }
+  //INFO: we could rank them how good they are, but for now just pick the first one
+  return availableFormats[0];
+}
+
+//===============================================================================
+vk::PresentModeKHR Renderer::ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes)
+{
+  for (const auto& availablePresentMode : availablePresentModes)
+  {
+    if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+    {
+      return availablePresentMode;
+    }
+  }
+  return vk::PresentModeKHR::eFifo;
+}
+
+//===============================================================================
+vk::Extent2D Renderer::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
+{
+  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+  {
+    return capabilities.currentExtent;
+  }
+  const uint32_t width  = m_Window.GetExtent().GetWidth();
+  const uint32_t height = m_Window.GetExtent().GetHeight();
+  vk::Extent2D   actualExtent{width, height};
+
+  actualExtent.width  = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+  actualExtent.height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+  return actualExtent;
+}
+
 } // namespace four

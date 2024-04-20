@@ -32,6 +32,13 @@ class Renderer
     }
   };
 
+  struct SwapChainSupportDetails
+  {
+    vk::SurfaceCapabilitiesKHR        capabilities;
+    std::vector<vk::SurfaceFormatKHR> formats;
+    std::vector<vk::PresentModeKHR>   presentModes;
+  };
+
 public:
   explicit Renderer(Window<GlfwWindow>& window);
   ~Renderer();
@@ -45,14 +52,16 @@ public:
   void Shutdown();
 
 private:
-  bool InitVulkan();
-  void CreateVulkanInstance();
-  void SetupDebugMessenger();
-  void PickPhysicalDevice();
-  void CreateLogicalDevice();
-  void CreateSurface();
+  [[nodiscard]] bool InitVulkan();
+  [[nodiscard]] bool CreateVulkanInstance();
+  [[nodiscard]] bool SetupDebugMessenger();
+  [[nodiscard]] bool PickPhysicalDevice();
+  [[nodiscard]] bool CreateLogicalDevice();
+  [[nodiscard]] bool CreateSurface();
+  [[nodiscard]] bool CreateSwapChain();
+  [[nodiscard]] bool CreateImageView();
 
-  std::vector<const char*> GetRequiredExtensions();
+  [[nodiscard]] std::vector<const char*> GetRequiredExtensions() const;
 
   static void                                         PrintExtensionsSupport();
   [[nodiscard]] static bool                           CheckValidationLayerSupport();
@@ -61,10 +70,16 @@ private:
     VkDebugUtilsMessageTypeFlagsEXT             messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* /*pUserData*/);
-  [[nodiscard]] bool               IsDeviceSuitable(const vk::PhysicalDevice& device);
-  [[nodiscard]] bool               CheckDeviceExtensionSupport(const vk::PhysicalDevice& device);
-  [[nodiscard]] int                RateDeviceSuitability(const vk::PhysicalDevice& device);
-  [[nodiscard]] QueueFamilyIndices FindQueueFamilies(const vk::PhysicalDevice& device);
+
+  [[nodiscard]] bool                    IsDeviceSuitable(const vk::PhysicalDevice& device) const;
+  [[nodiscard]] bool                    CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) const;
+  [[nodiscard]] int                     RateDeviceSuitability(const vk::PhysicalDevice& device) const;
+  [[nodiscard]] QueueFamilyIndices      FindQueueFamilies(const vk::PhysicalDevice& device) const;
+  [[nodiscard]] SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& device) const;
+  [[nodiscard]] static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+  [[nodiscard]] static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+  [[nodiscard]] vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+
 
 private:
   Window<GlfwWindow>&        m_Window;
@@ -76,5 +91,10 @@ private:
   vk::SurfaceKHR             m_Surface;
   vk::Queue                  m_PresentQueue;
   std::vector<const char*>   m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  vk::SwapchainKHR           m_SwapChain;
+  std::vector<vk::Image>     m_SwapChainImages;
+  vk::Format                 m_SwapChainImageFormat;
+  vk::Extent2D               m_SwapChainExtent;
+  std::vector<vk::ImageView> m_SwapChainImageViews;
 };
 } // namespace four
