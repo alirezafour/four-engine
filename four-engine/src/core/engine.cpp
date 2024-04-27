@@ -35,17 +35,29 @@ void Engine::Run()
 {
   try
   {
+    m_LastFrameTimePoint = std::chrono::high_resolution_clock::now();
     while (!m_Window->ShouldClose())
     {
-      const auto startTime = std::chrono::system_clock::now();
-      const auto time      = std::chrono::duration<float>(startTime - m_LastFrameTimePoint);
+      const auto startTime = std::chrono::high_resolution_clock::now();
+      const auto frameTime = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - m_LastFrameTimePoint);
       m_LastFrameTimePoint = startTime;
+
       m_Window->OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(time.count());
+        m_Application->OnUpdate(static_cast<float>(frameTime.count()) / 1000.0f);
       }
       m_ImGuiLayer.OnUpdate();
+
+      const auto endTime  = std::chrono::high_resolution_clock::now();
+      const auto realTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+
+      if (const auto sleepTime = TargetFrameTime - realTime.count(); sleepTime > 0)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+      }
+      const float fps = 1000.0f / static_cast<float>(frameTime.count());
+      LOG_INFO("FPS: {}, ms: {}, realtime: {}", fps, frameTime.count() / 1000.f, realTime.count() / 1000.f);
     }
   } catch (const std::exception& e)
   {

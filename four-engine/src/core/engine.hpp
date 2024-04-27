@@ -15,6 +15,9 @@ using UsingWindow = four::GlfwWindow;
 namespace four
 {
 
+constexpr uint32_t TargetFPS       = 60;
+constexpr uint32_t TargetFrameTime = 1000 / TargetFPS;
+
 class Application;
 
 class Engine
@@ -145,7 +148,7 @@ private:
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
 
-  Application*                                       m_Application;
-  std::chrono::time_point<std::chrono::system_clock> m_LastFrameTimePoint;
+  Application*                                                m_Application;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_LastFrameTimePoint;
 };
 } // namespace four
