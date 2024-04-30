@@ -52,14 +52,23 @@ public:
   void Shutdown();
 
 private:
+  // vulkan instance
   [[nodiscard]] bool InitVulkan();
   [[nodiscard]] bool CreateVulkanInstance();
   [[nodiscard]] bool SetupDebugMessenger();
+
+  // vulkan device
   [[nodiscard]] bool PickPhysicalDevice();
   [[nodiscard]] bool CreateLogicalDevice();
   [[nodiscard]] bool CreateSurface();
+
+  // swpap chain
   [[nodiscard]] bool CreateSwapChain();
   [[nodiscard]] bool CreateImageView();
+
+  // graphic pipeline
+  [[nodiscard]] bool                    CreateGraphicsPipeline();
+  [[nodiscard]] static vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
 
   [[nodiscard]] std::vector<const char*> GetRequiredExtensions() const;
 
