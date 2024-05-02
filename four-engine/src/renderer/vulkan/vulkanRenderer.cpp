@@ -8,8 +8,8 @@ namespace four
 
 //===============================================================================
 VulkanRenderer::VulkanRenderer(Window<GlfwWindow>& window, VulkanContext& context) :
-m_Window(window),
-m_VulkanContext(context)
+m_Window{window},
+m_VulkanContext{context}
 {
 }
 
@@ -19,63 +19,20 @@ VulkanRenderer::~VulkanRenderer() = default;
 //===============================================================================
 bool VulkanRenderer::Init()
 {
-  return CreateLogicalDevice() && CreateSwapChain() && CreateImageViews();
+  return CreateSwapChain() && CreateImageViews();
 }
 
 //===============================================================================
 void VulkanRenderer::Shutdown()
 {
+  const auto device = m_VulkanContext.GetDevice();
   for (auto imageView : m_SwapChainImageViews)
   {
-    m_Device.destroyImageView(imageView);
+    device.destroyImageView(imageView);
   }
-  m_Device.destroySwapchainKHR(m_SwapChain);
-  m_Device.destroy();
+  device.destroySwapchainKHR(m_SwapChain);
 }
 
-//===============================================================================
-bool VulkanRenderer::CreateLogicalDevice()
-{
-  const auto physicalDevice   = m_VulkanContext.GetPhysicalDevice();
-  const auto deviceExtensions = m_VulkanContext.GetDeviceExtensions();
-  const auto indices          = FindQueueFamilies();
-
-  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-  std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-  for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
-  {
-    vk::DeviceQueueCreateInfo queueInfo{};
-    queueInfo.sType            = vk::StructureType::eDeviceQueueCreateInfo;
-    queueInfo.queueFamilyIndex = queueFamily;
-    queueInfo.queueCount       = 1;
-    queueInfo.pQueuePriorities = &queuePriority;
-    queueCreateInfos.push_back(queueInfo);
-  }
-  auto features = physicalDevice.getFeatures();
-
-  vk::DeviceCreateInfo createInfo{};
-  createInfo.sType                   = vk::StructureType::eDeviceCreateInfo;
-  createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
-  createInfo.pQueueCreateInfos       = queueCreateInfos.data();
-  createInfo.pEnabledFeatures        = &features;
-  createInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
-  createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-  m_Device = physicalDevice.createDevice(createInfo);
-  if (!m_Device)
-  {
-    LOG_CORE_ERROR("failed to create logical device!");
-    return false;
-  }
-
-  // get handle to graphics queue that created by the device
-  m_GraphicsQueue = m_Device.getQueue(indices.graphicsFamily.value(), 0);
-
-  // get handle to present queue that created by the device
-  m_PresentQueue = m_Device.getQueue(indices.presentFamily.value(), 0);
-
-  return true;
-}
 
 //===============================================================================
 bool VulkanRenderer::CreateImageViews()
@@ -102,7 +59,8 @@ bool VulkanRenderer::CreateImageViews()
     createInfo.subresourceRange.baseArrayLayer = 0;
     createInfo.subresourceRange.layerCount     = 1;
 
-    m_SwapChainImageViews[i] = m_Device.createImageView(createInfo);
+    const auto device        = m_VulkanContext.GetDevice();
+    m_SwapChainImageViews[i] = device.createImageView(createInfo);
     if (!m_SwapChainImageViews[i])
     {
       LOG_CORE_ERROR("failed to create image views!");
@@ -112,17 +70,19 @@ bool VulkanRenderer::CreateImageViews()
 
   return true;
 }
+
 //===============================================================================
 bool VulkanRenderer::CreateSwapChain()
 {
-  const auto physicalDevice = m_VulkanContext.GetPhysicalDevice();
-  const auto surface        = m_VulkanContext.GetSurface();
-  const auto indices        = FindQueueFamilies();
+  const auto physicalDevice   = m_VulkanContext.GetPhysicalDevice();
+  const auto surface          = m_VulkanContext.GetSurface();
+  const auto device           = m_VulkanContext.GetDevice();
+  const auto indices          = VulkanContext::FindQueueFamilies(physicalDevice, surface);
+  const auto swapchainSupport = VulkanContext::QuerySwapChainSupport(physicalDevice, surface);
+  const auto extent           = m_VulkanContext.GetExtent();
 
-  auto swapchainSupport = QuerySwapChainSupport();
-  auto surfaceFormat    = ChooseSwapSurfaceFormat(swapchainSupport.formats);
-  auto presentMode      = ChooseSwapPresentMode(swapchainSupport.presentModes);
-  auto extent           = ChooseSwapExtent(swapchainSupport.capabilities);
+  auto surfaceFormat = ChooseSwapSurfaceFormat(swapchainSupport.formats);
+  auto presentMode   = ChooseSwapPresentMode(swapchainSupport.presentModes);
 
   uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
   if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
@@ -162,59 +122,18 @@ bool VulkanRenderer::CreateSwapChain()
 
   createInfo.oldSwapchain = nullptr;
 
-  m_SwapChain = m_Device.createSwapchainKHR(createInfo);
+  m_SwapChain = device.createSwapchainKHR(createInfo);
   if (!m_SwapChain)
   {
     LOG_CORE_ERROR("failed to create swap chain!");
     return false;
   }
 
-  m_SwapChainImages      = m_Device.getSwapchainImagesKHR(m_SwapChain);
+  m_SwapChainImages      = device.getSwapchainImagesKHR(m_SwapChain);
   m_SwapChainImageFormat = surfaceFormat.format;
   m_SwapChainExtent      = extent;
 
   return true;
-}
-
-//===============================================================================
-VulkanContext::SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport() const
-{
-  const auto device  = m_VulkanContext.GetPhysicalDevice();
-  const auto surface = m_VulkanContext.GetSurface();
-
-  return {.capabilities = device.getSurfaceCapabilitiesKHR(surface),
-          .formats      = device.getSurfaceFormatsKHR(surface),
-          .presentModes = device.getSurfacePresentModesKHR(surface)};
-}
-
-//===============================================================================
-VulkanContext::QueueFamilyIndices VulkanRenderer::FindQueueFamilies() const
-{
-  const auto device  = m_VulkanContext.GetPhysicalDevice();
-  const auto surface = m_VulkanContext.GetSurface();
-
-  // logic to find queue families
-  auto queueFamilies = device.getQueueFamilyProperties();
-
-  VulkanContext::QueueFamilyIndices indices;
-  for (uint32_t index = 0u; const auto& queueFamily : queueFamilies)
-  {
-    if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
-    {
-      indices.graphicsFamily = index;
-      if (device.getSurfaceSupportKHR(index, surface) != 0u)
-      {
-        indices.presentFamily = index;
-      }
-
-      if (indices.IsComplete())
-      {
-        break;
-      }
-    }
-    ++index;
-  }
-  return indices;
 }
 
 //===============================================================================
@@ -248,20 +167,4 @@ vk::PresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<vk::P
   return vk::PresentModeKHR::eFifo;
 }
 
-//===============================================================================
-vk::Extent2D VulkanRenderer::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
-{
-  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-  {
-    return capabilities.currentExtent;
-  }
-  const uint32_t width  = m_Window.GetExtent().GetWidth();
-  const uint32_t height = m_Window.GetExtent().GetHeight();
-  vk::Extent2D   actualExtent{width, height};
-
-  actualExtent.width  = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-  actualExtent.height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-  return actualExtent;
-}
 } // namespace four

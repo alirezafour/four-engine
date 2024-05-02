@@ -2,7 +2,7 @@
 
 #include "core/core.hpp"
 
-#include "renderer/vulkan/vulkanRenderer.hpp"
+#include "vulkan/vulkan.hpp"
 
 namespace four
 {
@@ -10,7 +10,7 @@ namespace four
 class FOUR_ENGINE_API VulkanPipeline
 {
 public:
-  explicit VulkanPipeline(VulkanRenderer& renderer);
+  explicit VulkanPipeline(vk::Device& device, vk::Extent2D extent);
   ~VulkanPipeline();
 
   VulkanPipeline(const VulkanPipeline&)            = delete;
@@ -24,10 +24,13 @@ private:
   [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
 
 private:
-  VulkanRenderer&  m_VulkanRenderer;
-  vk::Pipeline     m_GraphicsPipeline;
-  vk::ShaderModule m_VertexShaderModule;
-  vk::ShaderModule m_FragmentShaderModule;
+  vk::Device&        m_Device;
+  vk::Extent2D       m_Extent;
+  vk::RenderPass     m_RenderPass;
+  vk::Pipeline       m_GraphicsPipeline;
+  vk::ShaderModule   m_VertexShaderModule;
+  vk::ShaderModule   m_FragmentShaderModule;
+  vk::PipelineLayout m_PipelineLayout;
 };
 
 } // namespace four

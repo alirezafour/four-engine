@@ -50,6 +50,10 @@ public:
   bool Init();
   void Shutdown();
 
+  [[nodiscard]] static SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& device,
+                                                                     const vk::SurfaceKHR&     surface);
+  [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface);
+
   [[nodiscard]] inline const vk::Instance& GetVulkanInstance() const
   {
     return m_Instance;
@@ -67,19 +71,29 @@ public:
     return m_DeviceExtensions;
   }
 
+  [[nodiscard]] const vk::Device& GetDevice() const
+  {
+    return m_Device;
+  }
+
+  [[nodiscard]] vk::Extent2D GetExtent() const
+  {
+    return m_SwapChainExtent;
+  }
+
 private:
   [[nodiscard]] bool CreateInstance();
   [[nodiscard]] bool SetupDebugMessenger();
   [[nodiscard]] bool CreateSurface();
   [[nodiscard]] bool PickPhysicalDevice();
+  [[nodiscard]] bool CreateLogicalDevice();
 
   // helpers
   [[nodiscard]] static bool              CheckValidationLayerSupport();
   [[nodiscard]] std::vector<const char*> GetRequiredExtensions();
   [[nodiscard]] bool                     IsDeviceSuitable(const vk::PhysicalDevice& device) const;
   [[nodiscard]] bool                     CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) const;
-  [[nodiscard]] QueueFamilyIndices       FindQueueFamilies(const vk::PhysicalDevice& device) const;
-  [[nodiscard]] SwapChainSupportDetails  QuerySwapChainSupport(const vk::PhysicalDevice& device) const;
+  [[nodiscard]] vk::Extent2D             ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
   static void                                         PrintExtensionsSupport();
   [[nodiscard]] static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessengerCallBack(
@@ -96,6 +110,10 @@ private:
   vk::DebugUtilsMessengerEXT m_DebugMessenger;
   vk::SurfaceKHR             m_Surface;
   vk::PhysicalDevice         m_PhysicalDevice;
+  vk::Device                 m_Device;
+  vk::Queue                  m_GraphicsQueue;
+  vk::Queue                  m_PresentQueue;
   std::vector<const char*>   m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  vk::Extent2D               m_SwapChainExtent;
 };
 } // namespace four

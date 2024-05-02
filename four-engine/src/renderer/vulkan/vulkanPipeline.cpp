@@ -17,30 +17,27 @@ std::vector<char> ReadFile(const std::string& filename)
   const size_t      fileSize = (size_t)file.tellg();
   std::vector<char> buffer(fileSize);
   file.seekg(0);
-  file.read(buffer.data(), fileSize);
+  file.read(buffer.data(), static_cast<long long>(fileSize));
   file.close();
   return buffer;
 }
 
 //===============================================================================
-VulkanPipeline::VulkanPipeline(VulkanRenderer& renderer) : m_VulkanRenderer{renderer}
+VulkanPipeline::VulkanPipeline(vk::Device& device, vk::Extent2D extent) : m_Device{device}, m_Extent{extent}
 {
   bool result = CreateGraphicsPipeline();
 }
 //===============================================================================
 VulkanPipeline::~VulkanPipeline()
 {
-  const auto device = m_VulkanRenderer.GetDevice();
-
-  device.destroyShaderModule(m_FragmentShaderModule);
-  device.destroyShaderModule(m_VertexShaderModule);
+  m_Device.destroyPipeline(m_GraphicsPipeline);
+  m_Device.destroyShaderModule(m_FragmentShaderModule);
+  m_Device.destroyShaderModule(m_VertexShaderModule);
 }
 
 //===============================================================================
 bool VulkanPipeline::CreateGraphicsPipeline()
 {
-  const auto extent = m_VulkanRenderer.GetExtent();
-
   auto verShaderCode  = ReadFile("shaders/SimpleShader.vert.spv");
   auto fragShaderCode = ReadFile("shaders/SimpleShader.frag.spv");
 
@@ -84,14 +81,14 @@ bool VulkanPipeline::CreateGraphicsPipeline()
   vk::Viewport viewport{};
   viewport.x        = 0.0f;
   viewport.y        = 0.0f;
-  viewport.width    = static_cast<float>(extent.width);
-  viewport.height   = static_cast<float>(extent.height);
+  viewport.width    = static_cast<float>(m_Extent.width);
+  viewport.height   = static_cast<float>(m_Extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   vk::Rect2D scissor{};
   scissor.offset = vk::Offset2D{0, 0};
-  scissor.extent = extent;
+  scissor.extent = m_Extent;
 
   vk::PipelineViewportStateCreateInfo viewportStateInfo{};
   viewportStateInfo.sType         = vk::StructureType::ePipelineViewportStateCreateInfo;
@@ -144,17 +141,29 @@ bool VulkanPipeline::CreateGraphicsPipeline()
   colorBlendingInfo.blendConstants[2] = 0.0f; // Optional
   colorBlendingInfo.blendConstants[3] = 0.0f; // Optional
 
+  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+  pipelineLayoutInfo.sType                  = vk::StructureType::ePipelineLayoutCreateInfo;
+  pipelineLayoutInfo.setLayoutCount         = 0;       // Optional
+  pipelineLayoutInfo.pSetLayouts            = nullptr; // Optional
+  pipelineLayoutInfo.pushConstantRangeCount = 0;       // Optional
+  pipelineLayoutInfo.pPushConstantRanges    = nullptr; // Optional
+
+  if (m_Device.createPipelineLayout(&pipelineLayoutInfo, nullptr, &m_PipelineLayout) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("Failed to create pipeline layout");
+    return false;
+  }
+
   return true;
 }
 
 //===============================================================================
 vk::ShaderModule VulkanPipeline::CreateShaderModule(const std::vector<char>& code)
 {
-  const auto                 device = m_VulkanRenderer.GetDevice();
   vk::ShaderModuleCreateInfo createInfo{};
   createInfo.sType    = vk::StructureType::eShaderModuleCreateInfo;
   createInfo.codeSize = code.size();
   createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
-  return device.createShaderModule(createInfo);
+  return m_Device.createShaderModule(createInfo);
 }
 } // namespace four

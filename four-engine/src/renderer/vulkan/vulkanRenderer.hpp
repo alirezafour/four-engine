@@ -26,35 +26,16 @@ public:
   [[nodiscard]] bool Init();
   void               Shutdown();
 
-  [[nodiscard]] const vk::Device& GetDevice() const
-  {
-    return m_Device;
-  }
-
-  [[nodiscard]] vk::Extent2D GetExtent() const
-  {
-    return m_SwapChainExtent;
-  }
-
-
 private:
-  [[nodiscard]] bool CreateLogicalDevice();
   [[nodiscard]] bool CreateSwapChain();
   [[nodiscard]] bool CreateImageViews();
 
-  [[nodiscard]] VulkanContext::QueueFamilyIndices      FindQueueFamilies() const;
-  [[nodiscard]] VulkanContext::SwapChainSupportDetails QuerySwapChainSupport() const;
-
   [[nodiscard]] static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
   [[nodiscard]] static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
-  [[nodiscard]] vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
 private:
   Window<GlfwWindow>& m_Window;
   VulkanContext&      m_VulkanContext;
-  vk::Device          m_Device;
-  vk::Queue           m_GraphicsQueue;
-  vk::Queue           m_PresentQueue;
 
   vk::SwapchainKHR           m_SwapChain;
   std::vector<vk::Image>     m_SwapChainImages;

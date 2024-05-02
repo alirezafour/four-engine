@@ -38,6 +38,7 @@ void VulkanContext::Shutdown()
 {
   if (m_Instance)
   {
+    m_Device.destroy();
     m_Instance.destroySurfaceKHR(m_Surface);
     m_Instance.destroy();
   }
@@ -143,6 +144,7 @@ bool VulkanContext::PickPhysicalDevice()
     if (IsDeviceSuitable(device))
     {
       m_PhysicalDevice = device;
+      // break;
     }
   }
 
@@ -152,6 +154,53 @@ bool VulkanContext::PickPhysicalDevice()
     LOG_CORE_ERROR("failed to find a suitable GPU!");
     return false;
   }
+
+  // TODO: move this part later // pick swapchain extent
+  const auto capabilities = m_PhysicalDevice.getSurfaceCapabilitiesKHR(m_Surface);
+  m_SwapChainExtent       = ChooseSwapExtent(capabilities);
+
+  return true;
+}
+
+//===============================================================================
+bool VulkanContext::CreateLogicalDevice()
+{
+  const auto indices = FindQueueFamilies(m_PhysicalDevice, m_Surface);
+
+  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+  std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+  for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
+  {
+    vk::DeviceQueueCreateInfo queueInfo{};
+    queueInfo.sType            = vk::StructureType::eDeviceQueueCreateInfo;
+    queueInfo.queueFamilyIndex = queueFamily;
+    queueInfo.queueCount       = 1;
+    queueInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfos.push_back(queueInfo);
+  }
+  auto features = m_PhysicalDevice.getFeatures();
+
+  vk::DeviceCreateInfo createInfo{};
+  createInfo.sType                   = vk::StructureType::eDeviceCreateInfo;
+  createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
+  createInfo.pQueueCreateInfos       = queueCreateInfos.data();
+  createInfo.pEnabledFeatures        = &features;
+  createInfo.enabledExtensionCount   = static_cast<uint32_t>(m_DeviceExtensions.size());
+  createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
+
+  m_Device = m_PhysicalDevice.createDevice(createInfo);
+  if (!m_Device)
+  {
+    LOG_CORE_ERROR("failed to create logical device!");
+    return false;
+  }
+
+  // get handle to graphics queue that created by the device
+  m_GraphicsQueue = m_Device.getQueue(indices.graphicsFamily.value(), 0);
+
+  // get handle to present queue that created by the device
+  m_PresentQueue = m_Device.getQueue(indices.presentFamily.value(), 0);
+
   return true;
 }
 
@@ -195,12 +244,12 @@ std::vector<const char*> VulkanContext::GetRequiredExtensions()
 //===============================================================================
 bool VulkanContext::IsDeviceSuitable(const vk::PhysicalDevice& device) const
 {
-  const auto indices             = FindQueueFamilies(device);
+  const auto indices             = FindQueueFamilies(device, m_Surface);
   const bool extensionsSupported = CheckDeviceExtensionSupport(device);
   bool       swapChainAquate     = false;
   if (extensionsSupported)
   {
-    const auto swapChainSupport = QuerySwapChainSupport(device);
+    const auto swapChainSupport = QuerySwapChainSupport(device, m_Surface);
     swapChainAquate             = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
   }
 
@@ -222,15 +271,16 @@ bool VulkanContext::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device
 }
 
 //===============================================================================
-VulkanContext::SwapChainSupportDetails VulkanContext::QuerySwapChainSupport(const vk::PhysicalDevice& device) const
+VulkanContext::SwapChainSupportDetails VulkanContext::QuerySwapChainSupport(const vk::PhysicalDevice& device,
+                                                                            const vk::SurfaceKHR&     surface)
 {
-  return {.capabilities = device.getSurfaceCapabilitiesKHR(m_Surface),
-          .formats      = device.getSurfaceFormatsKHR(m_Surface),
-          .presentModes = device.getSurfacePresentModesKHR(m_Surface)};
+  return {.capabilities = device.getSurfaceCapabilitiesKHR(surface),
+          .formats      = device.getSurfaceFormatsKHR(surface),
+          .presentModes = device.getSurfacePresentModesKHR(surface)};
 }
 
 //===============================================================================
-VulkanContext::QueueFamilyIndices VulkanContext::FindQueueFamilies(const vk::PhysicalDevice& device) const
+VulkanContext::QueueFamilyIndices VulkanContext::FindQueueFamilies(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
 {
   // logic to find queue families
   auto queueFamilies = device.getQueueFamilyProperties();
@@ -241,7 +291,7 @@ VulkanContext::QueueFamilyIndices VulkanContext::FindQueueFamilies(const vk::Phy
     if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
     {
       indices.graphicsFamily = index;
-      if (device.getSurfaceSupportKHR(index, m_Surface) != 0u)
+      if (device.getSurfaceSupportKHR(index, surface) != 0u)
       {
         indices.presentFamily = index;
       }
@@ -290,5 +340,22 @@ void VulkanContext::PrintExtensionsSupport()
   {
     LOG_CORE_INFO("\tExtension: {}", extension.extensionName);
   }
+}
+
+//===============================================================================
+vk::Extent2D VulkanContext::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
+{
+  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+  {
+    return capabilities.currentExtent;
+  }
+  const uint32_t width  = m_Window.GetExtent().GetWidth();
+  const uint32_t height = m_Window.GetExtent().GetHeight();
+  vk::Extent2D   actualExtent{width, height};
+
+  actualExtent.width  = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+  actualExtent.height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+  return actualExtent;
 }
 } // namespace four
