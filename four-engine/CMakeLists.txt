@@ -18,6 +18,7 @@ file(GLOB SOURCES
      "src/core/imgui/*.cpp"
      "src/renderer/*.cpp"
      "src/renderer/vulkan/*.cpp"
+     "src/window/glfw/*.cpp"
 )
 endif(WIN32)
 
@@ -28,25 +29,15 @@ file(GLOB SOURCES
      "src/core/*.cpp"
      "src/core/imgui/*.cpp"
      "src/renderer/*.cpp"
+     "src/renderer/vulkan/*.cpp"
+     "src/window/glfw/*.cpp"
 )
 endif(UNIX)
 
-# SFML or SDL
-option(FOUR_USE_SDL "Use SDL" OFF)
-option(FOUR_USE_GLFW "Use GLFW" OFF)
 
 include_directories(src)
 
 add_subdirectory(vendor)
-
-if(FOUR_USE_SDL)
-  print(ERROR "not implemented yet.")
-  file(GLOB SDL_TO_ADD "src/window/sdl/*.cpp" "src/window/sdl/*.hpp")
-  list(APPEND SOURCES ${SDL_TO_ADD})
-elseif(FOUR_USE_GLFW)
-  file(GLOB GLFW_TO_ADD "src/window/glfw/*.cpp" "src/window/glfw/*.hpp")
-  list(APPEND SOURCES ${GLFW_TO_ADD})
-endif(FOUR_USE_SDL)
 
 # imgui backend
 file(GLOB IMGUI_TO_ADD "vendor/imgui/*.cpp" "vendor/imgui/backends/imgui_impl_glfw.cpp" "vendor/imgui/backends/imgui_impl_vulkan.cpp")

@@ -46,6 +46,11 @@ enum class EventCategory : uint8_t
   EventCategoryMouseButton = 1U << 4U,
 };
 
+inline EventCategory operator&(EventCategory lhs, EventCategory rhs)
+{
+  return static_cast<EventCategory>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
 /**
   * @brief Event interface class
   * Parent of all interface in applicaiton
@@ -105,7 +110,7 @@ public:
     */
   bool IsInCategory(EventCategory category)
   {
-    return GetEventCategory() & category;
+    return static_cast<bool>(GetEventCategory() & category);
   }
 
 private:

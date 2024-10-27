@@ -2,7 +2,7 @@
 
 #include "core/core.hpp"
 
-#include "event/windowEvent.hpp"
+#include "event/WindowEvent.hpp"
 
 namespace four
 {

@@ -1,7 +1,6 @@
 #include "four-pch.h"
 
 #include "window/glfw/glfwWindow.hpp"
-#include "vulkan/vulkan.hpp"
 
 #include "GLFW/glfw3.h"
 

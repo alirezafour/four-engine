@@ -1,6 +1,6 @@
 #include "catch2/catch_test_macros.hpp"
 
-#include "event/windowEvent.hpp"
+#include "event/WindowEvent.hpp"
 #include "window/window.hpp"
 #include "core/log.hpp"
 
