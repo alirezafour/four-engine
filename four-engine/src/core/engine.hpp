@@ -5,10 +5,8 @@
 #include "core/imgui/imguiLayer.hpp"
 #include "core/layerStack.hpp"
 
-// test vulkan
-#include "renderer/vulkan/vulkDevice.hpp"
+// renderer
 #include "renderer/renderer.hpp"
-
 
 // setup using window glfw
 #include "window/glfw/glfwWindow.hpp"
@@ -16,6 +14,9 @@ using UsingWindow = four::GlfwWindow;
 
 namespace four
 {
+
+constexpr uint32_t TargetFPS       = 60;
+constexpr uint32_t TargetFrameTime = 1000 / TargetFPS;
 
 class Application;
 
@@ -91,16 +92,6 @@ public:
     m_ImGuiLayer.PushLayer(std::move(layer));
   }
 
-  [[nodiscard]] VulkDevice* GetVulkDevice() const
-  {
-    return m_VulkDevice.get();
-  }
-
-  [[nodiscard]] Renderer* GetRenderer() const
-  {
-    return m_Renderer.get();
-  }
-
 private:
   /**
    * @brief Constructor of the Engine
@@ -148,15 +139,16 @@ private:
   /** singletone instance of Engine */
   static std::unique_ptr<Engine> sm_Instance;
 
+  /** renderer */
+  std::unique_ptr<Renderer> m_Renderer;
+
   /** imgui layer stacks for UI */
   LayerStack<ImGuiLayer> m_ImGuiLayer;
 
   /** main window of the Engine */
   std::unique_ptr<Window<UsingWindow>> m_Window;
 
-  std::unique_ptr<VulkDevice>                        m_VulkDevice;
-  std::unique_ptr<Renderer>                          m_Renderer;
-  Application*                                       m_Application;
-  std::chrono::time_point<std::chrono::system_clock> m_LastFrameTimePoint;
+  Application*                                                m_Application;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_LastFrameTimePoint;
 };
 } // namespace four

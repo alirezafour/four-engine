@@ -1,5 +1,6 @@
 #include "four-pch.h"
 
+
 #include "core/engine.hpp"
 #include "core/application.hpp"
 
@@ -16,17 +17,15 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
     LOG_CORE_ERROR("Failed Initializing Engine.");
     return;
   }
-
-  m_VulkDevice = std::make_unique<VulkDevice>(m_Window.get());
-  m_VulkDevice->InitVulkan();
-  m_Renderer = std::make_unique<Renderer>(*m_Window, *m_VulkDevice);
+  m_Renderer = std::make_unique<Renderer>(*m_Window);
+  m_Renderer->Init();
 }
 
 //====================================================================================================
 Engine::~Engine()
 {
   m_ImGuiLayer.Shutdown();
-  m_VulkDevice->Cleanup();
+  m_Renderer->Shutdown();
   m_Window->Shutdown();
   Log::Shutdown();
 }
@@ -36,24 +35,37 @@ void Engine::Run()
 {
   try
   {
+    m_LastFrameTimePoint = std::chrono::high_resolution_clock::now();
+    auto sleepTime       = 0ll;
     while (!m_Window->ShouldClose())
     {
-      const auto startTime = std::chrono::system_clock::now();
-      const auto time      = std::chrono::duration<float>(startTime - m_LastFrameTimePoint);
+      const auto startTime = std::chrono::high_resolution_clock::now();
+      const auto frameTime = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - m_LastFrameTimePoint);
       m_LastFrameTimePoint = startTime;
+
       m_Window->OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(time.count());
+        m_Application->OnUpdate(static_cast<float>(frameTime.count()) / 1000.0f);
       }
       m_ImGuiLayer.OnUpdate();
+
+      const auto endTime  = std::chrono::high_resolution_clock::now();
+      const auto realTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+
+      if (sleepTime += TargetFrameTime - realTime.count(); sleepTime > 0)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+        sleepTime -= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
+                       .count();
+      }
+      const float fps = 1000.0f / static_cast<float>(frameTime.count());
+      LOG_INFO("FPS: {}, time: {}ms, realtime: {}ms", fps, frameTime.count(), realTime.count());
     }
   } catch (const std::exception& e)
   {
     LOG_CORE_ERROR("Exception: {}", e.what());
   }
-
-  vkDeviceWaitIdle(m_VulkDevice->GetDevice());
 }
 
 //====================================================================================================

@@ -4,13 +4,6 @@
 
 #include "event/windowEvent.hpp"
 
-// forward declaration
-namespace vk
-{
-class Instance;
-class SurfaceKHR;
-} // namespace vk
-
 namespace four
 {
 
@@ -152,6 +145,11 @@ public:
   void WaitEvents()
   {
     GetDerived()->WaitEventsImpl();
+  }
+
+  std::vector<const char*> GetVulkanRequiredExtensions()
+  {
+    return GetConstDerived()->GetVulkanRequiredExtensionsImpl();
   }
 
 

@@ -53,6 +53,16 @@ void GlfwWindow::FrameBufferResizedCallback(GLFWwindow* window, int32_t width, i
 }
 
 //----------------------------------------------------------------------------------------
+std::vector<const char*> GlfwWindow::GetVulkanRequiredExtensionsImpl()
+{
+  uint32_t     glfwExtensionCount = 0;
+  const char** glfwExtensions     = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+  return {glfwExtensions, glfwExtensions + glfwExtensionCount};
+}
+
+
+//----------------------------------------------------------------------------------------
 void GlfwWindow::ShutdownImpl()
 {
   if (m_Window != nullptr)

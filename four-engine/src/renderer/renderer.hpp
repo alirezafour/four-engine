@@ -1,68 +1,39 @@
 #pragma once
 
-// test vulkan
-#include "renderer/vulkan/vulkDevice.hpp"
-#include "renderer/vulkan/vulkSwapChain.hpp"
+#include "core/core.hpp"
+
+#include "renderer/vulkan/vulkanContext.hpp"
+#include "renderer/vulkan/vulkanRenderer.hpp"
+
+#include <vulkan/vulkan.hpp>
 
 namespace four
 {
 
+class GlfwWindow;
+template <typename T>
+class Window;
+
 class Renderer
 {
 public:
-  /*
-   * @brief Default constructor
-   * @param vulkDevice
-   * @param window
-   */
-  explicit Renderer(Window<GlfwWindow>& window, VulkDevice& vulkDevice);
+  explicit Renderer(Window<GlfwWindow>& window);
   ~Renderer();
+
   Renderer(const Renderer&)                = delete;
   Renderer& operator=(const Renderer&)     = delete;
   Renderer(Renderer&&) noexcept            = delete;
   Renderer& operator=(Renderer&&) noexcept = delete;
 
-  [[nodiscard]] vk::RenderPass GetSwapChainRenderPass() const
-  {
-    return m_SwapChain->GetRenderPass();
-  }
-
-  [[nodiscard]] bool IsFrameStarted() const
-  {
-    return m_IsFrameStarted;
-  }
-
-  [[nodiscard]] vk::CommandBuffer GetCommandBuffer()
-  {
-    assert(m_IsFrameStarted && "Cannot get command buffer when frame not started");
-    return m_CommandBuffers[m_CurrentFrameIndex];
-  }
-
-  [[nodiscard]] int GetFrameIndex() const
-  {
-    assert(m_IsFrameStarted && "Cannot get frame index when frame not started");
-    return m_CurrentFrameIndex;
-  }
-
-  vk::CommandBuffer BeginFrame();
-  void              EndFrame();
-  void              BeginSwapChainRenderPass(vk::CommandBuffer commandBuffer);
-  void              EndSwapChainRenderPass(vk::CommandBuffer commandBuffer);
+  bool Init();
+  void Shutdown();
 
 private:
-  void CreateCommandBuffers();
-  void FreeCommandBuffer();
-  void DrawFrame();
-  void ReCreateSwapChain();
+  [[nodiscard]] bool InitVulkan();
 
 private:
-  VulkDevice&                    m_VulkDevice;
-  Window<GlfwWindow>&            m_Window;
-  std::unique_ptr<VulkSwapChain> m_SwapChain;
-  std::vector<vk::CommandBuffer> m_CommandBuffers;
-
-  uint32_t m_CurrentImageIndex{};
-  int      m_CurrentFrameIndex{};
-  bool     m_IsFrameStarted{false};
+  Window<GlfwWindow>& m_Window;
+  VulkanContext       m_VulkanContext;
+  VulkanRenderer      m_VulkanRenderer;
 };
 } // namespace four

@@ -54,6 +54,7 @@ public:
    */
   GlfwWindow& operator=(GlfwWindow&&) = default;
 
+
 private:
   /**
    * @brief Get reference to glfw window handle
@@ -121,6 +122,13 @@ private:
    * @brief Wait for events implementation
    */
   void WaitEventsImpl() const;
+
+  /**
+   * @brief Get required extensions for glfw
+   *
+   * @return std::tuple of required extensions
+   */
+  [[nodiscard]] static std::vector<const char*> GetVulkanRequiredExtensionsImpl();
 
   /**
    * @brief Callback for glfw errors
