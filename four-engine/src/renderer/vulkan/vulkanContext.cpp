@@ -28,10 +28,7 @@ VulkanContext::VulkanContext(Window<GlfwWindow>& window) : m_Window{window}
 }
 
 //===============================================================================
-VulkanContext::~VulkanContext()
-{
-  Shutdown();
-}
+VulkanContext::~VulkanContext() = default;
 
 //===============================================================================
 bool VulkanContext::Init()
