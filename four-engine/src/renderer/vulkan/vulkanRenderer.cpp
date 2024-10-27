@@ -74,12 +74,12 @@ bool VulkanRenderer::CreateImageViews()
 //===============================================================================
 bool VulkanRenderer::CreateSwapChain()
 {
-  const auto physicalDevice   = m_VulkanContext.GetPhysicalDevice();
-  const auto surface          = m_VulkanContext.GetSurface();
-  const auto device           = m_VulkanContext.GetDevice();
-  const auto indices          = VulkanContext::FindQueueFamilies(physicalDevice, surface);
-  const auto swapchainSupport = VulkanContext::QuerySwapChainSupport(physicalDevice, surface);
-  const auto extent           = m_VulkanContext.GetExtent();
+  const auto& physicalDevice   = m_VulkanContext.GetPhysicalDevice();
+  const auto& surface          = m_VulkanContext.GetSurface();
+  const auto& device           = m_VulkanContext.GetDevice();
+  const auto  indices          = VulkanContext::FindQueueFamilies(physicalDevice, surface);
+  const auto  swapchainSupport = VulkanContext::QuerySwapChainSupport(physicalDevice, surface);
+  const auto  extent           = m_VulkanContext.GetExtent();
 
   auto surfaceFormat = ChooseSwapSurfaceFormat(swapchainSupport.formats);
   auto presentMode   = ChooseSwapPresentMode(swapchainSupport.presentModes);

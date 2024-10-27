@@ -5,7 +5,6 @@ project(CatchTesting
 
 add_subdirectory(vendor)
 
-
 add_library(test_dep INTERFACE)
 target_link_libraries(test_dep INTERFACE vendorTest)
 target_link_libraries(test_dep INTERFACE four_engine)

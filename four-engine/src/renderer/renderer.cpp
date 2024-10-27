@@ -30,7 +30,7 @@ bool Renderer::Init()
     result = InitVulkan();
   } catch (const std::exception& e)
   {
-    LOG_CORE_ERROR(e.what());
+    LOG_CORE_ERROR("Failed to initialize Vulkan: {}", e.what());
     return false;
   }
 
@@ -39,7 +39,7 @@ bool Renderer::Init()
     return true;
   }
 
-  LOG_CORE_ERROR("Failed to initialize Vulkan");
+  LOG_CORE_ERROR("Failed to initialize Vulkan.");
   return false;
 }
 

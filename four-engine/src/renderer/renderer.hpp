@@ -1,7 +1,5 @@
 #pragma once
 
-#include "core/core.hpp"
-
 #include "renderer/vulkan/vulkanContext.hpp"
 #include "renderer/vulkan/vulkanRenderer.hpp"
 

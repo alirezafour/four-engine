@@ -40,7 +40,7 @@ public:
     std::vector<vk::PresentModeKHR>   presentModes;
   };
   explicit VulkanContext(Window<GlfwWindow>& window);
-  ~VulkanContext() = default;
+  ~VulkanContext();
 
   VulkanContext(const VulkanContext&)            = delete;
   VulkanContext(VulkanContext&&)                 = delete;
@@ -93,7 +93,7 @@ private:
   [[nodiscard]] std::vector<const char*> GetRequiredExtensions();
   [[nodiscard]] bool                     IsDeviceSuitable(const vk::PhysicalDevice& device) const;
   [[nodiscard]] bool                     CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) const;
-  [[nodiscard]] vk::Extent2D             ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+  [[nodiscard]] vk::Extent2D             ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 
   static void                                         PrintExtensionsSupport();
   [[nodiscard]] static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessengerCallBack(

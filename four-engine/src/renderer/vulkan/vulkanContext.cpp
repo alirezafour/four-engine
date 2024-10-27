@@ -28,9 +28,15 @@ VulkanContext::VulkanContext(Window<GlfwWindow>& window) : m_Window{window}
 }
 
 //===============================================================================
+VulkanContext::~VulkanContext()
+{
+  Shutdown();
+}
+
+//===============================================================================
 bool VulkanContext::Init()
 {
-  return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice();
+  return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() && CreateLogicalDevice();
 }
 
 //===============================================================================
@@ -138,6 +144,7 @@ bool VulkanContext::PickPhysicalDevice()
     LOG_CORE_ERROR("failed to find GPUs with Vulkan support!");
     return false;
   }
+  LOG_CORE_INFO("Device count: {}", physicalDevices.size());
 
   for (const auto& device : physicalDevices)
   {
@@ -154,6 +161,9 @@ bool VulkanContext::PickPhysicalDevice()
     LOG_CORE_ERROR("failed to find a suitable GPU!");
     return false;
   }
+
+  const auto properties = m_PhysicalDevice.getProperties();
+  LOG_CORE_INFO("GPU: {}", properties.deviceName);
 
   // TODO: move this part later // pick swapchain extent
   const auto capabilities = m_PhysicalDevice.getSurfaceCapabilitiesKHR(m_Surface);
@@ -343,7 +353,7 @@ void VulkanContext::PrintExtensionsSupport()
 }
 
 //===============================================================================
-vk::Extent2D VulkanContext::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
+vk::Extent2D VulkanContext::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const
 {
   if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
   {

@@ -3,6 +3,7 @@
 #include "event/WindowEvent.hpp"
 #include "window/window.hpp"
 #include "core/log.hpp"
+#include "renderer/renderer.hpp"
 
 #include <memory>
 
@@ -34,11 +35,6 @@ TEST_CASE("Constrcut Window")
     REQUIRE(window != nullptr);
     REQUIRE(window->GetWidth() == 2);
     REQUIRE(window->GetHeight() == 1);
-
-#ifdef FOUR_USE_SDL
-    SDL_Window* sdlWindow = window->GetWindow();
-    REQUIRE(sdlWindow != nullptr);
-#endif // FOUR_USE_SDL
   }
 
   // SECTION("Window Events")
@@ -70,4 +66,12 @@ TEST_CASE("Constrcut Window")
   //     REQUIRE(eventCalled == true);
   //   }
   // }
+}
+TEST_CASE("Renderer")
+{
+  std::unique_ptr<four::Window<UsedWindow>> window   = std::make_unique<UsedWindow>("title", 200, 300);
+  std::unique_ptr<four::Renderer>           renderer = std::make_unique<four::Renderer>(*window);
+  REQUIRE(renderer->Init());
+  renderer.reset();
+  window.reset();
 }
