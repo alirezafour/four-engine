@@ -47,8 +47,6 @@ public:
   VulkanContext& operator=(const VulkanContext&) = delete;
   VulkanContext& operator=(VulkanContext&&)      = delete;
 
-  bool Init();
-  void Shutdown();
 
   [[nodiscard]] static SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& device,
                                                                      const vk::SurfaceKHR&     surface);
@@ -82,6 +80,9 @@ public:
   }
 
 private:
+  [[nodiscard]] bool Init();
+  void               Shutdown();
+
   [[nodiscard]] bool CreateInstance();
   [[nodiscard]] bool SetupDebugMessenger();
   [[nodiscard]] bool CreateSurface();

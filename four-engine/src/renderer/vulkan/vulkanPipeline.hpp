@@ -2,7 +2,8 @@
 
 #include "core/core.hpp"
 
-#include "vulkan/vulkan.hpp"
+#include "renderer/vulkan/vulkanContext.hpp"
+
 
 namespace four
 {
@@ -10,7 +11,7 @@ namespace four
 class FOUR_ENGINE_API VulkanPipeline
 {
 public:
-  explicit VulkanPipeline(vk::Device& device, vk::Extent2D extent);
+  explicit VulkanPipeline(const VulkanContext& context);
   ~VulkanPipeline();
 
   VulkanPipeline(const VulkanPipeline&)            = delete;
@@ -18,13 +19,17 @@ public:
   VulkanPipeline(VulkanPipeline&&)                 = delete;
   VulkanPipeline& operator=(VulkanPipeline&&)      = delete;
 
+
 private:
+  [[nodiscard]] bool Init();
+  void               Shutdown();
+
   // graphic pipeline
   [[nodiscard]] bool             CreateGraphicsPipeline();
   [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
 
 private:
-  vk::Device&        m_Device;
+  const vk::Device&  m_Device;
   vk::Extent2D       m_Extent;
   vk::RenderPass     m_RenderPass;
   vk::Pipeline       m_GraphicsPipeline;

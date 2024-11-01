@@ -11,10 +11,18 @@ VulkanRenderer::VulkanRenderer(Window<GlfwWindow>& window, VulkanContext& contex
 m_Window{window},
 m_VulkanContext{context}
 {
+  const bool result = Init();
+  if (!result)
+  {
+    LOG_CORE_ERROR("Failed to initialize Vulkan renderer.");
+  }
 }
 
 //===============================================================================
-VulkanRenderer::~VulkanRenderer() = default;
+VulkanRenderer::~VulkanRenderer()
+{
+  Shutdown();
+}
 
 //===============================================================================
 bool VulkanRenderer::Init()

@@ -7,6 +7,7 @@
 namespace four
 {
 
+//===============================================================================
 std::vector<char> ReadFile(const std::string& filename)
 {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -23,23 +24,45 @@ std::vector<char> ReadFile(const std::string& filename)
 }
 
 //===============================================================================
-VulkanPipeline::VulkanPipeline(vk::Device& device, vk::Extent2D extent) : m_Device{device}, m_Extent{extent}
+VulkanPipeline::VulkanPipeline(const VulkanContext& vkContext) :
+m_Device{vkContext.GetDevice()},
+m_Extent{vkContext.GetExtent()}
 {
-  bool result = CreateGraphicsPipeline();
+  const bool result = Init();
+  if (!result)
+  {
+    LOG_CORE_ERROR("failed to create vulkan pipeline!");
+  }
 }
+
 //===============================================================================
 VulkanPipeline::~VulkanPipeline()
 {
-  m_Device.destroyPipeline(m_GraphicsPipeline);
-  m_Device.destroyShaderModule(m_FragmentShaderModule);
-  m_Device.destroyShaderModule(m_VertexShaderModule);
+  Shutdown();
+}
+
+//===============================================================================
+bool VulkanPipeline::Init()
+{
+  return CreateGraphicsPipeline();
+}
+
+//===============================================================================
+void VulkanPipeline::Shutdown()
+{
+  if (m_Device)
+  {
+    m_Device.destroyPipeline(m_GraphicsPipeline);
+    m_Device.destroyShaderModule(m_FragmentShaderModule);
+    m_Device.destroyShaderModule(m_VertexShaderModule);
+  }
 }
 
 //===============================================================================
 bool VulkanPipeline::CreateGraphicsPipeline()
 {
-  auto verShaderCode  = ReadFile("shaders/SimpleShader.vert.spv");
-  auto fragShaderCode = ReadFile("shaders/SimpleShader.frag.spv");
+  auto verShaderCode  = ReadFile("shaders/simpleShader.vert.spv");
+  auto fragShaderCode = ReadFile("shaders/simpleShader.frag.spv");
 
   auto vertShaderModule = CreateShaderModule(verShaderCode);
   auto fragShaderModule = CreateShaderModule(fragShaderCode);

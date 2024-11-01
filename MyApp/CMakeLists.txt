@@ -1,6 +1,6 @@
 project(MyApp)
 
-add_executable(${PROJECT_NAME} main.cpp MyApp.cpp)
+add_executable(${PROJECT_NAME} main.cpp myApp.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC four_engine)
 
 # add_executable(glfwVulkan testglfw.cpp)

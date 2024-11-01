@@ -18,16 +18,12 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
     return;
   }
   m_Renderer = std::make_unique<Renderer>(*m_Window);
-  m_Renderer->Init();
 }
 
 //====================================================================================================
 Engine::~Engine()
 {
-  m_ImGuiLayer.Shutdown();
-  m_Renderer->Shutdown();
-  m_Window->Shutdown();
-  Log::Shutdown();
+  Shutdown();
 }
 
 //====================================================================================================
@@ -97,7 +93,11 @@ void Engine::OnResize(uint32_t width, uint32_t height)
 //====================================================================================================
 void Engine::Shutdown()
 {
-  sm_Instance.reset();
+  if (sm_Instance)
+  {
+    sm_Instance->m_Renderer.reset();
+    sm_Instance->m_Window.reset();
+  }
 }
 
 } // namespace four

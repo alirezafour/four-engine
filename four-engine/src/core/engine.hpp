@@ -139,16 +139,17 @@ private:
   /** singletone instance of Engine */
   static std::unique_ptr<Engine> sm_Instance;
 
+  /** main window of the Engine */
+  std::unique_ptr<Window<UsingWindow>> m_Window;
+
   /** renderer */
   std::unique_ptr<Renderer> m_Renderer;
 
   /** imgui layer stacks for UI */
   LayerStack<ImGuiLayer> m_ImGuiLayer;
 
-  /** main window of the Engine */
-  std::unique_ptr<Window<UsingWindow>> m_Window;
+  Application* m_Application;
 
-  Application*                                                m_Application;
   std::chrono::time_point<std::chrono::high_resolution_clock> m_LastFrameTimePoint;
 };
 } // namespace four

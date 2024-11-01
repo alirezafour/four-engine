@@ -25,10 +25,18 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::DebugMessengerCallBack(
 //===============================================================================
 VulkanContext::VulkanContext(Window<GlfwWindow>& window) : m_Window{window}
 {
+  const bool result = Init();
+  if (!result)
+  {
+    LOG_CORE_ERROR("Failed to initialize Vulkan context.");
+  }
 }
 
 //===============================================================================
-VulkanContext::~VulkanContext() = default;
+VulkanContext::~VulkanContext()
+{
+  Shutdown();
+}
 
 //===============================================================================
 bool VulkanContext::Init()

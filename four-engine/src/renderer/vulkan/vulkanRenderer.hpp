@@ -1,9 +1,6 @@
 #pragma once
 
 #include "core/core.hpp"
-
-#include "vulkan/vulkan.hpp"
-
 #include "renderer/vulkan/vulkanContext.hpp"
 
 namespace four
@@ -23,10 +20,11 @@ public:
   VulkanRenderer& operator=(const VulkanRenderer&) = delete;
   VulkanRenderer& operator=(VulkanRenderer&&)      = delete;
 
+
+private:
   [[nodiscard]] bool Init();
   void               Shutdown();
 
-private:
   [[nodiscard]] bool CreateSwapChain();
   [[nodiscard]] bool CreateImageViews();
 
