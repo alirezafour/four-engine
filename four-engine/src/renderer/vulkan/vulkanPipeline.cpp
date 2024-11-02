@@ -8,6 +8,8 @@ namespace four
 {
 
 //===============================================================================
+namespace test
+{
 std::vector<char> ReadFile(const std::string& filename)
 {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -22,11 +24,13 @@ std::vector<char> ReadFile(const std::string& filename)
   file.close();
   return buffer;
 }
+} // namespace test
 
 //===============================================================================
-VulkanPipeline::VulkanPipeline(const VulkanContext& vkContext) :
-m_Device{vkContext.GetDevice()},
-m_Extent{vkContext.GetExtent()}
+VulkanPipeline::VulkanPipeline(const vk::Device& device, const vk::Extent2D& extent, vk::Format swapChainImageFormat) :
+m_Device{device},
+m_Extent{extent},
+m_SwapChainImageFormat{swapChainImageFormat}
 {
   const bool result = Init();
   if (!result)
@@ -44,7 +48,7 @@ VulkanPipeline::~VulkanPipeline()
 //===============================================================================
 bool VulkanPipeline::Init()
 {
-  return CreateGraphicsPipeline();
+  return CreateRenderPass() && CreateGraphicsPipeline();
 }
 
 //===============================================================================
@@ -52,17 +56,75 @@ void VulkanPipeline::Shutdown()
 {
   if (m_Device)
   {
+    m_Device.destroyPipelineLayout(m_PipelineLayout);
     m_Device.destroyPipeline(m_GraphicsPipeline);
+    m_Device.destroyRenderPass(m_RenderPass);
     m_Device.destroyShaderModule(m_FragmentShaderModule);
     m_Device.destroyShaderModule(m_VertexShaderModule);
   }
 }
 
 //===============================================================================
+bool VulkanPipeline::CreateRenderPass()
+{
+  vk::AttachmentDescription depthAttachment{};
+  depthAttachment.format         = FindDepthFormat();
+  depthAttachment.samples        = vk::SampleCountFlagBits::e1;
+  depthAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
+  depthAttachment.storeOp        = vk::AttachmentStoreOp::eDontCare;
+  depthAttachment.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+  depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+  depthAttachment.initialLayout  = vk::ImageLayout::eUndefined;
+  depthAttachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  vk::AttachmentReference depthAttachmentRef{};
+  depthAttachmentRef.attachment              = 1;
+  depthAttachmentRef.layout                  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  vk::AttachmentDescription colorAttachment  = {};
+  colorAttachment.format                     = m_SwapChainImageFormat;
+  colorAttachment.samples                    = vk::SampleCountFlagBits::e1;
+  colorAttachment.loadOp                     = vk::AttachmentLoadOp::eClear;
+  colorAttachment.storeOp                    = vk::AttachmentStoreOp::eStore;
+  colorAttachment.stencilStoreOp             = vk::AttachmentStoreOp::eDontCare;
+  colorAttachment.stencilLoadOp              = vk::AttachmentLoadOp::eDontCare;
+  colorAttachment.initialLayout              = vk::ImageLayout::eUndefined;
+  colorAttachment.finalLayout                = vk::ImageLayout::ePresentSrcKHR;
+  vk::AttachmentReference colorAttachmentRef = {};
+  colorAttachmentRef.attachment              = 0;
+  colorAttachmentRef.layout                  = vk::ImageLayout::eColorAttachmentOptimal;
+  vk::SubpassDescription subpass             = {};
+  subpass.pipelineBindPoint                  = vk::PipelineBindPoint::eGraphics;
+  subpass.colorAttachmentCount               = 1;
+  subpass.pColorAttachments                  = &colorAttachmentRef;
+  subpass.pDepthStencilAttachment            = &depthAttachmentRef;
+  vk::SubpassDependency dependency           = {};
+  dependency.srcSubpass                      = vk::SubpassExternal;
+  dependency.srcAccessMask                   = vk::AccessFlagBits::eNone;
+  dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+  dependency.dstSubpass = 0;
+  dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+  dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  std::array<vk::AttachmentDescription, 2> attachments    = {colorAttachment, depthAttachment};
+  vk::RenderPassCreateInfo                 renderPassInfo = {};
+  renderPassInfo.sType                                    = vk::StructureType::eRenderPassCreateInfo;
+  renderPassInfo.attachmentCount                          = static_cast<uint32_t>(attachments.size());
+  renderPassInfo.pAttachments                             = attachments.data();
+  renderPassInfo.subpassCount                             = 1;
+  renderPassInfo.pSubpasses                               = &subpass;
+  renderPassInfo.dependencyCount                          = 1;
+  renderPassInfo.pDependencies                            = &dependency;
+  if (auto result = m_Device.createRenderPass(&renderPassInfo, nullptr, &m_RenderPass); result != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to create render pass!");
+    return false;
+  }
+  return true;
+}
+
+//===============================================================================
 bool VulkanPipeline::CreateGraphicsPipeline()
 {
-  auto verShaderCode  = ReadFile("shaders/simpleShader.vert.spv");
-  auto fragShaderCode = ReadFile("shaders/simpleShader.frag.spv");
+  auto verShaderCode  = test::ReadFile("shaders/simpleShader.vert.spv");
+  auto fragShaderCode = test::ReadFile("shaders/simpleShader.frag.spv");
 
   auto vertShaderModule = CreateShaderModule(verShaderCode);
   auto fragShaderModule = CreateShaderModule(fragShaderCode);
@@ -189,4 +251,15 @@ vk::ShaderModule VulkanPipeline::CreateShaderModule(const std::vector<char>& cod
   createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
   return m_Device.createShaderModule(createInfo);
 }
+
+//===============================================================================
+vk::Format VulkanPipeline::FindDepthFormat()
+{
+  return vk::Format::eD32Sfloat;
+  // return m_VulkanContext.FindSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+  //                                            vk::ImageTiling::eOptimal,
+  //                                            vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}
+
+//===============================================================================
 } // namespace four

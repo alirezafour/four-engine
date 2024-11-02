@@ -1,8 +1,8 @@
 #pragma once
 
 #include "renderer/vulkan/vulkanContext.hpp"
-#include "renderer/vulkan/vulkanRenderer.hpp"
-#include "renderer/vulkan/vulkanPipeline.hpp"
+// #include "renderer/vulkan/vulkanRenderer.hpp"
+// #include "renderer/vulkan/vulkanPipeline.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -24,6 +24,8 @@ public:
   Renderer(Renderer&&) noexcept            = delete;
   Renderer& operator=(Renderer&&) noexcept = delete;
 
+  void Render();
+
 private:
   [[nodiscard]] bool Init();
   void               Shutdown();
@@ -31,7 +33,7 @@ private:
 private:
   Window<GlfwWindow>& m_Window;
   VulkanContext       m_VulkanContext;
-  VulkanRenderer      m_VulkanRenderer;
-  VulkanPipeline      m_VulkanPipeline;
+  // VulkanRenderer      m_VulkanRenderer;
+  // VulkanPipeline      m_VulkanPipeline;
 };
 } // namespace four

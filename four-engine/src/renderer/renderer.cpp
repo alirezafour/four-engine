@@ -8,11 +8,9 @@ namespace four
 {
 
 //===============================================================================
-Renderer::Renderer(Window<GlfwWindow>& window) :
-m_Window{window},
-m_VulkanContext{window},
-m_VulkanRenderer{window, m_VulkanContext},
-m_VulkanPipeline{m_VulkanContext}
+Renderer::Renderer(Window<GlfwWindow>& window) : m_Window{window}, m_VulkanContext{window}
+// m_VulkanRenderer{window, m_VulkanContext},
+// m_VulkanPipeline{m_VulkanContext.GetDevice(), m_VulkanContext.GetExtent(), m_VulkanRenderer.GetSwapChainImageFormat()}
 {
   const bool result = Init();
   if (!result)
@@ -36,6 +34,12 @@ bool Renderer::Init()
 //===============================================================================
 void Renderer::Shutdown()
 {
+}
+
+//===============================================================================
+void Renderer::Render()
+{
+  m_VulkanContext.DrawFrame();
 }
 
 } // namespace four

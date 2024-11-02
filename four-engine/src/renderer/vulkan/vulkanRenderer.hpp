@@ -15,10 +15,14 @@ class FOUR_ENGINE_API VulkanRenderer
 public:
   explicit VulkanRenderer(Window<GlfwWindow>& window, VulkanContext& context);
   ~VulkanRenderer();
-  VulkanRenderer(const VulkanRenderer&)            = delete;
-  VulkanRenderer(VulkanRenderer&&)                 = delete;
-  VulkanRenderer& operator=(const VulkanRenderer&) = delete;
-  VulkanRenderer& operator=(VulkanRenderer&&)      = delete;
+  VulkanRenderer(const VulkanRenderer&)                            = delete;
+  VulkanRenderer(VulkanRenderer&&)                                 = delete;
+  VulkanRenderer&                 operator=(const VulkanRenderer&) = delete;
+  VulkanRenderer&                 operator=(VulkanRenderer&&)      = delete;
+  [[nodiscard]] inline vk::Format GetSwapChainImageFormat() const
+  {
+    return m_SwapChainImageFormat;
+  }
 
 
 private:

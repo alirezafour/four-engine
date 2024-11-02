@@ -44,6 +44,7 @@ void Engine::Run()
       {
         m_Application->OnUpdate(static_cast<float>(frameTime.count()) / 1000.0f);
       }
+      m_Renderer->Render();
       m_ImGuiLayer.OnUpdate();
 
       const auto endTime  = std::chrono::high_resolution_clock::now();

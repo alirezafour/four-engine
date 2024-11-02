@@ -12,9 +12,9 @@ template <typename T>
 class Window;
 
 #ifdef NDEBUG
-constexpr bool EnableValidationLayers = false;
-#else
 constexpr bool EnableValidationLayers = true;
+#else
+constexpr bool EnableValidationLayers = false;
 #endif
 
 const std::array<const char*, 1> ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
@@ -79,6 +79,12 @@ public:
     return m_SwapChainExtent;
   }
 
+  [[nodiscard]] vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates,
+                                               vk::ImageTiling                tiling,
+                                               vk::FormatFeatureFlags         features) const;
+  void                     DrawFrame();
+  void                     oldDrawFrame();
+
 private:
   [[nodiscard]] bool Init();
   void               Shutdown();
@@ -89,12 +95,32 @@ private:
   [[nodiscard]] bool PickPhysicalDevice();
   [[nodiscard]] bool CreateLogicalDevice();
 
+  [[nodiscard]] bool CreateSwapChain();
+  [[nodiscard]] bool CreateImageViews();
+
+  // graphic pipeline
+  [[nodiscard]] bool             CreateRenderPass();
+  [[nodiscard]] bool             CreateGraphicsPipeline();
+  [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
+  [[nodiscard]] vk::Format       FindDepthFormat();
+
+  [[nodiscard]] bool CreateFramebuffers();
+  [[nodiscard]] bool CreateCommandPool();
+  [[nodiscard]] bool CreateCommandBuffers();
+  [[nodiscard]] bool CreateSyncObjects();
+
+  void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
+
+  [[nodiscard]] static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+  [[nodiscard]] static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+
   // helpers
   [[nodiscard]] static bool              CheckValidationLayerSupport();
   [[nodiscard]] std::vector<const char*> GetRequiredExtensions();
   [[nodiscard]] bool                     IsDeviceSuitable(const vk::PhysicalDevice& device) const;
   [[nodiscard]] bool                     CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) const;
   [[nodiscard]] vk::Extent2D             ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) const;
+
 
   static void                                         PrintExtensionsSupport();
   [[nodiscard]] static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessengerCallBack(
@@ -106,15 +132,30 @@ private:
   [[nodiscard]] uint32_t RateDeviceSuitability(const vk::PhysicalDevice& device) const;
 
 private:
-  Window<GlfwWindow>&        m_Window;
-  vk::Instance               m_Instance;
-  vk::DebugUtilsMessengerEXT m_DebugMessenger;
-  vk::SurfaceKHR             m_Surface;
-  vk::PhysicalDevice         m_PhysicalDevice;
-  vk::Device                 m_Device;
-  vk::Queue                  m_GraphicsQueue;
-  vk::Queue                  m_PresentQueue;
-  std::vector<const char*>   m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  vk::Extent2D               m_SwapChainExtent;
+  Window<GlfwWindow>&          m_Window;
+  vk::Instance                 m_Instance;
+  vk::DebugUtilsMessengerEXT   m_DebugMessenger;
+  vk::SurfaceKHR               m_Surface;
+  vk::PhysicalDevice           m_PhysicalDevice;
+  vk::Device                   m_Device;
+  vk::Queue                    m_GraphicsQueue;
+  vk::Queue                    m_PresentQueue;
+  std::vector<const char*>     m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  vk::Extent2D                 m_SwapChainExtent;
+  vk::SwapchainKHR             m_SwapChain;
+  std::vector<vk::Image>       m_SwapChainImages;
+  vk::Format                   m_SwapChainImageFormat;
+  std::vector<vk::ImageView>   m_SwapChainImageViews;
+  vk::RenderPass               m_RenderPass;
+  vk::Pipeline                 m_GraphicsPipeline;
+  vk::ShaderModule             m_VertexShaderModule;
+  vk::ShaderModule             m_FragmentShaderModule;
+  vk::PipelineLayout           m_PipelineLayout;
+  std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
+  vk::CommandPool              m_CommandPool;
+  vk::CommandBuffer            m_CommandBuffer;
+  vk::Semaphore                m_ImageAvailableSemaphore;
+  vk::Semaphore                m_RenderFinishedSemaphore;
+  vk::Fence                    m_InFlightFence;
 };
 } // namespace four
