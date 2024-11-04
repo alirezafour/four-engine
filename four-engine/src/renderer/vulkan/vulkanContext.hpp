@@ -19,6 +19,8 @@ constexpr bool EnableValidationLayers = false;
 
 const std::array<const char*, 1> ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
 
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
 class FOUR_ENGINE_API VulkanContext
 {
 public:
@@ -82,8 +84,10 @@ public:
   [[nodiscard]] vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates,
                                                vk::ImageTiling                tiling,
                                                vk::FormatFeatureFlags         features) const;
-  void                     DrawFrame();
-  void                     oldDrawFrame();
+
+  void DrawFrame();
+
+  void StopRender();
 
 private:
   [[nodiscard]] bool Init();
@@ -102,12 +106,15 @@ private:
   [[nodiscard]] bool             CreateRenderPass();
   [[nodiscard]] bool             CreateGraphicsPipeline();
   [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
-  [[nodiscard]] vk::Format       FindDepthFormat();
+  [[nodiscard]] vk::Format       FindDepthFormat() const;
 
   [[nodiscard]] bool CreateFramebuffers();
   [[nodiscard]] bool CreateCommandPool();
   [[nodiscard]] bool CreateCommandBuffers();
   [[nodiscard]] bool CreateSyncObjects();
+
+  void ReCreateSwapChain();
+  void CleanupSwapChain();
 
   void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
 
@@ -132,30 +139,31 @@ private:
   [[nodiscard]] uint32_t RateDeviceSuitability(const vk::PhysicalDevice& device) const;
 
 private:
-  Window<GlfwWindow>&          m_Window;
-  vk::Instance                 m_Instance;
-  vk::DebugUtilsMessengerEXT   m_DebugMessenger;
-  vk::SurfaceKHR               m_Surface;
-  vk::PhysicalDevice           m_PhysicalDevice;
-  vk::Device                   m_Device;
-  vk::Queue                    m_GraphicsQueue;
-  vk::Queue                    m_PresentQueue;
-  std::vector<const char*>     m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  vk::Extent2D                 m_SwapChainExtent;
-  vk::SwapchainKHR             m_SwapChain;
-  std::vector<vk::Image>       m_SwapChainImages;
-  vk::Format                   m_SwapChainImageFormat;
-  std::vector<vk::ImageView>   m_SwapChainImageViews;
-  vk::RenderPass               m_RenderPass;
-  vk::Pipeline                 m_GraphicsPipeline;
-  vk::ShaderModule             m_VertexShaderModule;
-  vk::ShaderModule             m_FragmentShaderModule;
-  vk::PipelineLayout           m_PipelineLayout;
-  std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
-  vk::CommandPool              m_CommandPool;
-  vk::CommandBuffer            m_CommandBuffer;
-  vk::Semaphore                m_ImageAvailableSemaphore;
-  vk::Semaphore                m_RenderFinishedSemaphore;
-  vk::Fence                    m_InFlightFence;
+  Window<GlfwWindow>&            m_Window;
+  vk::Instance                   m_Instance;
+  vk::DebugUtilsMessengerEXT     m_DebugMessenger;
+  vk::SurfaceKHR                 m_Surface;
+  vk::PhysicalDevice             m_PhysicalDevice;
+  vk::Device                     m_Device;
+  vk::Queue                      m_GraphicsQueue;
+  vk::Queue                      m_PresentQueue;
+  std::vector<const char*>       m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  vk::Extent2D                   m_SwapChainExtent;
+  vk::SwapchainKHR               m_SwapChain;
+  std::vector<vk::Image>         m_SwapChainImages;
+  vk::Format                     m_SwapChainImageFormat;
+  std::vector<vk::ImageView>     m_SwapChainImageViews;
+  vk::RenderPass                 m_RenderPass;
+  vk::Pipeline                   m_GraphicsPipeline;
+  vk::ShaderModule               m_VertexShaderModule;
+  vk::ShaderModule               m_FragmentShaderModule;
+  vk::PipelineLayout             m_PipelineLayout;
+  std::vector<vk::Framebuffer>   m_SwapChainFramebuffers;
+  vk::CommandPool                m_CommandPool;
+  std::vector<vk::CommandBuffer> m_CommandBuffers;
+  std::vector<vk::Semaphore>     m_ImageAvailableSemaphores;
+  std::vector<vk::Semaphore>     m_RenderFinishedSemaphores;
+  std::vector<vk::Fence>         m_InFlightFences;
+  uint32_t                       m_CurrentFrame{0};
 };
 } // namespace four

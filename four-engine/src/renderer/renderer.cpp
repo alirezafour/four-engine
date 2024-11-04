@@ -42,4 +42,10 @@ void Renderer::Render()
   m_VulkanContext.DrawFrame();
 }
 
+//===============================================================================
+void Renderer::StopRender()
+{
+  m_VulkanContext.StopRender();
+}
+
 } // namespace four

@@ -23,7 +23,7 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
 //====================================================================================================
 Engine::~Engine()
 {
-  Shutdown();
+  // Shutdown();
 }
 
 //====================================================================================================
@@ -57,8 +57,9 @@ void Engine::Run()
                        .count();
       }
       const float fps = 1000.0f / static_cast<float>(frameTime.count());
-      LOG_INFO("FPS: {}, time: {}ms, realtime: {}ms", fps, frameTime.count(), realTime.count());
+      //LOG_INFO("FPS: {}, time: {}ms, realtime: {}ms", fps, frameTime.count(), realTime.count());
     }
+    m_Renderer->StopRender();
   } catch (const std::exception& e)
   {
     LOG_CORE_ERROR("Exception: {}", e.what());

@@ -4,8 +4,6 @@
 // #include "renderer/vulkan/vulkanRenderer.hpp"
 // #include "renderer/vulkan/vulkanPipeline.hpp"
 
-#include <vulkan/vulkan.hpp>
-
 namespace four
 {
 
@@ -25,6 +23,7 @@ public:
   Renderer& operator=(Renderer&&) noexcept = delete;
 
   void Render();
+  void StopRender();
 
 private:
   [[nodiscard]] bool Init();
