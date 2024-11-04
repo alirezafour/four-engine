@@ -15,6 +15,7 @@ using UsingWindow = four::GlfwWindow;
 namespace four
 {
 
+constexpr bool     FrameCapEnabled = true;
 constexpr uint32_t TargetFPS       = 60;
 constexpr uint32_t TargetFrameTime = 1000 / TargetFPS;
 
@@ -148,8 +149,7 @@ private:
   /** imgui layer stacks for UI */
   LayerStack<ImGuiLayer> m_ImGuiLayer;
 
+  /** reference to app Application */
   Application* m_Application;
-
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_LastFrameTimePoint;
 };
 } // namespace four

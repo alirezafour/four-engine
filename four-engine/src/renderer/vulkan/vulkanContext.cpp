@@ -114,7 +114,6 @@ void VulkanContext::Shutdown()
 {
   if (m_Device)
   {
-    m_Device.waitIdle();
     CleanupSwapChain();
 
     m_Device.destroyPipelineLayout(m_PipelineLayout);
@@ -837,14 +836,14 @@ void VulkanContext::CleanupSwapChain()
 {
   for (auto& framebuffer : m_SwapChainFramebuffers)
   {
-    m_Device.destroyFramebuffer(framebuffer, nullptr);
+    m_Device.destroyFramebuffer(framebuffer);
   }
 
   for (auto& imageView : m_SwapChainImageViews)
   {
-    m_Device.destroyImageView(imageView, nullptr);
+    m_Device.destroyImageView(imageView);
   }
-  m_Device.destroySwapchainKHR(m_SwapChain, nullptr);
+  m_Device.destroySwapchainKHR(m_SwapChain);
 }
 
 //===============================================================================

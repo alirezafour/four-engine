@@ -23,7 +23,7 @@ Engine::Engine(std::string_view title, uint32_t width, uint32_t height) : m_Wind
 //====================================================================================================
 Engine::~Engine()
 {
-  // Shutdown();
+  Shutdown();
 }
 
 //====================================================================================================
@@ -31,35 +31,46 @@ void Engine::Run()
 {
   try
   {
-    m_LastFrameTimePoint = std::chrono::high_resolution_clock::now();
-    auto sleepTime       = 0ll;
+    auto  lastFrameTimePoint = std::chrono::high_resolution_clock::now();
+    float fps                = 0.0f;
     while (!m_Window->ShouldClose())
     {
-      const auto startTime = std::chrono::high_resolution_clock::now();
-      const auto frameTime = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - m_LastFrameTimePoint);
-      m_LastFrameTimePoint = startTime;
+      const auto startTime     = std::chrono::high_resolution_clock::now();
+      const auto frameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - lastFrameTimePoint);
+      lastFrameTimePoint       = startTime;
 
       m_Window->OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(static_cast<float>(frameTime.count()) / 1000.0f);
+        m_Application->OnUpdate(static_cast<float>(frameDuration.count()) / 1000.0f);
       }
+
+      const auto renderTime = std::chrono::high_resolution_clock::now();
       m_Renderer->Render();
+      const auto renderTimeDuration = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - renderTime);
       m_ImGuiLayer.OnUpdate();
 
-      const auto endTime  = std::chrono::high_resolution_clock::now();
-      const auto realTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+      const auto realTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              std::chrono::high_resolution_clock::now() - startTime)
+                              .count();
 
-      if (sleepTime += TargetFrameTime - realTime.count(); sleepTime > 0)
+      if (FrameCapEnabled)
       {
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
-        sleepTime -= std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime)
-                       .count();
+        if (const auto sleepTime = TargetFrameTime - realTime; sleepTime > 0)
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+        }
       }
-      const float fps = 1000.0f / static_cast<float>(frameTime.count());
-      //LOG_INFO("FPS: {}, time: {}ms, realtime: {}ms", fps, frameTime.count(), realTime.count());
+      fps = 1000.0f / static_cast<float>(frameDuration.count());
+      LOG_INFO("FPS: {}, time: {}ms, realtime: {}ms, renderTime: {}ms",
+               fps,
+               frameDuration.count(),
+               realTime,
+               renderTimeDuration.count());
     }
     m_Renderer->StopRender();
+    Shutdown();
   } catch (const std::exception& e)
   {
     LOG_CORE_ERROR("Exception: {}", e.what());
