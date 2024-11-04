@@ -256,7 +256,6 @@ bool VulkanContext::CreateLogicalDevice()
   for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
   {
     vk::DeviceQueueCreateInfo queueInfo{};
-    queueInfo.sType            = vk::StructureType::eDeviceQueueCreateInfo;
     queueInfo.queueFamilyIndex = queueFamily;
     queueInfo.queueCount       = 1;
     queueInfo.pQueuePriorities = &queuePriority;
@@ -265,7 +264,6 @@ bool VulkanContext::CreateLogicalDevice()
   auto features = m_PhysicalDevice.getFeatures();
 
   vk::DeviceCreateInfo createInfo{};
-  createInfo.sType                   = vk::StructureType::eDeviceCreateInfo;
   createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
   createInfo.pQueueCreateInfos       = queueCreateInfos.data();
   createInfo.pEnabledFeatures        = &features;
@@ -626,7 +624,6 @@ bool VulkanContext::CreateRenderPass()
   dependency.dstAccessMask         = vk::AccessFlagBits::eColorAttachmentWrite;
 
   vk::RenderPassCreateInfo renderPassInfo = {};
-  renderPassInfo.sType                    = vk::StructureType::eRenderPassCreateInfo;
   renderPassInfo.attachmentCount          = 1;
   renderPassInfo.pAttachments             = &colorAttachment;
   renderPassInfo.subpassCount             = 1;
@@ -651,31 +648,20 @@ bool VulkanContext::CreateGraphicsPipeline()
   auto vertShaderModule = CreateShaderModule(verShaderCode);
   auto fragShaderModule = CreateShaderModule(fragShaderCode);
 
-  vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
-  vertShaderStageInfo.sType  = vk::StructureType::ePipelineShaderStageCreateInfo;
-  vertShaderStageInfo.stage  = vk::ShaderStageFlagBits::eVertex;
-  vertShaderStageInfo.module = vertShaderModule;
-  vertShaderStageInfo.pName  = "main";
+  vk::PipelineShaderStageCreateInfo vertShaderStageInfo{{}, vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main"};
 
-  vk::PipelineShaderStageCreateInfo fragShaderStageInfo{};
-  fragShaderStageInfo.sType  = vk::StructureType::ePipelineShaderStageCreateInfo;
-  fragShaderStageInfo.stage  = vk::ShaderStageFlagBits::eFragment;
-  fragShaderStageInfo.module = fragShaderModule;
-  fragShaderStageInfo.pName  = "main";
+  vk::PipelineShaderStageCreateInfo
+    fragShaderStageInfo{{}, vk::ShaderStageFlagBits::eFragment, fragShaderModule, "main"};
 
   std::array shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
 
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.vertexBindingDescriptionCount   = 0;
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
+  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{{}, 0, nullptr, 0, nullptr};
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
   inputAssemblyInfo.topology               = vk::PrimitiveTopology::eTriangleList;
   inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
-  vk::PipelineViewportStateCreateInfo viewportStateInfo{};
-  viewportStateInfo.viewportCount = 1;
-  viewportStateInfo.scissorCount  = 1;
+  vk::PipelineViewportStateCreateInfo viewportStateInfo{{}, 1, nullptr, 1, nullptr};
 
   vk::PipelineRasterizationStateCreateInfo rasterizerInfo{};
   rasterizerInfo.depthClampEnable        = VK_FALSE;
@@ -683,37 +669,24 @@ bool VulkanContext::CreateGraphicsPipeline()
   rasterizerInfo.polygonMode             = vk::PolygonMode::eFill;
   rasterizerInfo.lineWidth               = 1.0f;
   rasterizerInfo.cullMode                = vk::CullModeFlagBits::eBack;
-  rasterizerInfo.frontFace               = vk::FrontFace::eCounterClockwise;
+  rasterizerInfo.frontFace               = vk::FrontFace::eClockwise;
   rasterizerInfo.depthBiasEnable         = VK_FALSE;
 
-  vk::PipelineMultisampleStateCreateInfo multisamplingInfo{};
-  multisamplingInfo.sampleShadingEnable  = VK_FALSE;
-  multisamplingInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;
+  vk::PipelineMultisampleStateCreateInfo multisamplingInfo{{}, vk::SampleCountFlagBits::e1, VK_FALSE};
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                                         vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_TRUE;
+  colorBlendAttachment.blendEnable = VK_FALSE;
 
-  vk::PipelineColorBlendStateCreateInfo colorBlendingInfo{};
-  colorBlendingInfo.logicOpEnable     = VK_FALSE;
-  colorBlendingInfo.logicOp           = vk::LogicOp::eCopy;
-  colorBlendingInfo.attachmentCount   = 1;
-  colorBlendingInfo.pAttachments      = &colorBlendAttachment;
-  colorBlendingInfo.blendConstants[0] = 0.0f; // Optional
-  colorBlendingInfo.blendConstants[1] = 0.0f; // Optional
-  colorBlendingInfo.blendConstants[2] = 0.0f; // Optional
-  colorBlendingInfo.blendConstants[3] = 0.0f; // Optional
+  vk::PipelineColorBlendStateCreateInfo
+    colorBlendingInfo{{}, VK_FALSE, vk::LogicOp::eCopy, 1, &colorBlendAttachment, {0.0f, 0.0f, 0.0f, 0.0f}};
 
   std::vector dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 
-  vk::PipelineDynamicStateCreateInfo dynamicStateInfo{};
-  dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-  dynamicStateInfo.pDynamicStates    = dynamicStates.data();
+  vk::PipelineDynamicStateCreateInfo dynamicStateInfo{{}, static_cast<uint32_t>(dynamicStates.size()), dynamicStates.data()};
 
-  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.setLayoutCount         = 0; // Optional
-  pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{{}, 0, {}, 0};
 
   if (m_Device.createPipelineLayout(&pipelineLayoutInfo, nullptr, &m_PipelineLayout) != vk::Result::eSuccess)
   {
@@ -721,20 +694,23 @@ bool VulkanContext::CreateGraphicsPipeline()
     return false;
   }
 
-  vk::GraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.stageCount          = 2;
-  pipelineInfo.pStages             = shaderStages.data();
-  pipelineInfo.pVertexInputState   = &vertexInputInfo;
-  pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
-  pipelineInfo.pViewportState      = &viewportStateInfo;
-  pipelineInfo.pRasterizationState = &rasterizerInfo;
-  pipelineInfo.pMultisampleState   = &multisamplingInfo;
-  pipelineInfo.pColorBlendState    = &colorBlendingInfo;
-  pipelineInfo.pDynamicState       = &dynamicStateInfo;
-  pipelineInfo.layout              = m_PipelineLayout;
-  pipelineInfo.renderPass          = m_RenderPass;
-  pipelineInfo.subpass             = 0;
-  pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE;
+  vk::GraphicsPipelineCreateInfo
+    pipelineInfo{{},
+                 2,
+                 shaderStages.data(),
+                 &vertexInputInfo,
+                 &inputAssemblyInfo,
+                 nullptr,
+                 &viewportStateInfo,
+                 &rasterizerInfo,
+                 &multisamplingInfo,
+                 nullptr,
+                 &colorBlendingInfo,
+                 &dynamicStateInfo,
+                 m_PipelineLayout,
+                 m_RenderPass,
+                 0,
+                 VK_NULL_HANDLE};
 
   if (m_Device.createGraphicsPipelines(VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != vk::Result::eSuccess)
   {
@@ -752,7 +728,6 @@ bool VulkanContext::CreateGraphicsPipeline()
 vk::ShaderModule VulkanContext::CreateShaderModule(const std::vector<char>& code)
 {
   vk::ShaderModuleCreateInfo createInfo{};
-  createInfo.sType    = vk::StructureType::eShaderModuleCreateInfo;
   createInfo.codeSize = code.size();
   createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
   return m_Device.createShaderModule(createInfo);
@@ -774,13 +749,7 @@ bool VulkanContext::CreateFramebuffers()
   {
     std::array attachments = {m_SwapChainImageViews[i]};
 
-    vk::FramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.renderPass      = m_RenderPass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments    = attachments.data();
-    framebufferInfo.width           = GetExtent().width;
-    framebufferInfo.height          = GetExtent().height;
-    framebufferInfo.layers          = 1;
+    vk::FramebufferCreateInfo framebufferInfo{{}, m_RenderPass, 1, attachments.data(), GetExtent().width, GetExtent().height, 1};
 
     if (m_Device.createFramebuffer(&framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != vk::Result::eSuccess)
     {
@@ -796,9 +765,8 @@ bool VulkanContext::CreateCommandPool()
 {
   QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice, m_Surface);
 
-  vk::CommandPoolCreateInfo poolInfo{};
-  poolInfo.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+  vk::CommandPoolCreateInfo poolInfo{vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                                     queueFamilyIndices.graphicsFamily.value()};
 
   if (m_Device.createCommandPool(&poolInfo, nullptr, &m_CommandPool) != vk::Result::eSuccess)
   {
@@ -812,10 +780,9 @@ bool VulkanContext::CreateCommandPool()
 bool VulkanContext::CreateCommandBuffers()
 {
   m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.commandPool        = m_CommandPool;
-  allocInfo.level              = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandBufferCount = m_CommandBuffers.size();
+  vk::CommandBufferAllocateInfo allocInfo{m_CommandPool,
+                                          vk::CommandBufferLevel::ePrimary,
+                                          static_cast<uint32_t>(m_CommandBuffers.size())};
 
   if (m_Device.allocateCommandBuffers(&allocInfo, m_CommandBuffers.data()) != vk::Result::eSuccess)
   {
@@ -946,33 +913,16 @@ void VulkanContext::DrawFrame()
   m_CommandBuffers[m_CurrentFrame].reset();
   RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
 
-  vk::SubmitInfo submitInfo{};
-  submitInfo.sType = vk::StructureType::eSubmitInfo;
+  std::array                            waitSemaphores   = {m_ImageAvailableSemaphores[m_CurrentFrame]};
+  std::array<vk::PipelineStageFlags, 1> waitStages       = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  std::array                            signalSemaphores = {m_RenderFinishedSemaphores[m_CurrentFrame]};
 
-  std::array                            waitSemaphores = {m_ImageAvailableSemaphores[m_CurrentFrame]};
-  std::array<vk::PipelineStageFlags, 1> waitStages     = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfo.waitSemaphoreCount                        = 1;
-  submitInfo.pWaitSemaphores                           = waitSemaphores.data();
-  submitInfo.pWaitDstStageMask                         = waitStages.data();
-
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers    = &m_CommandBuffers[m_CurrentFrame];
-
-  std::array signalSemaphores     = {m_RenderFinishedSemaphores[m_CurrentFrame]};
-  submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores    = signalSemaphores.data();
-
+  vk::SubmitInfo
+    submitInfo{1, waitSemaphores.data(), waitStages.data(), 1, &m_CommandBuffers[m_CurrentFrame], 1, signalSemaphores.data()};
   m_GraphicsQueue.submit(submitInfo, m_InFlightFences[m_CurrentFrame]);
 
-  vk::PresentInfoKHR presentInfo{};
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores    = signalSemaphores.data();
-
-  std::array swapChains      = {m_SwapChain};
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains    = swapChains.data();
-
-  presentInfo.pImageIndices = &imageIndex;
+  std::array         swapChains = {m_SwapChain};
+  vk::PresentInfoKHR presentInfo{1, signalSemaphores.data(), 1, swapChains.data(), &imageIndex, nullptr};
 
   if (const vk::Result result = m_PresentQueue.presentKHR(presentInfo);
       result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_Window.WasWindowResized())
