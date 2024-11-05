@@ -21,11 +21,11 @@ public:
 
   Engine* GetEngine()
   {
-    return m_Engine.get();
+    return m_Engine;
   }
 
 
 private:
-  std::unique_ptr<Engine> m_Engine;
+  Engine* m_Engine;
 };
 } // namespace four
