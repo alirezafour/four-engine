@@ -75,7 +75,7 @@ public:
 
   [[nodiscard]] inline auto* GetWindow() noexcept
   {
-    return m_Window.get();
+    return &m_Window;
   }
 
   /**
@@ -141,10 +141,10 @@ private:
   static std::unique_ptr<Engine> sm_Instance;
 
   /** main window of the Engine */
-  std::unique_ptr<Window<UsingWindow>> m_Window;
+  UsingWindow m_Window;
 
   /** renderer */
-  std::unique_ptr<Renderer> m_Renderer;
+  Renderer m_Renderer;
 
   /** imgui layer stacks for UI */
   LayerStack<ImGuiLayer> m_ImGuiLayer;

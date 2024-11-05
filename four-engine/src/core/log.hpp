@@ -67,8 +67,10 @@ public:
     */
   inline static auto GetCoreLogger() noexcept
   {
-    // check if not Initialized
-    assert(sm_CoreLogger);
+    // check if Initialized
+    if (sm_CoreLogger)
+      return sm_CoreLogger.get();
+    Log::Init();
     return sm_CoreLogger.get();
   }
   /**
@@ -77,8 +79,10 @@ public:
     */
   inline static auto GetAppLogger() noexcept
   {
-    // check if not Initialized
-    assert(sm_AppLogger);
+    // check if Initialized
+    if (sm_AppLogger)
+      return sm_AppLogger.get();
+    Log::Init();
     return sm_AppLogger.get();
   }
 
