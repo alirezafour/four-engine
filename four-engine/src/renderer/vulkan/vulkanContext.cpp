@@ -210,8 +210,8 @@ bool VulkanContext::CreateSurface()
 //===============================================================================
 bool VulkanContext::PickPhysicalDevice()
 {
-  m_PhysicalDevice     = VK_NULL_HANDLE;
-  auto physicalDevices = m_Instance.enumeratePhysicalDevices();
+  m_PhysicalDevice           = VK_NULL_HANDLE;
+  const auto physicalDevices = m_Instance.enumeratePhysicalDevices();
   if (physicalDevices.empty())
   {
     LOG_CORE_ERROR("failed to find GPUs with Vulkan support!");
@@ -251,25 +251,22 @@ bool VulkanContext::CreateLogicalDevice()
   const auto indices = FindQueueFamilies(m_PhysicalDevice, m_Surface);
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-  std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+  const std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
   for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
   {
-    vk::DeviceQueueCreateInfo queueInfo{};
-    queueInfo.queueFamilyIndex = queueFamily;
-    queueInfo.queueCount       = 1;
-    queueInfo.pQueuePriorities = &queuePriority;
-    queueCreateInfos.push_back(queueInfo);
+    queueCreateInfos.push_back({{}, queueFamily, 1, &queuePriority});
   }
-  auto features = m_PhysicalDevice.getFeatures();
+  const auto features = m_PhysicalDevice.getFeatures();
 
-  vk::DeviceCreateInfo createInfo{};
-  createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size());
-  createInfo.pQueueCreateInfos       = queueCreateInfos.data();
-  createInfo.pEnabledFeatures        = &features;
-  createInfo.enabledExtensionCount   = static_cast<uint32_t>(m_DeviceExtensions.size());
-  createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
-
-  m_Device = m_PhysicalDevice.createDevice(createInfo);
+  m_Device = m_PhysicalDevice.createDevice(
+    {{},
+     static_cast<uint32_t>(queueCreateInfos.size()),
+     queueCreateInfos.data(),
+     {},
+     {},
+     static_cast<uint32_t>(m_DeviceExtensions.size()),
+     m_DeviceExtensions.data(),
+     &features});
   if (!m_Device)
   {
     LOG_CORE_ERROR("failed to create logical device!");
@@ -288,7 +285,7 @@ bool VulkanContext::CreateLogicalDevice()
 //===============================================================================
 bool VulkanContext::CheckValidationLayerSupport()
 {
-  std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
+  const std::vector<vk::LayerProperties> availableLayers = vk::enumerateInstanceLayerProperties();
   for (const char* layerName : ValidationLayers)
   {
     bool layerFound = false;
@@ -340,7 +337,7 @@ bool VulkanContext::IsDeviceSuitable(const vk::PhysicalDevice& device) const
 //===============================================================================
 bool VulkanContext::CheckDeviceExtensionSupport(const vk::PhysicalDevice& device) const
 {
-  std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
+  const std::vector<vk::ExtensionProperties> availableExtensions = device.enumerateDeviceExtensionProperties();
 
   std::set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
   for (const auto& extension : availableExtensions)
@@ -364,7 +361,7 @@ VulkanContext::SwapChainSupportDetails VulkanContext::QuerySwapChainSupport(cons
 VulkanContext::QueueFamilyIndices VulkanContext::FindQueueFamilies(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface)
 {
   // logic to find queue families
-  auto queueFamilies = device.getQueueFamilyProperties();
+  const auto queueFamilies = device.getQueueFamilyProperties();
 
   QueueFamilyIndices indices;
   for (uint32_t index = 0u; const auto& queueFamily : queueFamilies)
@@ -414,8 +411,8 @@ uint32_t VulkanContext::RateDeviceSuitability(const vk::PhysicalDevice& device) 
   // TODO: temporary scoring
   uint32_t score = 0;
 
-  auto properties = device.getProperties();
-  auto features   = device.getFeatures();
+  const auto properties = device.getProperties();
+  const auto features   = device.getFeatures();
   switch (properties.deviceType)
   {
     case vk::PhysicalDeviceType::eDiscreteGpu:
@@ -468,24 +465,16 @@ bool VulkanContext::CreateImageViews()
 
   for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
   {
-    vk::ImageViewCreateInfo createInfo{};
-    createInfo.image = m_SwapChainImages[i]; // swapchain image.
-
-    createInfo.viewType = vk::ImageViewType::e2D;
-    createInfo.format   = m_SwapChainImageFormat;
-
-    createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-    createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-    createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-    createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-
-    createInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
-    createInfo.subresourceRange.baseMipLevel   = 0;
-    createInfo.subresourceRange.levelCount     = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount     = 1;
-
-    m_SwapChainImageViews[i] = GetDevice().createImageView(createInfo);
+    m_SwapChainImageViews[i] = GetDevice().createImageView(
+      {{},
+       m_SwapChainImages[i],
+       vk::ImageViewType::e2D,
+       m_SwapChainImageFormat,
+       {vk::ComponentSwizzle::eIdentity,  // r
+        vk::ComponentSwizzle::eIdentity,  // g
+        vk::ComponentSwizzle::eIdentity,  // b
+        vk::ComponentSwizzle::eIdentity}, // a
+       {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}});
     if (!m_SwapChainImageViews[i])
     {
       LOG_CORE_ERROR("failed to create image views!");
@@ -501,9 +490,9 @@ bool VulkanContext::CreateSwapChain()
 {
   SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_PhysicalDevice, m_Surface);
 
-  auto surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.formats);
-  auto presentMode   = ChooseSwapPresentMode(swapChainSupport.presentModes);
-  auto extent        = ChooseSwapExtent(swapChainSupport.capabilities);
+  const auto surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.formats);
+  const auto presentMode   = ChooseSwapPresentMode(swapChainSupport.presentModes);
+  const auto extent        = ChooseSwapExtent(swapChainSupport.capabilities);
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
   if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
@@ -511,15 +500,23 @@ bool VulkanContext::CreateSwapChain()
     imageCount = swapChainSupport.capabilities.maxImageCount;
   }
 
-  vk::SwapchainCreateInfoKHR createInfo{};
-  createInfo.surface = m_Surface;
-
-  createInfo.minImageCount    = imageCount;
-  createInfo.imageFormat      = surfaceFormat.format;
-  createInfo.imageColorSpace  = surfaceFormat.colorSpace;
-  createInfo.imageExtent      = extent;
-  createInfo.imageArrayLayers = 1;
-  createInfo.imageUsage       = vk::ImageUsageFlagBits::eColorAttachment;
+  vk::SwapchainCreateInfoKHR
+    createInfo{{},
+               m_Surface,
+               imageCount,
+               surfaceFormat.format,
+               surfaceFormat.colorSpace,
+               extent,
+               1,
+               vk::ImageUsageFlagBits::eColorAttachment,
+               vk::SharingMode::eExclusive,
+               {},
+               {},
+               swapChainSupport.capabilities.currentTransform,
+               vk::CompositeAlphaFlagBitsKHR::eOpaque,
+               presentMode,
+               VK_TRUE,
+               VK_NULL_HANDLE};
 
   QueueFamilyIndices      indices            = FindQueueFamilies(m_PhysicalDevice, m_Surface);
   std::array<uint32_t, 2> queueFamilyIndices = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -530,17 +527,6 @@ bool VulkanContext::CreateSwapChain()
     createInfo.queueFamilyIndexCount = 2;
     createInfo.pQueueFamilyIndices   = queueFamilyIndices.data();
   }
-  else
-  {
-    createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-  }
-
-  createInfo.preTransform   = swapChainSupport.capabilities.currentTransform;
-  createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-  createInfo.presentMode    = presentMode;
-  createInfo.clipped        = VK_TRUE;
-
-  createInfo.oldSwapchain = VK_NULL_HANDLE;
 
   m_SwapChain = m_Device.createSwapchainKHR(createInfo);
   if (!m_SwapChain)
@@ -595,41 +581,25 @@ vk::PresentModeKHR VulkanContext::ChooseSwapPresentMode(const std::vector<vk::Pr
 //===============================================================================
 bool VulkanContext::CreateRenderPass()
 {
-  vk::AttachmentDescription colorAttachment = {};
-  colorAttachment.format                    = m_SwapChainImageFormat;
-  colorAttachment.samples                   = vk::SampleCountFlagBits::e1;
-  colorAttachment.loadOp                    = vk::AttachmentLoadOp::eClear;
-  colorAttachment.storeOp                   = vk::AttachmentStoreOp::eStore;
-  colorAttachment.stencilStoreOp            = vk::AttachmentStoreOp::eDontCare;
-  colorAttachment.stencilLoadOp             = vk::AttachmentLoadOp::eDontCare;
-  colorAttachment.initialLayout             = vk::ImageLayout::eUndefined;
-  colorAttachment.finalLayout               = vk::ImageLayout::ePresentSrcKHR;
-
-  vk::AttachmentReference colorAttachmentRef = {};
-  colorAttachmentRef.attachment              = 0;
-  colorAttachmentRef.layout                  = vk::ImageLayout::eColorAttachmentOptimal;
-
-  vk::SubpassDescription subpass = {};
-  subpass.pipelineBindPoint      = vk::PipelineBindPoint::eGraphics;
-  subpass.colorAttachmentCount   = 1;
-  subpass.pColorAttachments      = &colorAttachmentRef;
-
-  vk::SubpassDependency dependency = {};
-  dependency.srcSubpass            = vk::SubpassExternal;
-  dependency.dstSubpass            = 0;
-  dependency.srcStageMask          = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  dependency.srcAccessMask         = vk::AccessFlagBits::eNone;
-  dependency.dstStageMask          = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  dependency.dstAccessMask         = vk::AccessFlagBits::eColorAttachmentWrite;
-
-  vk::RenderPassCreateInfo renderPassInfo = {};
-  renderPassInfo.attachmentCount          = 1;
-  renderPassInfo.pAttachments             = &colorAttachment;
-  renderPassInfo.subpassCount             = 1;
-  renderPassInfo.pSubpasses               = &subpass;
-  renderPassInfo.dependencyCount          = 1;
-  renderPassInfo.pDependencies            = &dependency;
-
+  const vk::AttachmentDescription
+                                 colorAttachment{{},
+                    m_SwapChainImageFormat,
+                    vk::SampleCountFlagBits::e1,
+                    vk::AttachmentLoadOp::eClear,
+                    vk::AttachmentStoreOp::eStore,
+                    vk::AttachmentLoadOp::eDontCare,
+                    vk::AttachmentStoreOp::eDontCare,
+                    vk::ImageLayout::eUndefined,
+                    vk::ImageLayout::ePresentSrcKHR};
+  const vk::AttachmentReference  colorAttachmentRef{0, vk::ImageLayout::eColorAttachmentOptimal};
+  const vk::SubpassDescription   subpass{{}, vk::PipelineBindPoint::eGraphics, {}, {}, 1, &colorAttachmentRef};
+  const vk::SubpassDependency    dependency{vk::SubpassExternal,
+                                         0,
+                                         vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                                         vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                                         vk::AccessFlagBits::eNone,
+                                         vk::AccessFlagBits::eColorAttachmentWrite};
+  const vk::RenderPassCreateInfo renderPassInfo{{}, 1, &colorAttachment, 1, &subpass, 1, &dependency};
   if (auto result = m_Device.createRenderPass(&renderPassInfo, nullptr, &m_RenderPass); result != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to create render pass!");
@@ -641,59 +611,55 @@ bool VulkanContext::CreateRenderPass()
 //===============================================================================
 bool VulkanContext::CreateGraphicsPipeline()
 {
-  auto verShaderCode  = ReadFile("shaders/simpleShader.vert.spv");
-  auto fragShaderCode = ReadFile("shaders/simpleShader.frag.spv");
+  const auto verShaderCode  = ReadFile("shaders/simpleShader.vert.spv");
+  const auto fragShaderCode = ReadFile("shaders/simpleShader.frag.spv");
 
-  auto vertShaderModule = CreateShaderModule(verShaderCode);
-  auto fragShaderModule = CreateShaderModule(fragShaderCode);
+  const auto vertShaderModule = CreateShaderModule(verShaderCode);
+  const auto fragShaderModule = CreateShaderModule(fragShaderCode);
 
-  vk::PipelineShaderStageCreateInfo vertShaderStageInfo{{}, vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main"};
+  const vk::PipelineShaderStageCreateInfo
+    vertShaderStageInfo{{}, vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main"};
+  const vk::PipelineShaderStageCreateInfo
+                   fragShaderStageInfo{{}, vk::ShaderStageFlagBits::eFragment, fragShaderModule, "main"};
+  const std::array shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
+  const vk::PipelineVertexInputStateCreateInfo   vertexInputInfo{{}, 0, nullptr, 0, nullptr};
+  const vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{{}, vk::PrimitiveTopology::eTriangleList, VK_FALSE};
 
-  vk::PipelineShaderStageCreateInfo
-    fragShaderStageInfo{{}, vk::ShaderStageFlagBits::eFragment, fragShaderModule, "main"};
+  const vk::PipelineViewportStateCreateInfo viewportStateInfo{{}, 1, nullptr, 1, nullptr};
 
-  std::array shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
+  const vk::PipelineRasterizationStateCreateInfo
+    rasterizerInfo{{},
+                   VK_FALSE,
+                   VK_FALSE,
+                   vk::PolygonMode::eFill,
+                   vk::CullModeFlagBits::eBack,
+                   vk::FrontFace::eClockwise,
+                   VK_FALSE,
+                   {},
+                   {},
+                   1.0f};
 
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{{}, 0, nullptr, 0, nullptr};
-
-  vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
-  inputAssemblyInfo.topology               = vk::PrimitiveTopology::eTriangleList;
-  inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
-
-  vk::PipelineViewportStateCreateInfo viewportStateInfo{{}, 1, nullptr, 1, nullptr};
-
-  vk::PipelineRasterizationStateCreateInfo rasterizerInfo{};
-  rasterizerInfo.depthClampEnable        = VK_FALSE;
-  rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;
-  rasterizerInfo.polygonMode             = vk::PolygonMode::eFill;
-  rasterizerInfo.lineWidth               = 1.0f;
-  rasterizerInfo.cullMode                = vk::CullModeFlagBits::eBack;
-  rasterizerInfo.frontFace               = vk::FrontFace::eClockwise;
-  rasterizerInfo.depthBiasEnable         = VK_FALSE;
-
-  vk::PipelineMultisampleStateCreateInfo multisamplingInfo{{}, vk::SampleCountFlagBits::e1, VK_FALSE};
+  const vk::PipelineMultisampleStateCreateInfo multisamplingInfo{{}, vk::SampleCountFlagBits::e1, VK_FALSE};
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                                         vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment.blendEnable = VK_FALSE;
 
-  vk::PipelineColorBlendStateCreateInfo
+  const vk::PipelineColorBlendStateCreateInfo
     colorBlendingInfo{{}, VK_FALSE, vk::LogicOp::eCopy, 1, &colorBlendAttachment, {0.0f, 0.0f, 0.0f, 0.0f}};
-
-  std::vector dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
-
-  vk::PipelineDynamicStateCreateInfo dynamicStateInfo{{}, static_cast<uint32_t>(dynamicStates.size()), dynamicStates.data()};
-
-  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{{}, 0, {}, 0};
-
+  const std::vector                        dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+  const vk::PipelineDynamicStateCreateInfo dynamicStateInfo{{},
+                                                            static_cast<uint32_t>(dynamicStates.size()),
+                                                            dynamicStates.data()};
+  const vk::PipelineLayoutCreateInfo       pipelineLayoutInfo{{}, 0, {}, 0};
   if (m_Device.createPipelineLayout(&pipelineLayoutInfo, nullptr, &m_PipelineLayout) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("Failed to create pipeline layout");
     return false;
   }
 
-  vk::GraphicsPipelineCreateInfo
+  const vk::GraphicsPipelineCreateInfo
     pipelineInfo{{},
                  2,
                  shaderStages.data(),
@@ -726,10 +692,7 @@ bool VulkanContext::CreateGraphicsPipeline()
 //===============================================================================
 vk::ShaderModule VulkanContext::CreateShaderModule(const std::vector<char>& code)
 {
-  vk::ShaderModuleCreateInfo createInfo{};
-  createInfo.codeSize = code.size();
-  createInfo.pCode    = reinterpret_cast<const uint32_t*>(code.data());
-  return m_Device.createShaderModule(createInfo);
+  return m_Device.createShaderModule({{}, code.size(), reinterpret_cast<const uint32_t*>(code.data())});
 }
 
 //===============================================================================
@@ -743,12 +706,12 @@ vk::Format VulkanContext::FindDepthFormat() const
 //===============================================================================
 bool VulkanContext::CreateFramebuffers()
 {
+  const auto& extent = GetExtent();
   m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
   for (size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
   {
-    std::array attachments = {m_SwapChainImageViews[i]};
-
-    vk::FramebufferCreateInfo framebufferInfo{{}, m_RenderPass, 1, attachments.data(), GetExtent().width, GetExtent().height, 1};
+    const std::array attachments = {m_SwapChainImageViews[i]};
+    const vk::FramebufferCreateInfo framebufferInfo{{}, m_RenderPass, 1, attachments.data(), extent.width, extent.height, 1};
 
     if (m_Device.createFramebuffer(&framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != vk::Result::eSuccess)
     {
@@ -762,10 +725,10 @@ bool VulkanContext::CreateFramebuffers()
 //===============================================================================
 bool VulkanContext::CreateCommandPool()
 {
-  QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice, m_Surface);
+  const QueueFamilyIndices queueFamilyIndices{FindQueueFamilies(m_PhysicalDevice, m_Surface)};
 
-  vk::CommandPoolCreateInfo poolInfo{vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-                                     queueFamilyIndices.graphicsFamily.value()};
+  const vk::CommandPoolCreateInfo poolInfo{vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                                           queueFamilyIndices.graphicsFamily.value()};
 
   if (m_Device.createCommandPool(&poolInfo, nullptr, &m_CommandPool) != vk::Result::eSuccess)
   {
@@ -779,9 +742,9 @@ bool VulkanContext::CreateCommandPool()
 bool VulkanContext::CreateCommandBuffers()
 {
   m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  vk::CommandBufferAllocateInfo allocInfo{m_CommandPool,
-                                          vk::CommandBufferLevel::ePrimary,
-                                          static_cast<uint32_t>(m_CommandBuffers.size())};
+  const vk::CommandBufferAllocateInfo allocInfo{m_CommandPool,
+                                                vk::CommandBufferLevel::ePrimary,
+                                                static_cast<uint32_t>(m_CommandBuffers.size())};
 
   if (m_Device.allocateCommandBuffers(&allocInfo, m_CommandBuffers.data()) != vk::Result::eSuccess)
   {
@@ -849,26 +812,24 @@ void VulkanContext::CleanupSwapChain()
 //===============================================================================
 void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const
 {
-  vk::CommandBufferBeginInfo beginInfo{};
+  const auto&                      extent = GetExtent();
+  const vk::CommandBufferBeginInfo beginInfo{};
   commandBuffer.begin(beginInfo);
 
-  vk::ClearValue          clearColor{{0.02f, 0.02f, 0.02f, 1.0f}};
-  vk::RenderPassBeginInfo renderPassInfo{m_RenderPass,
-                                         m_SwapChainFramebuffers[imageIndex],
-                                         vk::Rect2D{vk::Offset2D{0, 0}, GetExtent()},
-                                         1,
-                                         &clearColor};
+  const vk::ClearValue clearColor{{0.02f, 0.02f, 0.02f, 1.0f}};
 
   //begin render pass
-  commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+  commandBuffer
+    .beginRenderPass({m_RenderPass, m_SwapChainFramebuffers[imageIndex], vk::Rect2D{vk::Offset2D{0, 0}, extent}, 1, &clearColor},
+                     vk::SubpassContents::eInline);
 
   // basic draw
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
 
-  vk::Viewport viewport{0.0f, 0.0f, static_cast<float>(GetExtent().width), static_cast<float>(GetExtent().height), 0.0f, 1.0f};
+  vk::Viewport viewport{0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
   commandBuffer.setViewport(0, 1, &viewport);
 
-  vk::Rect2D scissor{vk::Offset2D{0, 0}, GetExtent()};
+  vk::Rect2D scissor{vk::Offset2D{0, 0}, extent};
   commandBuffer.setScissor(0, 1, &scissor);
 
   commandBuffer.draw(3, 1, 0, 0);
@@ -920,10 +881,9 @@ void VulkanContext::DrawFrame()
     submitInfo{1, waitSemaphores.data(), waitStages.data(), 1, &m_CommandBuffers[m_CurrentFrame], 1, signalSemaphores.data()};
   m_GraphicsQueue.submit(submitInfo, m_InFlightFences[m_CurrentFrame]);
 
-  std::array         swapChains = {m_SwapChain};
-  vk::PresentInfoKHR presentInfo{1, signalSemaphores.data(), 1, swapChains.data(), &imageIndex, nullptr};
-
-  if (const vk::Result result = m_PresentQueue.presentKHR(presentInfo);
+  std::array swapChains = {m_SwapChain};
+  if (const vk::Result result = m_PresentQueue.presentKHR(
+        {1, signalSemaphores.data(), 1, swapChains.data(), &imageIndex, nullptr});
       result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_Window.WasWindowResized())
   {
     ReCreateSwapChain();
