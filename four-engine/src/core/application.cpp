@@ -1,4 +1,4 @@
-#include "four-pch.h"
+#include "four-pch.hpp"
 
 #include "core/application.hpp"
 #include "core/engine.hpp"
@@ -10,9 +10,7 @@ m_Engine(Engine::Init(title, width, height))
 {
 }
 
-Application::~Application()
-{
-}
+Application::~Application() = default;
 
 void Application::Run()
 {

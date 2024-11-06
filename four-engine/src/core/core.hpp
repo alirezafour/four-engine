@@ -1,6 +1,5 @@
 #pragma once
 
-
 // @todo
 // manage satitic and shared version
 #define FOUR_ENGINE_API

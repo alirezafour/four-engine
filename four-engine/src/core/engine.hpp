@@ -21,7 +21,7 @@ constexpr uint32_t TargetFrameTime = 1000 / TargetFPS;
 
 class Application;
 
-class Engine
+class FOUR_ENGINE_API Engine
 {
 public:
   Engine()                             = delete;
@@ -49,7 +49,6 @@ public:
     sm_Instance = std::unique_ptr<Engine>(new Engine(title, width, height));
     return sm_Instance.get();
   }
-
 
   /**
    * @brief Return reference to instance of the Engine 

@@ -1,4 +1,4 @@
-#include "four-pch.h"
+#include "four-pch.hpp"
 
 #include "core/engine.hpp"
 #include "core/application.hpp"
@@ -11,14 +11,13 @@ std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 //====================================================================================================
 Engine::Engine(std::string_view title, uint32_t width, uint32_t height) :
 m_Window{title, width, height},
-m_Renderer{m_Window}
+m_Renderer{m_Window},
+m_Application{nullptr}
 {
 }
 
 //====================================================================================================
-Engine::~Engine()
-{
-}
+Engine::~Engine() = default;
 
 //====================================================================================================
 void Engine::Run()

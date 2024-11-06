@@ -1,4 +1,4 @@
-#include "four-pch.h"
+#include "four-pch.hpp"
 
 #include "core/engine.hpp"
 #include "core/imgui/imguiLayer.hpp"
@@ -35,8 +35,10 @@ bool ImGuiLayer::Init()
 
   io.BackendRendererName = "imgui_impl_vulkan";
   io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+
   //TODO: vulkan fix
-  //
+  ImGui_ImplVulkan_InitInfo init_info = {};
+  // Engine::Get()->GetRenderer()->GetInstance();
   return true;
 }
 

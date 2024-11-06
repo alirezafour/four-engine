@@ -38,6 +38,5 @@ target_sources( VulkanHppModule PRIVATE
   BASE_DIRS ${Vulkan_INCLUDE_DIR}
   FILES ${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm
 )
-target_compile_features( VulkanHppModule PUBLIC cxx_std_20 )
 target_link_libraries( VulkanHppModule PUBLIC Vulkan::Vulkan )
 target_link_libraries( vendor INTERFACE VulkanHppModule )

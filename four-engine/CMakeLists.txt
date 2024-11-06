@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.30)
 
 #project setup
 project(four-engine
@@ -7,7 +7,7 @@ project(four-engine
 )
 
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # if on windows
@@ -47,7 +47,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
 
 #setup PCH
-target_precompile_headers(${PROJECT_NAME} PUBLIC src/four-pch.h src/four-pch.cpp)
+target_precompile_headers(${PROJECT_NAME} PUBLIC src/four-pch.hpp src/four-pch.cpp)
 
 add_library(four_engine INTERFACE)
 target_include_directories(four_engine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/src")
