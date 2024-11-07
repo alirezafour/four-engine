@@ -4,6 +4,8 @@
 
 #include "vulkan/vulkan.hpp"
 
+#include "glm/glm.hpp"
+
 namespace four
 {
 
@@ -18,6 +20,31 @@ constexpr bool EnableValidationLayers = false;
 #endif
 
 const std::array<const char*, 1> ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
+
+struct Vertex
+{
+  glm::vec2                                pos;
+  glm::vec3                                color;
+  static vk::VertexInputBindingDescription GetBindingDescription()
+  {
+    return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
+  }
+
+  static std::array<vk::VertexInputAttributeDescription, 2> GetAttributeDescriptions()
+  {
+    std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
+    attributeDescriptions[0].binding  = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format   = vk::Format::eR32G32Sfloat;
+    attributeDescriptions[0].offset   = offsetof(Vertex, pos);
+    attributeDescriptions[1].binding  = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format   = vk::Format::eR32G32B32Sfloat;
+    attributeDescriptions[1].offset   = offsetof(Vertex, color);
+    return attributeDescriptions;
+  }
+};
+
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -115,6 +142,7 @@ private:
 
   void ReCreateSwapChain();
   void CleanupSwapChain();
+  bool CreateVertexBuffers();
 
   void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
 
@@ -137,6 +165,7 @@ private:
     void* /*pUserData*/);
 
   [[nodiscard]] uint32_t RateDeviceSuitability(const vk::PhysicalDevice& device) const;
+  uint32_t               FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const;
 
 private:
   Window<GlfwWindow>&            m_Window;
@@ -151,7 +180,7 @@ private:
   vk::Extent2D                   m_SwapChainExtent;
   vk::SwapchainKHR               m_SwapChain;
   std::vector<vk::Image>         m_SwapChainImages;
-  vk::Format                     m_SwapChainImageFormat;
+  vk::Format                     m_SwapChainImageFormat{};
   std::vector<vk::ImageView>     m_SwapChainImageViews;
   vk::RenderPass                 m_RenderPass;
   vk::Pipeline                   m_GraphicsPipeline;
@@ -165,5 +194,10 @@ private:
   std::vector<vk::Semaphore>     m_RenderFinishedSemaphores;
   std::vector<vk::Fence>         m_InFlightFences;
   uint32_t                       m_CurrentFrame{0};
+  vk::Buffer                     m_VertexBuffer;
+  vk::DeviceMemory               m_VertexBufferMemory;
+  const std::vector<Vertex>      vertices{{{0.0f, -0.5f}, {1.0f, 0.3f, 1.0f}},
+                                          {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                                          {{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}};
 };
 } // namespace four

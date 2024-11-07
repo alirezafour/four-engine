@@ -104,9 +104,10 @@ VulkanContext::~VulkanContext()
 //===============================================================================
 bool VulkanContext::Init()
 {
-  return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() && CreateLogicalDevice() &&
-         CreateSwapChain() && CreateImageViews() && CreateRenderPass() && CreateGraphicsPipeline() &&
-         CreateFramebuffers() && CreateCommandPool() && CreateCommandBuffers() && CreateSyncObjects();
+  return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() &&
+         CreateLogicalDevice() && CreateSwapChain() && CreateImageViews() && CreateRenderPass() &&
+         CreateGraphicsPipeline() && CreateFramebuffers() && CreateCommandPool() && CreateVertexBuffers() &&
+         CreateCommandBuffers() && CreateSyncObjects();
 }
 
 //===============================================================================
@@ -115,6 +116,8 @@ void VulkanContext::Shutdown()
   if (m_Device)
   {
     CleanupSwapChain();
+    m_Device.destroyBuffer(m_VertexBuffer);
+    m_Device.freeMemory(m_VertexBufferMemory);
 
     m_Device.destroyPipelineLayout(m_PipelineLayout);
     m_Device.destroyPipeline(m_GraphicsPipeline);
@@ -621,8 +624,14 @@ bool VulkanContext::CreateGraphicsPipeline()
     vertShaderStageInfo{{}, vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main"};
   const vk::PipelineShaderStageCreateInfo
                    fragShaderStageInfo{{}, vk::ShaderStageFlagBits::eFragment, fragShaderModule, "main"};
-  const std::array shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
-  const vk::PipelineVertexInputStateCreateInfo   vertexInputInfo{{}, 0, nullptr, 0, nullptr};
+  const std::array shaderStages          = {vertShaderStageInfo, fragShaderStageInfo};
+  const auto       bindingDescription    = Vertex::GetBindingDescription();
+  const auto       attributeDescriptions = Vertex::GetAttributeDescriptions();
+  const vk::PipelineVertexInputStateCreateInfo   vertexInputInfo{{},
+                                                               1,
+                                                               &bindingDescription,
+                                                               static_cast<uint32_t>(attributeDescriptions.size()),
+                                                               attributeDescriptions.data()};
   const vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{{}, vk::PrimitiveTopology::eTriangleList, VK_FALSE};
 
   const vk::PipelineViewportStateCreateInfo viewportStateInfo{{}, 1, nullptr, 1, nullptr};
@@ -777,6 +786,44 @@ bool VulkanContext::CreateSyncObjects()
 }
 
 //===============================================================================
+bool VulkanContext::CreateVertexBuffers()
+{
+  vk::BufferCreateInfo bufferInfo{{},
+                                  sizeof(vertices) * vertices.size(),
+                                  vk::BufferUsageFlagBits::eVertexBuffer,
+                                  vk::SharingMode::eExclusive};
+
+  if (m_Device.createBuffer(&bufferInfo, nullptr, &m_VertexBuffer) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to create vertex buffer!");
+    return false;
+  }
+
+  const vk::MemoryRequirements memRequirment = m_Device.getBufferMemoryRequirements(m_VertexBuffer);
+  const vk::MemoryAllocateInfo allocInfo{memRequirment.size,
+                                         FindMemoryType(memRequirment.memoryTypeBits,
+                                                        vk::MemoryPropertyFlagBits::eHostVisible |
+                                                          vk::MemoryPropertyFlagBits::eHostCoherent)};
+  if (m_Device.allocateMemory(&allocInfo, nullptr, &m_VertexBufferMemory) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to allocate vertex buffer memory!");
+    return false;
+  }
+  m_Device.bindBufferMemory(m_VertexBuffer, m_VertexBufferMemory, 0);
+
+  void* data;
+  if (m_Device.mapMemory(m_VertexBufferMemory, 0, bufferInfo.size, {}, &data) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to map vertex buffer memory!");
+    return false;
+  }
+  memcpy(data, vertices.data(), static_cast<size_t>(bufferInfo.size));
+  m_Device.unmapMemory(m_VertexBufferMemory);
+
+  return true;
+}
+
+//===============================================================================
 void VulkanContext::ReCreateSwapChain()
 {
   while (m_Window.GetWidth() == 0 || m_Window.GetHeight() == 0)
@@ -825,6 +872,9 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
 
   // basic draw
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
+  vk::Buffer     vertexBuffers[] = {m_VertexBuffer};
+  vk::DeviceSize offsets[]       = {0};
+  commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
 
   vk::Viewport viewport{0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f};
   commandBuffer.setViewport(0, 1, &viewport);
@@ -832,7 +882,7 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   vk::Rect2D scissor{vk::Offset2D{0, 0}, extent};
   commandBuffer.setScissor(0, 1, &scissor);
 
-  commandBuffer.draw(3, 1, 0, 0);
+  commandBuffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
   //end render pass
   commandBuffer.endRenderPass();
@@ -900,5 +950,21 @@ void VulkanContext::DrawFrame()
 void VulkanContext::StopRender()
 {
   m_Device.waitIdle();
+}
+
+//===============================================================================
+uint32_t VulkanContext::FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const
+{
+  vk::PhysicalDeviceMemoryProperties memProperties = m_PhysicalDevice.getMemoryProperties();
+  for (size_t i = 0; i < memProperties.memoryTypeCount; ++i)
+  {
+    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+    {
+      return i;
+    }
+  }
+
+  LOG_CORE_ERROR("failed to find suitable memory type!");
+  return {};
 }
 } // namespace four
