@@ -6,3 +6,5 @@ Diagnostics:
     FastCheckFilter: Strict
 Completion:
   AllScopes: false
+CompileFlags:
+  Remove: [-fmodules*]

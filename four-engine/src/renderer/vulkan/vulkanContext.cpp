@@ -1,3 +1,4 @@
+// module vkContext;
 #include "four-pch.hpp"
 
 #include "renderer/vulkan/vulkanContext.hpp"
@@ -109,7 +110,7 @@ bool VulkanContext::Init()
   return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() &&
          CreateLogicalDevice() && CreateSwapChain() && CreateImageViews() && CreateRenderPass() &&
          CreateGraphicsPipeline() && CreateFramebuffers() && CreateCommandPool() && CreateVertexBuffers() &&
-         CreateCommandBuffers() && CreateSyncObjects();
+         CreateIndexBuffers() && CreateCommandBuffers() && CreateSyncObjects();
 }
 
 //===============================================================================
@@ -120,6 +121,9 @@ void VulkanContext::Shutdown()
     CleanupSwapChain();
     m_Device.destroyBuffer(m_VertexBuffer);
     m_Device.freeMemory(m_VertexBufferMemory);
+
+    m_Device.destroyBuffer(m_IndexBuffer);
+    m_Device.freeMemory(m_IndexBufferMemory);
 
     m_Device.destroyPipelineLayout(m_PipelineLayout);
     m_Device.destroyPipeline(m_GraphicsPipeline);
@@ -805,36 +809,66 @@ bool VulkanContext::CreateSyncObjects()
 //===============================================================================
 bool VulkanContext::CreateVertexBuffers()
 {
-  vk::BufferCreateInfo bufferInfo{.size        = sizeof(vertices) * vertices.size(),
-                                  .usage       = vk::BufferUsageFlagBits::eVertexBuffer,
-                                  .sharingMode = vk::SharingMode::eExclusive};
+  const vk::DeviceSize bufferSize{sizeof(vertices[0]) * vertices.size()};
 
-  if (m_Device.createBuffer(&bufferInfo, nullptr, &m_VertexBuffer) != vk::Result::eSuccess)
-  {
-    LOG_CORE_ERROR("failed to create vertex buffer!");
-    return false;
-  }
-
-  const vk::MemoryRequirements memRequirment = m_Device.getBufferMemoryRequirements(m_VertexBuffer);
-  const vk::MemoryAllocateInfo allocInfo{.allocationSize  = memRequirment.size,
-                                         .memoryTypeIndex = FindMemoryType(memRequirment.memoryTypeBits,
-                                                                           vk::MemoryPropertyFlagBits::eHostVisible |
-                                                                             vk::MemoryPropertyFlagBits::eHostCoherent)};
-  if (m_Device.allocateMemory(&allocInfo, nullptr, &m_VertexBufferMemory) != vk::Result::eSuccess)
-  {
-    LOG_CORE_ERROR("failed to allocate vertex buffer memory!");
-    return false;
-  }
-  m_Device.bindBufferMemory(m_VertexBuffer, m_VertexBufferMemory, 0);
-
+  vk::Buffer       stagingBuffer;
+  vk::DeviceMemory staggingBufferMemory;
+  CreateBuffer(bufferSize,
+               vk::BufferUsageFlagBits::eVertexBuffer,
+               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+               stagingBuffer,
+               staggingBufferMemory);
   void* data;
-  if (m_Device.mapMemory(m_VertexBufferMemory, 0, bufferInfo.size, {}, &data) != vk::Result::eSuccess)
+  if (m_Device.mapMemory(staggingBufferMemory, 0, bufferSize, {}, &data) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to map vertex buffer memory!");
     return false;
   }
-  memcpy(data, vertices.data(), static_cast<size_t>(bufferInfo.size));
-  m_Device.unmapMemory(m_VertexBufferMemory);
+  memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
+  m_Device.unmapMemory(staggingBufferMemory);
+
+  CreateBuffer(bufferSize,
+               vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+               vk::MemoryPropertyFlagBits::eDeviceLocal,
+               m_VertexBuffer,
+               m_VertexBufferMemory);
+
+  CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
+  m_Device.destroyBuffer(stagingBuffer);
+  m_Device.freeMemory(staggingBufferMemory);
+
+  return true;
+}
+
+//===============================================================================
+bool VulkanContext::CreateIndexBuffers()
+{
+  const vk::DeviceSize bufferSize{sizeof(indices[0]) * indices.size()};
+  vk::Buffer           stagingBuffer;
+  vk::DeviceMemory     staggingBufferMemory;
+  CreateBuffer(bufferSize,
+               vk::BufferUsageFlagBits::eTransferSrc,
+               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+               stagingBuffer,
+               staggingBufferMemory);
+  void* data;
+  if (m_Device.mapMemory(staggingBufferMemory, 0, bufferSize, {}, &data) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to map index buffer memory!");
+    return false;
+  }
+  memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+  m_Device.unmapMemory(staggingBufferMemory);
+
+  CreateBuffer(bufferSize,
+               vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+               vk::MemoryPropertyFlagBits::eDeviceLocal,
+               m_IndexBuffer,
+               m_IndexBufferMemory);
+
+  CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
+  m_Device.destroyBuffer(stagingBuffer);
+  m_Device.freeMemory(staggingBufferMemory);
 
   return true;
 }
@@ -894,6 +928,7 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   vk::Buffer     vertexBuffers[] = {m_VertexBuffer};
   vk::DeviceSize offsets[]       = {0};
   commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
+  commandBuffer.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
 
   vk::Viewport viewport{.x        = 0.0f,
                         .y        = 0.0f,
@@ -906,7 +941,7 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   vk::Rect2D scissor{.offset = vk::Offset2D{0, 0}, .extent = extent};
   commandBuffer.setScissor(0, 1, &scissor);
 
-  commandBuffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+  commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 
   //end render pass
   commandBuffer.endRenderPass();
@@ -977,6 +1012,63 @@ void VulkanContext::DrawFrame()
   }
 
   m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+//===============================================================================
+void VulkanContext::CreateBuffer(vk::DeviceSize          size,
+                                 vk::BufferUsageFlags    usage,
+                                 vk::MemoryPropertyFlags properties,
+                                 vk::Buffer&             buffer,
+                                 vk::DeviceMemory&       bufferMemory)
+{
+  buffer = m_Device.createBuffer(
+    vk::BufferCreateInfo{.size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive});
+  if (!buffer)
+  {
+    LOG_CORE_ERROR("failed to create buffer!");
+    return;
+  }
+
+  const vk::MemoryRequirements memRequirment = m_Device.getBufferMemoryRequirements(buffer);
+
+  const vk::MemoryAllocateInfo allocInfo{.allocationSize  = memRequirment.size,
+                                         .memoryTypeIndex = FindMemoryType(memRequirment.memoryTypeBits, properties)};
+
+  if (m_Device.allocateMemory(&allocInfo, nullptr, &bufferMemory) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to allocate buffer memory!");
+    return;
+  }
+  m_Device.bindBufferMemory(buffer, bufferMemory, 0);
+}
+
+//===============================================================================
+void VulkanContext::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const
+{
+  vk::CommandBufferAllocateInfo allocInfo{.commandPool        = m_CommandPool,
+                                          .level              = vk::CommandBufferLevel::ePrimary,
+                                          .commandBufferCount = 1};
+
+  vk::CommandBuffer commandBuffer{};
+  if (m_Device.allocateCommandBuffers(&allocInfo, &commandBuffer) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to allocate command buffer!");
+    assert(false && "failed to allocate command buffer!");
+    return;
+  }
+
+  vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
+  commandBuffer.begin(beginInfo);
+
+  vk::BufferCopy copyRegion{.size = size};
+  commandBuffer.copyBuffer(srcBuffer, dstBuffer, copyRegion);
+  commandBuffer.end();
+
+  vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer};
+  m_GraphicsQueue.submit(submitInfo);
+  m_GraphicsQueue.waitIdle();
+
+  m_Device.freeCommandBuffers(m_CommandPool, commandBuffer);
 }
 
 //===============================================================================

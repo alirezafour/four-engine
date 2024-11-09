@@ -1,3 +1,4 @@
+// module;
 #pragma once
 
 #include "core/core.hpp"
@@ -6,6 +7,8 @@
 
 #include "glm/glm.hpp"
 
+// export module vkContext;
+// export
 namespace four
 {
 
@@ -143,6 +146,14 @@ private:
   void ReCreateSwapChain();
   void CleanupSwapChain();
   bool CreateVertexBuffers();
+  bool CreateIndexBuffers();
+
+  void CreateBuffer(vk::DeviceSize          size,
+                    vk::BufferUsageFlags    usage,
+                    vk::MemoryPropertyFlags properties,
+                    vk::Buffer&             buffer,
+                    vk::DeviceMemory&       bufferMemory);
+  void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
 
   void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
 
@@ -196,8 +207,12 @@ private:
   uint32_t                       m_CurrentFrame{0};
   vk::Buffer                     m_VertexBuffer;
   vk::DeviceMemory               m_VertexBufferMemory;
-  const std::vector<Vertex>      vertices{{{0.0f, -0.5f}, {1.0f, 0.3f, 1.0f}},
-                                          {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                          {{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}};
+  vk::Buffer                     m_IndexBuffer;
+  vk::DeviceMemory               m_IndexBufferMemory;
+  const std::vector<Vertex>      vertices{{{-0.5f, -0.5f}, {1.0f, 0.3f, 1.0f}},
+                                          {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                          {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
+                                          {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+  const std::vector<uint16_t>    indices{0, 1, 2, 2, 3, 0};
 };
 } // namespace four
