@@ -1,0 +1,8 @@
+Index:
+  StandardLibrary: true
+Diagnostics:
+  UnusedIncludes: Strict
+  ClangTidy:
+    FastCheckFilter: Strict
+Completion:
+  AllScopes: false

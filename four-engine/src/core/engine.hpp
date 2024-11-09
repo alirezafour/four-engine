@@ -72,7 +72,7 @@ public:
    */
   void Run();
 
-  [[nodiscard]] inline auto* GetWindow() noexcept
+  [[nodiscard]] auto* GetWindow() noexcept
   {
     return &m_Window;
   }
