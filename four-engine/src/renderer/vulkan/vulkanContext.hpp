@@ -30,7 +30,7 @@ struct Vertex
   glm::vec3                                color;
   static vk::VertexInputBindingDescription GetBindingDescription()
   {
-    return {0, sizeof(Vertex), vk::VertexInputRate::eVertex};
+    return {.binding = 0, .stride = sizeof(Vertex), .inputRate = vk::VertexInputRate::eVertex};
   }
 
   static std::array<vk::VertexInputAttributeDescription, 2> GetAttributeDescriptions()
@@ -176,7 +176,7 @@ private:
     void* /*pUserData*/);
 
   [[nodiscard]] uint32_t RateDeviceSuitability(const vk::PhysicalDevice& device) const;
-  uint32_t               FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const;
+  [[nodiscard]] uint32_t FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const;
 
 private:
   Window<GlfwWindow>&            m_Window;

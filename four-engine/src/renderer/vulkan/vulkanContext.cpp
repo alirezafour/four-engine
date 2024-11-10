@@ -265,6 +265,7 @@ bool VulkanContext::CreateLogicalDevice()
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
   const std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+  queueCreateInfos.reserve(uniqueQueueFamilies.size());
   for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
   {
     queueCreateInfos.push_back(
@@ -408,7 +409,7 @@ vk::Format VulkanContext::FindSupportedFormat(const std::vector<vk::Format>& can
     {
       return format;
     }
-    else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures == features))
+    if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures == features))
     {
       return format;
     }
@@ -462,7 +463,7 @@ vk::Extent2D VulkanContext::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& c
   }
   const uint32_t width  = m_Window.GetExtent().GetWidth();
   const uint32_t height = m_Window.GetExtent().GetHeight();
-  vk::Extent2D   actualExtent{width, height};
+  vk::Extent2D   actualExtent{.width = width, .height = height};
 
   actualExtent.width  = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
   actualExtent.height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -916,18 +917,19 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   const vk::ClearValue clearColor{.color = {vk::ClearColorValue{.float32 = {{0.02f, 0.02f, 0.02f, 1.0f}}}}};
 
   //begin render pass
-  const vk::RenderPassBeginInfo renderPassInfo{.renderPass  = m_RenderPass,
-                                               .framebuffer = m_SwapChainFramebuffers[imageIndex],
-                                               .renderArea = vk::Rect2D{.offset = vk::Offset2D{0, 0}, .extent = extent},
-                                               .clearValueCount = 1,
-                                               .pClearValues    = &clearColor};
+  const vk::RenderPassBeginInfo
+    renderPassInfo{.renderPass      = m_RenderPass,
+                   .framebuffer     = m_SwapChainFramebuffers[imageIndex],
+                   .renderArea      = vk::Rect2D{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent},
+                   .clearValueCount = 1,
+                   .pClearValues    = &clearColor};
   commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
   // basic draw
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
-  vk::Buffer     vertexBuffers[] = {m_VertexBuffer};
-  vk::DeviceSize offsets[]       = {0};
-  commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
+  std::array<vk::Buffer, 1>     vertexBuffers = {m_VertexBuffer};
+  std::array<vk::DeviceSize, 1> offsets       = {0};
+  commandBuffer.bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
   commandBuffer.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
 
   vk::Viewport viewport{.x        = 0.0f,
@@ -938,7 +940,7 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
                         .maxDepth = 1.0f};
   commandBuffer.setViewport(0, 1, &viewport);
 
-  vk::Rect2D scissor{.offset = vk::Offset2D{0, 0}, .extent = extent};
+  vk::Rect2D scissor{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent};
   commandBuffer.setScissor(0, 1, &scissor);
 
   commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
@@ -958,19 +960,24 @@ void VulkanContext::DrawFrame()
   }
 
   uint32_t imageIndex{};
-  if (const vk::Result result = m_Device.acquireNextImageKHR(m_SwapChain,
-                                                             std::numeric_limits<uint64_t>::max(),
-                                                             m_ImageAvailableSemaphores[m_CurrentFrame],
-                                                             nullptr,
-                                                             &imageIndex);
-      result == vk::Result::eErrorOutOfDateKHR)
+  switch (const vk::Result result = m_Device.acquireNextImageKHR(m_SwapChain,
+                                                                 std::numeric_limits<uint64_t>::max(),
+                                                                 m_ImageAvailableSemaphores[m_CurrentFrame],
+                                                                 nullptr,
+                                                                 &imageIndex);
+          result)
   {
-    ReCreateSwapChain();
-    return;
-  }
-  else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
-  {
-    LOG_CORE_ERROR("failed to acquire next swap chain image!");
+    case vk::Result::eErrorOutOfDateKHR:
+    {
+      ReCreateSwapChain();
+      return;
+    }
+    case vk::Result::eSuccess:
+    case vk::Result::eSuboptimalKHR:
+      break;
+    default:
+      LOG_CORE_ERROR("failed to acquire swap chain image!");
+      return;
   }
 
   if (m_Device.resetFences(1, &m_InFlightFences[m_CurrentFrame]) != vk::Result::eSuccess)
@@ -1083,7 +1090,7 @@ uint32_t VulkanContext::FindMemoryType(uint32_t typeFilter, const vk::MemoryProp
   vk::PhysicalDeviceMemoryProperties memProperties{m_PhysicalDevice.getMemoryProperties()};
   for (size_t i = 0; i < memProperties.memoryTypeCount; ++i)
   {
-    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+    if (((typeFilter & (1 << i)) != 0u) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
     {
       return i;
     }

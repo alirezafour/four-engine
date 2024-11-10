@@ -1,25 +1,18 @@
 ---
-Checks: "*,
-        -abseil-*,
-        -altera-*,
-        -android-*,
-        -fuchsia-*,
-        -google-*,
-        -llvm*,
-        -modernize-use-trailing-return-type,
-        -zircon-*,
-        -readability-else-after-return,
-        -readability-static-accessed-through-instance,
-        -readability-avoid-const-params-in-decls,
-        -cppcoreguidelines-non-private-member-variables-in-classes,
-        -misc-non-private-member-variables-in-classes,
-"
+Checks: "bugprone-*,
+         performance-*,
+         portability-*,
+         readability-*,
+         modernize-*,
+         cppcoreguidelines-*,
+         -modernize-use-trailing-return-type,
+         -readability-else-after-return,
+         -readability-static-accessed-through-instance,
+         -readability-avoid-const-params-in-decls,
+         -cppcoreguidelines-non-private-member-variables-in-classes,
+         -misc-non-private-member-variables-in-classes"
+
+# Optional: Add these if you want to fine-tune the checks
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
-FormatStyle:     none
-
-CheckOptions:
-  - key: readability-identifier-length.IgnoredVariableNames
-    value: 'x|y|z'
-  - key: readability-identifier-length.IgnoredParameterNames
-    value: 'x|y|z'
+FormatStyle: None
