@@ -8,7 +8,6 @@ Diagnostics:
   UnusedIncludes: Strict
   ClangTidy:
     FastCheckFilter: Loose
-    Add: [performance*, modernize*, readability*]
     Remove: [modernize-use-trailing-return-type]
 Completion:
   AllScopes: false

@@ -6,6 +6,8 @@
 #include "window/glfw/glfwWindow.hpp"
 #include "GLFW/glfw3.h"
 
+#include "glm/gtc/matrix_transform.hpp"
+
 #include <fstream>
 #include <vulkan/vulkan_structs.hpp>
 
@@ -110,7 +112,7 @@ bool VulkanContext::Init()
   return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() &&
          CreateLogicalDevice() && CreateSwapChain() && CreateImageViews() && CreateRenderPass() &&
          CreateGraphicsPipeline() && CreateFramebuffers() && CreateCommandPool() && CreateVertexBuffers() &&
-         CreateIndexBuffers() && CreateCommandBuffers() && CreateSyncObjects();
+         CreateIndexBuffers() && CreateUniformBuffers() && CreateCommandBuffers() && CreateSyncObjects();
 }
 
 //===============================================================================
@@ -119,6 +121,14 @@ void VulkanContext::Shutdown()
   if (m_Device)
   {
     CleanupSwapChain();
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+      m_Device.destroyBuffer(m_UniformBuffers[i]);
+      m_Device.freeMemory(m_UniformBuffersMemory[i]);
+    }
+
+    m_Device.destroyDescriptorSetLayout(m_DescriptorSetLayout);
     m_Device.destroyBuffer(m_VertexBuffer);
     m_Device.freeMemory(m_VertexBufferMemory);
 
@@ -629,6 +639,22 @@ bool VulkanContext::CreateRenderPass()
 }
 
 //===============================================================================
+bool VulkanContext::CreateDescriptorSetLayout()
+{
+  const vk::DescriptorSetLayoutBinding    uboLayoutBinding{.binding         = 0,
+                                                           .descriptorType  = vk::DescriptorType::eUniformBuffer,
+                                                           .descriptorCount = 1,
+                                                           .stageFlags      = vk::ShaderStageFlagBits::eVertex};
+  const vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = 1, .pBindings = &uboLayoutBinding};
+  if (auto result = m_Device.createDescriptorSetLayout(&layoutInfo, nullptr, &m_DescriptorSetLayout);
+      result != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to create descriptor set layout!");
+    return false;
+  }
+  return true;
+}
+//===============================================================================
 bool VulkanContext::CreateGraphicsPipeline()
 {
   const auto verShaderCode  = ReadFile("shaders/simpleShader.vert.spv");
@@ -875,6 +901,30 @@ bool VulkanContext::CreateIndexBuffers()
 }
 
 //===============================================================================
+bool VulkanContext::CreateUniformBuffers()
+{
+  vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+
+  m_UniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+  m_UniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+  m_UniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+  {
+    CreateBuffer(bufferSize,
+                 vk::BufferUsageFlagBits::eUniformBuffer,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 m_UniformBuffers[i],
+                 m_UniformBuffersMemory[i]);
+    if (m_Device.mapMemory(m_UniformBuffersMemory[i], 0, bufferSize, {}, &m_UniformBuffersMapped[i]) != vk::Result::eSuccess)
+    {
+      LOG_CORE_ERROR("failed to map uniform buffer memory!");
+      return false;
+    }
+  }
+  return true;
+}
+//===============================================================================
 void VulkanContext::ReCreateSwapChain()
 {
   while (m_Window.GetWidth() == 0 || m_Window.GetHeight() == 0)
@@ -989,6 +1039,8 @@ void VulkanContext::DrawFrame()
   m_CommandBuffers[m_CurrentFrame].reset();
   RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
 
+  UpdateUniformBuffer(imageIndex);
+
   std::array                            waitSemaphores   = {m_ImageAvailableSemaphores[m_CurrentFrame]};
   std::array<vk::PipelineStageFlags, 1> waitStages       = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
   std::array                            signalSemaphores = {m_RenderFinishedSemaphores[m_CurrentFrame]};
@@ -1100,5 +1152,23 @@ uint32_t VulkanContext::FindMemoryType(uint32_t typeFilter, const vk::MemoryProp
   // TODO: not sure if it is recoverable
   assert(false && "failed to find suitable memory type!");
   return {};
+}
+
+//===============================================================================
+void VulkanContext::UpdateUniformBuffer(uint32_t currentImage) const
+{
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto  currentTime = std::chrono::high_resolution_clock::now();
+  float time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+  UniformBufferObject
+    ubo{.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        .view  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        .proj  = glm::perspective(glm::radians(45.0f),
+                                 static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height),
+                                 0.1f,
+                                 10.0f)};
+  memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 } // namespace four

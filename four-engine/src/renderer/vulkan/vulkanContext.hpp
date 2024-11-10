@@ -26,8 +26,9 @@ const std::array<const char*, 1> ValidationLayers = {"VK_LAYER_KHRONOS_validatio
 
 struct Vertex
 {
-  glm::vec2                                pos;
-  glm::vec3                                color;
+  glm::vec2 pos;
+  glm::vec3 color;
+
   static vk::VertexInputBindingDescription GetBindingDescription()
   {
     return {.binding = 0, .stride = sizeof(Vertex), .inputRate = vk::VertexInputRate::eVertex};
@@ -46,6 +47,13 @@ struct Vertex
     attributeDescriptions[1].offset   = offsetof(Vertex, color);
     return attributeDescriptions;
   }
+};
+
+struct UniformBufferObject
+{
+  glm::mat4 model;
+  glm::mat4 view;
+  glm::mat4 proj;
 };
 
 
@@ -134,6 +142,7 @@ private:
 
   // graphic pipeline
   [[nodiscard]] bool             CreateRenderPass();
+  [[nodiscard]] bool             CreateDescriptorSetLayout();
   [[nodiscard]] bool             CreateGraphicsPipeline();
   [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
   [[nodiscard]] vk::Format       FindDepthFormat() const;
@@ -145,8 +154,10 @@ private:
 
   void ReCreateSwapChain();
   void CleanupSwapChain();
-  bool CreateVertexBuffers();
-  bool CreateIndexBuffers();
+
+  [[nodiscard]] bool CreateVertexBuffers();
+  [[nodiscard]] bool CreateIndexBuffers();
+  [[nodiscard]] bool CreateUniformBuffers();
 
   void CreateBuffer(vk::DeviceSize          size,
                     vk::BufferUsageFlags    usage,
@@ -156,6 +167,8 @@ private:
   void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
 
   void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
+
+  void UpdateUniformBuffer(uint32_t currentImage) const;
 
   [[nodiscard]] static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
   [[nodiscard]] static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
@@ -214,5 +227,9 @@ private:
                                           {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
                                           {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
   const std::vector<uint16_t>    indices{0, 1, 2, 2, 3, 0};
+  vk::DescriptorSetLayout        m_DescriptorSetLayout;
+  std::vector<vk::Buffer>        m_UniformBuffers;
+  std::vector<vk::DeviceMemory>  m_UniformBuffersMemory;
+  std::vector<void*>             m_UniformBuffersMapped;
 };
 } // namespace four
