@@ -5,6 +5,7 @@
 
 #include "vulkan/vulkan.hpp"
 
+#define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
 
 // export module vkContext;

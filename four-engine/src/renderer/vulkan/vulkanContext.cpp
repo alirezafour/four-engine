@@ -643,10 +643,11 @@ bool VulkanContext::CreateRenderPass()
 //===============================================================================
 bool VulkanContext::CreateDescriptorSetLayout()
 {
-  const vk::DescriptorSetLayoutBinding    uboLayoutBinding{.binding         = 0,
-                                                           .descriptorType  = vk::DescriptorType::eUniformBuffer,
-                                                           .descriptorCount = 1,
-                                                           .stageFlags      = vk::ShaderStageFlagBits::eVertex};
+  const vk::DescriptorSetLayoutBinding    uboLayoutBinding{.binding            = 0,
+                                                           .descriptorType     = vk::DescriptorType::eUniformBuffer,
+                                                           .descriptorCount    = 1,
+                                                           .stageFlags         = vk::ShaderStageFlagBits::eVertex,
+                                                           .pImmutableSamplers = nullptr};
   const vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = 1, .pBindings = &uboLayoutBinding};
   if (auto result = m_Device.createDescriptorSetLayout(&layoutInfo, nullptr, &m_DescriptorSetLayout);
       result != vk::Result::eSuccess)
@@ -1000,7 +1001,7 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   commandBuffer.bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
   commandBuffer.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
   commandBuffer
-    .bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
+    .bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
 
   commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 
@@ -1037,7 +1038,7 @@ void VulkanContext::DrawFrame()
       return;
   }
 
-  UpdateUniformBuffer(imageIndex);
+  UpdateUniformBuffer(m_CurrentFrame);
 
   if (m_Device.resetFences(1, &m_InFlightFences[m_CurrentFrame]) != vk::Result::eSuccess)
   {
