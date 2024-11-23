@@ -159,12 +159,14 @@ private:
   [[nodiscard]] bool CreateIndexBuffers();
   [[nodiscard]] bool CreateUniformBuffers();
 
-  void CreateBuffer(vk::DeviceSize          size,
-                    vk::BufferUsageFlags    usage,
-                    vk::MemoryPropertyFlags properties,
-                    vk::Buffer&             buffer,
-                    vk::DeviceMemory&       bufferMemory);
-  void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
+  void               CreateBuffer(vk::DeviceSize          size,
+                                  vk::BufferUsageFlags    usage,
+                                  vk::MemoryPropertyFlags properties,
+                                  vk::Buffer&             buffer,
+                                  vk::DeviceMemory&       bufferMemory);
+  [[nodiscard]] bool CreateDescriptorPool();
+  [[nodiscard]] bool CreateDescriptorSets();
+  void               CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
 
   void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
 
@@ -231,5 +233,7 @@ private:
   std::vector<vk::Buffer>        m_UniformBuffers;
   std::vector<vk::DeviceMemory>  m_UniformBuffersMemory;
   std::vector<void*>             m_UniformBuffersMapped;
+  vk::DescriptorPool             m_DescriptorPool;
+  std::vector<vk::DescriptorSet> m_DescriptorSets;
 };
 } // namespace four

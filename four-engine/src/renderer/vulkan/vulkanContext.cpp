@@ -111,8 +111,9 @@ bool VulkanContext::Init()
 {
   return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() &&
          CreateLogicalDevice() && CreateSwapChain() && CreateImageViews() && CreateRenderPass() &&
-         CreateGraphicsPipeline() && CreateFramebuffers() && CreateCommandPool() && CreateVertexBuffers() &&
-         CreateIndexBuffers() && CreateUniformBuffers() && CreateCommandBuffers() && CreateSyncObjects();
+         CreateDescriptorSetLayout() && CreateGraphicsPipeline() && CreateFramebuffers() && CreateCommandPool() &&
+         CreateVertexBuffers() && CreateIndexBuffers() && CreateUniformBuffers() && CreateDescriptorPool() &&
+         CreateDescriptorSets() && CreateCommandBuffers() && CreateSyncObjects();
 }
 
 //===============================================================================
@@ -128,6 +129,7 @@ void VulkanContext::Shutdown()
       m_Device.freeMemory(m_UniformBuffersMemory[i]);
     }
 
+    m_Device.destroyDescriptorPool(m_DescriptorPool);
     m_Device.destroyDescriptorSetLayout(m_DescriptorSetLayout);
     m_Device.destroyBuffer(m_VertexBuffer);
     m_Device.freeMemory(m_VertexBufferMemory);
@@ -276,7 +278,7 @@ bool VulkanContext::CreateLogicalDevice()
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
   const std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
   queueCreateInfos.reserve(uniqueQueueFamilies.size());
-  for (float queuePriority = 1.f; const auto& queueFamily : uniqueQueueFamilies)
+  for (float queuePriority = 1.F; const auto& queueFamily : uniqueQueueFamilies)
   {
     queueCreateInfos.push_back(
       {.flags = {}, .queueFamilyIndex = queueFamily, .queueCount = 1, .pQueuePriorities = &queuePriority});
@@ -387,12 +389,12 @@ VulkanContext::QueueFamilyIndices VulkanContext::FindQueueFamilies(const vk::Phy
   const auto queueFamilies = device.getQueueFamilyProperties();
 
   QueueFamilyIndices indices;
-  for (uint32_t index = 0u; const auto& queueFamily : queueFamilies)
+  for (uint32_t index = 0U; const auto& queueFamily : queueFamilies)
   {
     if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
     {
       indices.graphicsFamily = index;
-      if (device.getSurfaceSupportKHR(index, surface) != 0u)
+      if (device.getSurfaceSupportKHR(index, surface) != 0U)
       {
         indices.presentFamily = index;
       }
@@ -446,7 +448,7 @@ uint32_t VulkanContext::RateDeviceSuitability(const vk::PhysicalDevice& device) 
   }
 
   score += properties.limits.maxImageDimension2D;
-  if (features.geometryShader == 0u)
+  if (features.geometryShader == 0U)
   {
     return 0;
   }
@@ -689,7 +691,7 @@ bool VulkanContext::CreateGraphicsPipeline()
                    .cullMode                = vk::CullModeFlagBits::eBack,
                    .frontFace               = vk::FrontFace::eClockwise,
                    .depthBiasEnable         = VK_FALSE,
-                   .depthBiasSlopeFactor    = 1.0f};
+                   .depthBiasSlopeFactor    = 1.0F};
 
   const vk::PipelineMultisampleStateCreateInfo multisamplingInfo{.rasterizationSamples = vk::SampleCountFlagBits::e1,
                                                                  .sampleShadingEnable  = VK_FALSE};
@@ -703,11 +705,11 @@ bool VulkanContext::CreateGraphicsPipeline()
                                                                 .logicOp         = vk::LogicOp::eCopy,
                                                                 .attachmentCount = 1,
                                                                 .pAttachments    = &colorBlendAttachment,
-                                                                .blendConstants  = {{0.0f, 0.0f, 0.0f, 0.0f}}};
+                                                                .blendConstants  = {{0.0F, 0.0F, 0.0F, 0.0F}}};
   const std::vector                           dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
   const vk::PipelineDynamicStateCreateInfo dynamicStateInfo{.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
                                                             .pDynamicStates = dynamicStates.data()};
-  const vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 0, .pushConstantRangeCount = 0};
+  const vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 1, .pSetLayouts = &m_DescriptorSetLayout};
   if (m_Device.createPipelineLayout(&pipelineLayoutInfo, nullptr, &m_PipelineLayout) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("Failed to create pipeline layout");
@@ -841,7 +843,7 @@ bool VulkanContext::CreateVertexBuffers()
   vk::Buffer       stagingBuffer;
   vk::DeviceMemory staggingBufferMemory;
   CreateBuffer(bufferSize,
-               vk::BufferUsageFlagBits::eVertexBuffer,
+               vk::BufferUsageFlagBits::eTransferSrc,
                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                stagingBuffer,
                staggingBufferMemory);
@@ -927,10 +929,14 @@ bool VulkanContext::CreateUniformBuffers()
 //===============================================================================
 void VulkanContext::ReCreateSwapChain()
 {
+  const auto renderTime = std::chrono::high_resolution_clock::now();
   while (m_Window.GetWidth() == 0 || m_Window.GetHeight() == 0)
   {
     m_Window.WaitEvents();
   }
+  const auto renderTimeDuration = std::chrono::duration_cast<std::chrono::microseconds>(
+    std::chrono::high_resolution_clock::now() - renderTime);
+  LOG_CORE_INFO("rocord Render time: {0} us", renderTimeDuration.count());
   m_Device.waitIdle();
   CleanupSwapChain();
   if (CreateSwapChain() && CreateImageViews() && CreateFramebuffers())
@@ -964,7 +970,7 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   const vk::CommandBufferBeginInfo beginInfo{};
   commandBuffer.begin(beginInfo);
 
-  const vk::ClearValue clearColor{.color = {vk::ClearColorValue{.float32 = {{0.02f, 0.02f, 0.02f, 1.0f}}}}};
+  const vk::ClearValue clearColor{.color = {vk::ClearColorValue{.float32 = {{0.02F, 0.02F, 0.02F, 1.0F}}}}};
 
   //begin render pass
   const vk::RenderPassBeginInfo
@@ -979,19 +985,22 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
   std::array<vk::Buffer, 1>     vertexBuffers = {m_VertexBuffer};
   std::array<vk::DeviceSize, 1> offsets       = {0};
-  commandBuffer.bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-  commandBuffer.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
 
-  vk::Viewport viewport{.x        = 0.0f,
-                        .y        = 0.0f,
+  vk::Viewport viewport{.x        = 0.0F,
+                        .y        = 0.0F,
                         .width    = static_cast<float>(extent.width),
                         .height   = static_cast<float>(extent.height),
-                        .minDepth = 0.0f,
-                        .maxDepth = 1.0f};
+                        .minDepth = 0.0F,
+                        .maxDepth = 1.0F};
   commandBuffer.setViewport(0, 1, &viewport);
 
   vk::Rect2D scissor{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent};
   commandBuffer.setScissor(0, 1, &scissor);
+
+  commandBuffer.bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+  commandBuffer.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
+  commandBuffer
+    .bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
 
   commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 
@@ -1004,10 +1013,8 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
 //===============================================================================
 void VulkanContext::DrawFrame()
 {
-  while (vk::Result::eTimeout ==
-         m_Device.waitForFences(1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max()))
-  {
-  }
+  [[maybe_unused]] const auto
+    result = m_Device.waitForFences(1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 
   uint32_t imageIndex{};
   switch (const vk::Result result = m_Device.acquireNextImageKHR(m_SwapChain,
@@ -1030,6 +1037,8 @@ void VulkanContext::DrawFrame()
       return;
   }
 
+  UpdateUniformBuffer(imageIndex);
+
   if (m_Device.resetFences(1, &m_InFlightFences[m_CurrentFrame]) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to reset fence!");
@@ -1039,12 +1048,12 @@ void VulkanContext::DrawFrame()
   m_CommandBuffers[m_CurrentFrame].reset();
   RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
 
-  UpdateUniformBuffer(imageIndex);
 
   std::array                            waitSemaphores   = {m_ImageAvailableSemaphores[m_CurrentFrame]};
   std::array<vk::PipelineStageFlags, 1> waitStages       = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
   std::array                            signalSemaphores = {m_RenderFinishedSemaphores[m_CurrentFrame]};
 
+  assert(m_CommandBuffers[m_CurrentFrame] && "Command buffer is null!");
   m_GraphicsQueue.submit(vk::SubmitInfo{.waitSemaphoreCount   = 1,
                                         .pWaitSemaphores      = waitSemaphores.data(),
                                         .pWaitDstStageMask    = waitStages.data(),
@@ -1063,6 +1072,7 @@ void VulkanContext::DrawFrame()
          .pImageIndices      = &imageIndex});
       result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_Window.WasWindowResized())
   {
+    m_Window.ResetWindowResized();
     ReCreateSwapChain();
   }
   else if (result != vk::Result::eSuccess)
@@ -1099,6 +1109,52 @@ void VulkanContext::CreateBuffer(vk::DeviceSize          size,
     return;
   }
   m_Device.bindBufferMemory(buffer, bufferMemory, 0);
+}
+
+//===============================================================================
+bool VulkanContext::CreateDescriptorPool()
+{
+  vk::DescriptorPoolSize poolSize{.type            = vk::DescriptorType::eUniformBuffer,
+                                  .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)};
+
+  vk::DescriptorPoolCreateInfo poolInfo{.maxSets       = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+                                        .poolSizeCount = 1,
+                                        .pPoolSizes    = &poolSize};
+  if (m_Device.createDescriptorPool(&poolInfo, nullptr, &m_DescriptorPool) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to create descriptor pool!");
+    return false;
+  }
+  return true;
+}
+
+//===============================================================================
+bool VulkanContext::CreateDescriptorSets()
+{
+  std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
+  vk::DescriptorSetAllocateInfo        allocInfo{.descriptorPool     = m_DescriptorPool,
+                                                 .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+                                                 .pSetLayouts        = layouts.data()};
+  m_DescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+  if (m_Device.allocateDescriptorSets(&allocInfo, m_DescriptorSets.data()) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to allocate descriptor sets!");
+    return false;
+  }
+
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+  {
+    vk::DescriptorBufferInfo bufferInfo{.buffer = m_UniformBuffers[i], .offset = 0, .range = sizeof(UniformBufferObject)};
+    vk::WriteDescriptorSet writeDescriptorSet{.dstSet          = m_DescriptorSets[i],
+                                              .dstBinding      = 0,
+                                              .dstArrayElement = 0,
+                                              .descriptorCount = 1,
+                                              .descriptorType  = vk::DescriptorType::eUniformBuffer,
+                                              .pBufferInfo     = &bufferInfo};
+    m_Device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+  }
+
+  return true;
 }
 
 //===============================================================================
@@ -1142,7 +1198,7 @@ uint32_t VulkanContext::FindMemoryType(uint32_t typeFilter, const vk::MemoryProp
   vk::PhysicalDeviceMemoryProperties memProperties{m_PhysicalDevice.getMemoryProperties()};
   for (size_t i = 0; i < memProperties.memoryTypeCount; ++i)
   {
-    if (((typeFilter & (1 << i)) != 0u) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+    if (((typeFilter & (1 << i)) != 0U) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
     {
       return i;
     }
@@ -1163,12 +1219,12 @@ void VulkanContext::UpdateUniformBuffer(uint32_t currentImage) const
   float time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
   UniformBufferObject
-    ubo{.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-        .view  = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-        .proj  = glm::perspective(glm::radians(45.0f),
+    ubo{.model = glm::rotate(glm::mat4(1.0F), time * glm::radians(90.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
+        .view  = glm::lookAt(glm::vec3(2.0F, 2.0F, 2.0F), glm::vec3(0.0F, 0.0F, 0.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
+        .proj  = glm::perspective(glm::radians(45.0F),
                                  static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height),
-                                 0.1f,
-                                 10.0f)};
+                                 0.1F,
+                                 10.0F)};
   memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 } // namespace four

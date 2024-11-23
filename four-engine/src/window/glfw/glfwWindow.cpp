@@ -82,6 +82,18 @@ bool GlfwWindow::ShouldCloseImpl() const noexcept
 //----------------------------------------------------------------------------------------
 void GlfwWindow::OnUpdateImpl()
 {
+  m_CurrentTime    = glfwGetTime();
+  double deltaTime = m_CurrentTime - m_LastTime;
+  if (deltaTime >= 1.0)
+  {
+    int framerate{std::max(1, static_cast<int>(m_Frames / deltaTime))};
+    m_Title = std::to_string(framerate) + " FPS";
+    LOG_CORE_INFO("{}", m_Title);
+    glfwSetWindowTitle(m_Window, m_Title.data());
+    m_Frames   = -1;
+    m_LastTime = m_CurrentTime;
+  }
+  ++m_Frames;
   glfwPollEvents();
 }
 

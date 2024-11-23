@@ -145,6 +145,9 @@ private:
   uint32_t    m_Width;
   uint32_t    m_Height;
   bool        m_FrameBufferResized = false;
+  double      m_CurrentTime        = 0.0;
+  double      m_LastTime           = 0.0;
+  int         m_Frames             = 0;
 };
 
 } // namespace four

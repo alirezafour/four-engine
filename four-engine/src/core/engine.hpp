@@ -17,7 +17,7 @@ namespace four
 
 constexpr bool     FrameCapEnabled = true;
 constexpr uint32_t TargetFPS       = 60;
-constexpr uint32_t TargetFrameTime = 1000 / TargetFPS;
+constexpr float    TargetFrameTime = 1000.0f / static_cast<float>(TargetFPS);
 
 class Application;
 
