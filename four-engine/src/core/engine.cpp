@@ -26,18 +26,18 @@ void Engine::Run()
 {
   try
   {
-    auto  lastFrameTimePoint = std::chrono::high_resolution_clock::now();
-    float fps                = 0.0f;
+    auto     lastFrameTimePoint = std::chrono::high_resolution_clock::now();
+    uint32_t fps                = 0;
     while (!m_Window.ShouldClose())
     {
       const auto startTime     = std::chrono::high_resolution_clock::now();
-      const auto frameDuration = std::chrono::duration_cast<std::chrono::microseconds>(startTime - lastFrameTimePoint);
+      const auto frameDuration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - lastFrameTimePoint);
       lastFrameTimePoint       = startTime;
 
       m_Window.OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(static_cast<float>(frameDuration.count()) / 1000000.0f);
+        m_Application->OnUpdate(static_cast<float>(frameDuration.count()) / 1000.0f);
       }
 
       const auto renderTime = std::chrono::high_resolution_clock::now();
@@ -46,7 +46,7 @@ void Engine::Run()
         std::chrono::high_resolution_clock::now() - renderTime);
       m_ImGuiLayer.OnUpdate();
 
-      const auto realTime = std::chrono::duration_cast<std::chrono::microseconds>(
+      const auto realTime = std::chrono::duration_cast<std::chrono::milliseconds>(
                               std::chrono::high_resolution_clock::now() - startTime)
                               .count();
 
@@ -54,15 +54,15 @@ void Engine::Run()
       {
         if (const auto sleepTime = TargetFrameTime - static_cast<float>(realTime); sleepTime > 0.0f)
         {
-          std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(1000.0f * sleepTime)));
+          std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleepTime)));
         }
       }
-      fps = 1000000.0f / static_cast<float>(frameDuration.count());
-      // LOG_CORE_INFO("FPS: {}, time: {}ms, realtime: {}ms, renderTime: {}ms",
-      //               fps,
-      //               frameDuration.count(),
-      //               realTime,
-      //               renderTimeDuration.count());
+      fps = static_cast<uint32_t>(1000.0F / static_cast<float>(frameDuration.count()));
+      LOG_CORE_INFO("FPS: {}, time: {}ms, realtime: {}ms, renderTime: {}us",
+                    fps,
+                    frameDuration.count(),
+                    realTime,
+                    renderTimeDuration.count());
     }
     m_Renderer.StopRender();
     Shutdown();
