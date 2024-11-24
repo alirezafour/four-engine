@@ -1348,7 +1348,7 @@ void VulkanContext::UpdateUniformBuffer(uint32_t currentImage) const
 //===============================================================================
 void VulkanContext::TransitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) const
 {
-  vk::CommandBuffer commandBuffer = BeginSingleTimeCommands();
+  const vk::CommandBuffer commandBuffer{BeginSingleTimeCommands()};
 
   vk::PipelineStageFlags sourceStage{};
   vk::PipelineStageFlags destinationStage{};
@@ -1393,7 +1393,7 @@ void VulkanContext::TransitionImageLayout(vk::Image image, vk::Format format, vk
 //===============================================================================
 void VulkanContext::CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) const
 {
-  vk::CommandBuffer commandBuffer = BeginSingleTimeCommands();
+  const vk::CommandBuffer commandBuffer{BeginSingleTimeCommands()};
 
   vk::BufferImageCopy region{
     .bufferOffset      = 0,
