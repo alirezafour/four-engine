@@ -168,11 +168,40 @@ private:
                                   vk::DeviceMemory&       bufferMemory);
   [[nodiscard]] bool CreateDescriptorPool();
   [[nodiscard]] bool CreateDescriptorSets();
-  void               CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
+  [[nodiscard]] bool CreateTextureImage();
+
+  /**
+   * Creates an image and allocates memory for it.
+   * exeption on failure
+   * @param width
+   * @param height
+   * @param format
+   * @param tiling
+   * @param usage
+   * @param properties
+   * @return std::tuple<vk::Image, vk::DeviceMemory>
+   */
+  void CreateImage(uint32_t                width,
+                   uint32_t                height,
+                   vk::Format              format,
+                   vk::ImageTiling         tiling,
+                   vk::ImageUsageFlags     usage,
+                   vk::MemoryPropertyFlags properties,
+                   vk::Image&              textureImage,
+                   vk::DeviceMemory&       textureImageMemory) const;
+
+  void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
 
   void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
 
+  [[nodiscard]] vk::CommandBuffer BeginSingleTimeCommands() const;
+
+  void EndSingleTimeCommands(const vk::CommandBuffer& commandBuffer) const;
+
   void UpdateUniformBuffer(uint32_t currentImage) const;
+
+  void TransitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) const;
+  void CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) const;
 
   [[nodiscard]] static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
   [[nodiscard]] static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
@@ -237,5 +266,7 @@ private:
   std::vector<void*>             m_UniformBuffersMapped;
   vk::DescriptorPool             m_DescriptorPool;
   std::vector<vk::DescriptorSet> m_DescriptorSets;
+  vk::Image                      m_TextureImage;
+  vk::DeviceMemory               m_TextureImageMemory;
 };
 } // namespace four

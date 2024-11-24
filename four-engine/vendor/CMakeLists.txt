@@ -18,6 +18,9 @@ target_link_libraries(vendor INTERFACE glm::glm)
 target_include_directories(vendor INTERFACE imgui)
 target_include_directories(vendor INTERFACE imgui/backends)
 
+# stb (image loader)
+target_include_directories(vendor INTERFACE stb)
+
 # add vulkan with package
 
 # find Vulkan SDK

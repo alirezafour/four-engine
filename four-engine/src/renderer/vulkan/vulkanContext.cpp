@@ -11,6 +11,9 @@
 #include <fstream>
 #include <vulkan/vulkan_structs.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace four
 {
 
@@ -109,11 +112,33 @@ VulkanContext::~VulkanContext()
 //===============================================================================
 bool VulkanContext::Init()
 {
-  return CreateInstance() && SetupDebugMessenger() && CreateSurface() && PickPhysicalDevice() &&
-         CreateLogicalDevice() && CreateSwapChain() && CreateImageViews() && CreateRenderPass() &&
-         CreateDescriptorSetLayout() && CreateGraphicsPipeline() && CreateFramebuffers() && CreateCommandPool() &&
-         CreateVertexBuffers() && CreateIndexBuffers() && CreateUniformBuffers() && CreateDescriptorPool() &&
-         CreateDescriptorSets() && CreateCommandBuffers() && CreateSyncObjects();
+  try
+  {
+    return CreateInstance() &&            //
+           SetupDebugMessenger() &&       //
+           CreateSurface() &&             //
+           PickPhysicalDevice() &&        //
+           CreateLogicalDevice() &&       //
+           CreateSwapChain() &&           //
+           CreateImageViews() &&          //
+           CreateRenderPass() &&          //
+           CreateDescriptorSetLayout() && //
+           CreateGraphicsPipeline() &&    //
+           CreateFramebuffers() &&        //
+           CreateCommandPool() &&         //
+           // CreateTextureImage() &&        //
+           CreateVertexBuffers() &&  //
+           CreateIndexBuffers() &&   //
+           CreateUniformBuffers() && //
+           CreateDescriptorPool() && //
+           CreateDescriptorSets() && //
+           CreateCommandBuffers() && //
+           CreateSyncObjects();
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("exception caught: {}", e.what());
+  }
+  return false;
 }
 
 //===============================================================================
@@ -122,6 +147,9 @@ void VulkanContext::Shutdown()
   if (m_Device)
   {
     CleanupSwapChain();
+
+    m_Device.destroyImage(m_TextureImage);
+    m_Device.freeMemory(m_TextureImageMemory);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -881,8 +909,8 @@ bool VulkanContext::CreateIndexBuffers()
                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                stagingBuffer,
                staggingBufferMemory);
-  void* data;
-  if (m_Device.mapMemory(staggingBufferMemory, 0, bufferSize, {}, &data) != vk::Result::eSuccess)
+  void* data = m_Device.mapMemory(staggingBufferMemory, 0, bufferSize);
+  if (data == nullptr)
   {
     LOG_CORE_ERROR("failed to map index buffer memory!");
     return false;
@@ -1012,6 +1040,31 @@ void VulkanContext::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, 
 }
 
 //===============================================================================
+vk::CommandBuffer VulkanContext::BeginSingleTimeCommands() const
+{
+  vk::CommandBufferAllocateInfo allocInfo{.commandPool        = m_CommandPool,
+                                          .level              = vk::CommandBufferLevel::ePrimary,
+                                          .commandBufferCount = 1};
+  vk::CommandBuffer             commandBuffer{};
+  if (m_Device.allocateCommandBuffers(&allocInfo, &commandBuffer) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("failed to allocate command buffer!");
+    assert(false && "failed to allocate command buffer!");
+  }
+  commandBuffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  return commandBuffer;
+}
+
+//===============================================================================
+void VulkanContext::EndSingleTimeCommands(const vk::CommandBuffer& commandBuffer) const
+{
+  commandBuffer.end();
+  m_GraphicsQueue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer});
+  m_GraphicsQueue.waitIdle();
+  m_Device.freeCommandBuffers(m_CommandPool, commandBuffer);
+}
+
+//===============================================================================
 void VulkanContext::DrawFrame()
 {
   [[maybe_unused]] const auto
@@ -1093,17 +1146,10 @@ void VulkanContext::CreateBuffer(vk::DeviceSize          size,
 {
   buffer = m_Device.createBuffer(
     vk::BufferCreateInfo{.size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive});
-  if (!buffer)
-  {
-    LOG_CORE_ERROR("failed to create buffer!");
-    return;
-  }
 
   const vk::MemoryRequirements memRequirment = m_Device.getBufferMemoryRequirements(buffer);
-
   const vk::MemoryAllocateInfo allocInfo{.allocationSize  = memRequirment.size,
                                          .memoryTypeIndex = FindMemoryType(memRequirment.memoryTypeBits, properties)};
-
   if (m_Device.allocateMemory(&allocInfo, nullptr, &bufferMemory) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to allocate buffer memory!");
@@ -1159,32 +1205,102 @@ bool VulkanContext::CreateDescriptorSets()
 }
 
 //===============================================================================
+bool VulkanContext::CreateTextureImage()
+{
+  try
+  {
+    int   texWidth{0};
+    int   texHeight{0};
+    int   texChannels{0};
+    auto* pixels = stbi_load("assets/statue.jpg", &texWidth, &texHeight, &texChannels, 4); // load image and read pixels
+    vk::DeviceSize imageSize = texWidth * texHeight * 4;
+
+    if (pixels == nullptr)
+    {
+      LOG_CORE_ERROR("failed to load texture image!");
+      return false;
+    }
+    vk::Buffer       stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
+    CreateBuffer(imageSize,
+                 vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 stagingBuffer,
+                 stagingBufferMemory);
+    auto* data = m_Device.mapMemory(stagingBufferMemory, 0, imageSize);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    m_Device.unmapMemory(stagingBufferMemory);
+
+    stbi_image_free(pixels);
+
+    CreateImage(static_cast<uint32_t>(texWidth),
+                static_cast<uint32_t>(texHeight),
+                vk::Format::eR8G8B8A8Srgb,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+                vk::MemoryPropertyFlagBits::eDeviceLocal,
+                m_TextureImage,
+                m_TextureImageMemory);
+    TransitionImageLayout(m_TextureImage,
+                          vk::Format::eR8G8B8A8Srgb,
+                          vk::ImageLayout::eUndefined,
+                          vk::ImageLayout::eTransferDstOptimal);
+    CopyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    TransitionImageLayout(m_TextureImage,
+                          vk::Format::eR8G8B8A8Srgb,
+                          vk::ImageLayout::eTransferDstOptimal,
+                          vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    // clean up
+    m_Device.destroyBuffer(stagingBuffer);
+    m_Device.freeMemory(stagingBufferMemory);
+
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR(e.what());
+  }
+  return false;
+}
+
+//===============================================================================
+void VulkanContext::CreateImage(
+  uint32_t                width,
+  uint32_t                height,
+  vk::Format              format,
+  vk::ImageTiling         tiling,
+  vk::ImageUsageFlags     usage,
+  vk::MemoryPropertyFlags properties,
+  vk::Image&              textureImage,
+  vk::DeviceMemory&       textureImageMemory) const
+{
+  textureImage              = m_Device.createImage({
+                 .imageType     = vk::ImageType::e2D,
+                 .format        = format,
+                 .extent        = {.width = width, .height = height, .depth = 1},
+                 .mipLevels     = 1,
+                 .arrayLayers   = 1,
+                 .samples       = vk::SampleCountFlagBits::e1,
+                 .tiling        = tiling,
+                 .usage         = usage,
+                 .sharingMode   = vk::SharingMode::eExclusive,
+                 .initialLayout = vk::ImageLayout::eUndefined,
+  });
+  const auto memRequirments = m_Device.getImageMemoryRequirements(textureImage);
+  textureImageMemory        = m_Device.allocateMemory({
+           .allocationSize  = memRequirments.size,
+           .memoryTypeIndex = FindMemoryType(memRequirments.memoryTypeBits, properties),
+  });
+  m_Device.bindImageMemory(textureImage, textureImageMemory, 0);
+}
+
+//===============================================================================
 void VulkanContext::CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const
 {
-  vk::CommandBufferAllocateInfo allocInfo{.commandPool        = m_CommandPool,
-                                          .level              = vk::CommandBufferLevel::ePrimary,
-                                          .commandBufferCount = 1};
-
-  vk::CommandBuffer commandBuffer{};
-  if (m_Device.allocateCommandBuffers(&allocInfo, &commandBuffer) != vk::Result::eSuccess)
-  {
-    LOG_CORE_ERROR("failed to allocate command buffer!");
-    assert(false && "failed to allocate command buffer!");
-    return;
-  }
-
-  vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
-  commandBuffer.begin(beginInfo);
-
-  vk::BufferCopy copyRegion{.size = size};
+  vk::CommandBuffer commandBuffer{BeginSingleTimeCommands()};
+  vk::BufferCopy    copyRegion{.size = size};
   commandBuffer.copyBuffer(srcBuffer, dstBuffer, copyRegion);
-  commandBuffer.end();
-
-  vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer};
-  m_GraphicsQueue.submit(submitInfo);
-  m_GraphicsQueue.waitIdle();
-
-  m_Device.freeCommandBuffers(m_CommandPool, commandBuffer);
+  EndSingleTimeCommands(commandBuffer);
 }
 
 //===============================================================================
@@ -1228,4 +1344,69 @@ void VulkanContext::UpdateUniformBuffer(uint32_t currentImage) const
                                  10.0F)};
   memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
+
+//===============================================================================
+void VulkanContext::TransitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) const
+{
+  vk::CommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+  vk::PipelineStageFlags sourceStage{};
+  vk::PipelineStageFlags destinationStage{};
+  vk::ImageMemoryBarrier barrier{
+    .oldLayout        = oldLayout,
+    .newLayout        = newLayout,
+    .image            = image,
+    .subresourceRange = {.aspectMask     = vk::ImageAspectFlagBits::eColor,
+                         .baseMipLevel   = 0,
+                         .levelCount     = 1,
+                         .baseArrayLayer = 0,
+                         .layerCount     = 1},
+  };
+
+  if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+  {
+    barrier.srcAccessMask = {};
+    barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+
+    sourceStage      = vk::PipelineStageFlagBits::eTopOfPipe;
+    destinationStage = vk::PipelineStageFlagBits::eTransfer;
+  }
+  else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+  {
+    barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+    sourceStage      = vk::PipelineStageFlagBits::eTransfer;
+    destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
+  }
+  else
+  {
+    LOG_CORE_ERROR("unsupported layout transition!");
+    return;
+  }
+
+  commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, 0, nullptr, 0, nullptr, 1, &barrier);
+
+  EndSingleTimeCommands(commandBuffer);
+}
+
+//===============================================================================
+void VulkanContext::CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) const
+{
+  vk::CommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+  vk::BufferImageCopy region{
+    .bufferOffset      = 0,
+    .bufferRowLength   = 0,
+    .bufferImageHeight = 0,
+    .imageSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = 0, .baseArrayLayer = 0, .layerCount = 1},
+    .imageOffset = {.x = 0, .y = 0, .z = 0},
+    .imageExtent = {.width = width, .height = height, .depth = 1},
+  };
+
+  commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, 1, &region);
+
+  EndSingleTimeCommands(commandBuffer);
+}
+//===============================================================================
 } // namespace four
