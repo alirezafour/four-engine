@@ -9,6 +9,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include <fstream>
+#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_structs.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -126,13 +127,15 @@ bool VulkanContext::Init()
            CreateGraphicsPipeline() &&    //
            CreateFramebuffers() &&        //
            CreateCommandPool() &&         //
-           // CreateTextureImage() &&        //
-           CreateVertexBuffers() &&  //
-           CreateIndexBuffers() &&   //
-           CreateUniformBuffers() && //
-           CreateDescriptorPool() && //
-           CreateDescriptorSets() && //
-           CreateCommandBuffers() && //
+           CreateTextureImage() &&        //
+           CreateTextureImageView() &&    //
+           CreateTextureSampler() &&      //
+           CreateVertexBuffers() &&       //
+           CreateIndexBuffers() &&        //
+           CreateUniformBuffers() &&      //
+           CreateDescriptorPool() &&      //
+           CreateDescriptorSets() &&      //
+           CreateCommandBuffers() &&      //
            CreateSyncObjects();
   } catch (const std::exception& e)
   {
@@ -147,6 +150,9 @@ void VulkanContext::Shutdown()
   if (m_Device)
   {
     CleanupSwapChain();
+
+    m_Device.destroySampler(m_TextureSampler);
+    m_Device.destroyImageView(m_TextureImageView);
 
     m_Device.destroyImage(m_TextureImage);
     m_Device.freeMemory(m_TextureImageMemory);
@@ -311,7 +317,8 @@ bool VulkanContext::CreateLogicalDevice()
     queueCreateInfos.push_back(
       {.flags = {}, .queueFamilyIndex = queueFamily, .queueCount = 1, .pQueuePriorities = &queuePriority});
   }
-  const auto features = m_PhysicalDevice.getFeatures();
+  auto features              = m_PhysicalDevice.getFeatures();
+  features.samplerAnisotropy = VK_TRUE;
 
   m_Device = m_PhysicalDevice.createDevice(
     {.flags                   = {},
@@ -383,8 +390,9 @@ bool VulkanContext::IsDeviceSuitable(const vk::PhysicalDevice& device) const
     const auto swapChainSupport = QuerySwapChainSupport(device, m_Surface);
     swapChainAquate             = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
   }
+  const auto supportedFeatures = device.getFeatures();
 
-  return indices.IsComplete() && extensionsSupported && swapChainAquate;
+  return indices.IsComplete() && extensionsSupported && swapChainAquate && (supportedFeatures.samplerAnisotropy != 0U);
 }
 
 //===============================================================================
@@ -514,32 +522,20 @@ vk::Extent2D VulkanContext::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& c
 //===============================================================================
 bool VulkanContext::CreateImageViews()
 {
-  m_SwapChainImageViews.resize(m_SwapChainImages.size());
-
-  for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
+  try
   {
-    m_SwapChainImageViews[i] = GetDevice().createImageView(
-      {.flags            = {},
-       .image            = m_SwapChainImages[i],
-       .viewType         = vk::ImageViewType::e2D,
-       .format           = m_SwapChainImageFormat,
-       .components       = {.r = vk::ComponentSwizzle::eIdentity,
-                            .g = vk::ComponentSwizzle::eIdentity,
-                            .b = vk::ComponentSwizzle::eIdentity,
-                            .a = vk::ComponentSwizzle::eIdentity},
-       .subresourceRange = {.aspectMask     = vk::ImageAspectFlagBits::eColor,
-                            .baseMipLevel   = 0,
-                            .levelCount     = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount     = 1}});
-    if (!m_SwapChainImageViews[i])
-    {
-      LOG_CORE_ERROR("failed to create image views!");
-      return false;
-    }
-  }
+    m_SwapChainImageViews.resize(m_SwapChainImages.size());
 
-  return true;
+    for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
+    {
+      m_SwapChainImageViews[i] = CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat);
+    }
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create image views. exception: {}", e.what());
+  }
+  return false;
 }
 
 //===============================================================================
@@ -671,12 +667,19 @@ bool VulkanContext::CreateRenderPass()
 //===============================================================================
 bool VulkanContext::CreateDescriptorSetLayout()
 {
-  const vk::DescriptorSetLayoutBinding    uboLayoutBinding{.binding            = 0,
-                                                           .descriptorType     = vk::DescriptorType::eUniformBuffer,
-                                                           .descriptorCount    = 1,
-                                                           .stageFlags         = vk::ShaderStageFlagBits::eVertex,
-                                                           .pImmutableSamplers = nullptr};
-  const vk::DescriptorSetLayoutCreateInfo layoutInfo{.bindingCount = 1, .pBindings = &uboLayoutBinding};
+  const vk::DescriptorSetLayoutBinding                uboLayoutBinding{.binding = 0,
+                                                                       .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                       .descriptorCount = 1,
+                                                                       .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                                                                       .pImmutableSamplers = nullptr};
+  const vk::DescriptorSetLayoutBinding                samplerLayoutBinding{.binding = 1,
+                                                                           .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                                                                           .descriptorCount = 1,
+                                                                           .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                                                                           .pImmutableSamplers = nullptr};
+  const std::array<vk::DescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+  const vk::DescriptorSetLayoutCreateInfo             layoutInfo{.bindingCount = static_cast<uint32_t>(bindings.size()),
+                                                                 .pBindings    = bindings.data()};
   if (auto result = m_Device.createDescriptorSetLayout(&layoutInfo, nullptr, &m_DescriptorSetLayout);
       result != vk::Result::eSuccess)
   {
@@ -867,93 +870,114 @@ bool VulkanContext::CreateSyncObjects()
 //===============================================================================
 bool VulkanContext::CreateVertexBuffers()
 {
-  const vk::DeviceSize bufferSize{sizeof(vertices[0]) * vertices.size()};
-
-  vk::Buffer       stagingBuffer;
-  vk::DeviceMemory staggingBufferMemory;
-  CreateBuffer(bufferSize,
-               vk::BufferUsageFlagBits::eTransferSrc,
-               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-               stagingBuffer,
-               staggingBufferMemory);
-  void* data;
-  if (m_Device.mapMemory(staggingBufferMemory, 0, bufferSize, {}, &data) != vk::Result::eSuccess)
+  try
   {
-    LOG_CORE_ERROR("failed to map vertex buffer memory!");
-    return false;
+    const vk::DeviceSize bufferSize{sizeof(vertices[0]) * vertices.size()};
+
+    vk::Buffer       stagingBuffer;
+    vk::DeviceMemory staggingBufferMemory;
+    CreateBuffer(bufferSize,
+                 vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 stagingBuffer,
+                 staggingBufferMemory);
+    void* data = nullptr;
+    if (m_Device.mapMemory(staggingBufferMemory, 0, bufferSize, {}, &data) != vk::Result::eSuccess)
+    {
+      LOG_CORE_ERROR("failed to map vertex buffer memory!");
+      return false;
+    }
+    memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
+    m_Device.unmapMemory(staggingBufferMemory);
+
+    CreateBuffer(bufferSize,
+                 vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+                 vk::MemoryPropertyFlagBits::eDeviceLocal,
+                 m_VertexBuffer,
+                 m_VertexBufferMemory);
+
+    CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
+    m_Device.destroyBuffer(stagingBuffer);
+    m_Device.freeMemory(staggingBufferMemory);
+
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create vertex buffer!, exception: {0}", e.what());
   }
-  memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-  m_Device.unmapMemory(staggingBufferMemory);
-
-  CreateBuffer(bufferSize,
-               vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-               vk::MemoryPropertyFlagBits::eDeviceLocal,
-               m_VertexBuffer,
-               m_VertexBufferMemory);
-
-  CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-  m_Device.destroyBuffer(stagingBuffer);
-  m_Device.freeMemory(staggingBufferMemory);
-
-  return true;
+  return false;
 }
 
 //===============================================================================
 bool VulkanContext::CreateIndexBuffers()
 {
-  const vk::DeviceSize bufferSize{sizeof(indices[0]) * indices.size()};
-  vk::Buffer           stagingBuffer;
-  vk::DeviceMemory     staggingBufferMemory;
-  CreateBuffer(bufferSize,
-               vk::BufferUsageFlagBits::eTransferSrc,
-               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-               stagingBuffer,
-               staggingBufferMemory);
-  void* data = m_Device.mapMemory(staggingBufferMemory, 0, bufferSize);
-  if (data == nullptr)
+  try
   {
-    LOG_CORE_ERROR("failed to map index buffer memory!");
-    return false;
+    const vk::DeviceSize bufferSize{sizeof(indices[0]) * indices.size()};
+    vk::Buffer           stagingBuffer;
+    vk::DeviceMemory     staggingBufferMemory;
+    CreateBuffer(bufferSize,
+                 vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 stagingBuffer,
+                 staggingBufferMemory);
+    void* data = m_Device.mapMemory(staggingBufferMemory, 0, bufferSize);
+    if (data == nullptr)
+    {
+      LOG_CORE_ERROR("failed to map index buffer memory!");
+      return false;
+    }
+    memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+    m_Device.unmapMemory(staggingBufferMemory);
+
+    CreateBuffer(bufferSize,
+                 vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+                 vk::MemoryPropertyFlagBits::eDeviceLocal,
+                 m_IndexBuffer,
+                 m_IndexBufferMemory);
+
+    CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
+    m_Device.destroyBuffer(stagingBuffer);
+    m_Device.freeMemory(staggingBufferMemory);
+
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create index buffer!, exception: {0}", e.what());
   }
-  memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-  m_Device.unmapMemory(staggingBufferMemory);
-
-  CreateBuffer(bufferSize,
-               vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-               vk::MemoryPropertyFlagBits::eDeviceLocal,
-               m_IndexBuffer,
-               m_IndexBufferMemory);
-
-  CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
-  m_Device.destroyBuffer(stagingBuffer);
-  m_Device.freeMemory(staggingBufferMemory);
-
-  return true;
+  return false;
 }
 
 //===============================================================================
 bool VulkanContext::CreateUniformBuffers()
 {
-  vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-
-  m_UniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  m_UniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-  m_UniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+  try
   {
-    CreateBuffer(bufferSize,
-                 vk::BufferUsageFlagBits::eUniformBuffer,
-                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                 m_UniformBuffers[i],
-                 m_UniformBuffersMemory[i]);
-    if (m_Device.mapMemory(m_UniformBuffersMemory[i], 0, bufferSize, {}, &m_UniformBuffersMapped[i]) != vk::Result::eSuccess)
+    vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+
+    m_UniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    m_UniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+    m_UniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-      LOG_CORE_ERROR("failed to map uniform buffer memory!");
-      return false;
+      CreateBuffer(bufferSize,
+                   vk::BufferUsageFlagBits::eUniformBuffer,
+                   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                   m_UniformBuffers[i],
+                   m_UniformBuffersMemory[i]);
+      if (m_Device.mapMemory(m_UniformBuffersMemory[i], 0, bufferSize, {}, &m_UniformBuffersMapped[i]) != vk::Result::eSuccess)
+      {
+        LOG_CORE_ERROR("failed to map uniform buffer memory!");
+        return false;
+      }
     }
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create uniform buffer!, exception: {0}", e.what());
   }
-  return true;
+  return false;
 }
 //===============================================================================
 void VulkanContext::ReCreateSwapChain()
@@ -1153,7 +1177,7 @@ void VulkanContext::CreateBuffer(vk::DeviceSize          size,
   if (m_Device.allocateMemory(&allocInfo, nullptr, &bufferMemory) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to allocate buffer memory!");
-    return;
+    throw std::runtime_error("failed to allocate buffer memory!");
   }
   m_Device.bindBufferMemory(buffer, bufferMemory, 0);
 }
@@ -1161,12 +1185,13 @@ void VulkanContext::CreateBuffer(vk::DeviceSize          size,
 //===============================================================================
 bool VulkanContext::CreateDescriptorPool()
 {
-  vk::DescriptorPoolSize poolSize{.type            = vk::DescriptorType::eUniformBuffer,
-                                  .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)};
-
-  vk::DescriptorPoolCreateInfo poolInfo{.maxSets       = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-                                        .poolSizeCount = 1,
-                                        .pPoolSizes    = &poolSize};
+  const std::array<vk::DescriptorPoolSize, 2> poolSizes{
+    {{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)},
+     {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)}},
+  };
+  const vk::DescriptorPoolCreateInfo poolInfo{.maxSets       = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+                                              .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+                                              .pPoolSizes    = poolSizes.data()};
   if (m_Device.createDescriptorPool(&poolInfo, nullptr, &m_DescriptorPool) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to create descriptor pool!");
@@ -1179,9 +1204,11 @@ bool VulkanContext::CreateDescriptorPool()
 bool VulkanContext::CreateDescriptorSets()
 {
   std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
-  vk::DescriptorSetAllocateInfo        allocInfo{.descriptorPool     = m_DescriptorPool,
-                                                 .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-                                                 .pSetLayouts        = layouts.data()};
+  vk::DescriptorSetAllocateInfo        allocInfo{
+           .descriptorPool     = m_DescriptorPool,
+           .descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+           .pSetLayouts        = layouts.data(),
+  };
   m_DescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
   if (m_Device.allocateDescriptorSets(&allocInfo, m_DescriptorSets.data()) != vk::Result::eSuccess)
   {
@@ -1191,16 +1218,36 @@ bool VulkanContext::CreateDescriptorSets()
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    vk::DescriptorBufferInfo bufferInfo{.buffer = m_UniformBuffers[i], .offset = 0, .range = sizeof(UniformBufferObject)};
-    vk::WriteDescriptorSet writeDescriptorSet{.dstSet          = m_DescriptorSets[i],
-                                              .dstBinding      = 0,
-                                              .dstArrayElement = 0,
-                                              .descriptorCount = 1,
-                                              .descriptorType  = vk::DescriptorType::eUniformBuffer,
-                                              .pBufferInfo     = &bufferInfo};
-    m_Device.updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+    const vk::DescriptorBufferInfo bufferInfo{
+      .buffer = m_UniformBuffers[i],
+      .offset = 0,
+      .range  = sizeof(UniformBufferObject),
+    };
+    const vk::DescriptorImageInfo imageInfo{
+      .sampler     = m_TextureSampler,
+      .imageView   = m_TextureImageView,
+      .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+    };
+    const std::array<vk::WriteDescriptorSet, 2> writeDescriptorSets{{
+      {
+        .dstSet          = m_DescriptorSets[i],
+        .dstBinding      = 0,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = vk::DescriptorType::eUniformBuffer,
+        .pBufferInfo     = &bufferInfo,
+      },
+      {
+        .dstSet          = m_DescriptorSets[i],
+        .dstBinding      = 1,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
+        .pImageInfo      = &imageInfo,
+      },
+    }};
+    m_Device.updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
   }
-
   return true;
 }
 
@@ -1263,6 +1310,49 @@ bool VulkanContext::CreateTextureImage()
   return false;
 }
 
+//===============================================================================
+bool VulkanContext::CreateTextureImageView()
+{
+  try
+  {
+    m_TextureImageView = CreateImageView(m_TextureImage, vk::Format::eR8G8B8A8Srgb);
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create texture image view. exception: {}", e.what());
+  }
+  return false;
+}
+
+//===============================================================================
+bool VulkanContext::CreateTextureSampler()
+{
+  try
+  {
+    m_TextureSampler = m_Device.createSampler({
+      .magFilter               = vk::Filter::eLinear,
+      .minFilter               = vk::Filter::eLinear,
+      .mipmapMode              = vk::SamplerMipmapMode::eLinear,
+      .addressModeU            = vk::SamplerAddressMode::eRepeat,
+      .addressModeV            = vk::SamplerAddressMode::eRepeat,
+      .addressModeW            = vk::SamplerAddressMode::eRepeat,
+      .mipLodBias              = 0.0F,
+      .anisotropyEnable        = VK_FALSE,
+      .maxAnisotropy           = 1.0F,
+      .borderColor             = vk::BorderColor::eIntOpaqueBlack,
+      .unnormalizedCoordinates = VK_FALSE,
+      .compareEnable           = VK_FALSE,
+      .compareOp               = vk::CompareOp::eAlways,
+      .minLod                  = 0.0F,
+      .maxLod                  = 0.0F,
+    });
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create texture sampler. exception: {}", e.what());
+  }
+  return false;
+}
 //===============================================================================
 void VulkanContext::CreateImage(
   uint32_t                width,
@@ -1408,5 +1498,23 @@ void VulkanContext::CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint32
 
   EndSingleTimeCommands(commandBuffer);
 }
-//===============================================================================
+
+//========================================================================
+vk::ImageView VulkanContext::CreateImageView(vk::Image image, vk::Format format) const
+{
+  return m_Device.createImageView({
+    .image    = image,
+    .viewType = vk::ImageViewType::e2D,
+    .format   = format,
+    .subresourceRange =
+      {
+        .aspectMask     = vk::ImageAspectFlagBits::eColor,
+        .baseMipLevel   = 0,
+        .levelCount     = 1,
+        .baseArrayLayer = 0,
+        .layerCount     = 1,
+      },
+  });
+}
+//========================================================================
 } // namespace four

@@ -4,6 +4,7 @@
 #include "core/core.hpp"
 
 #include "vulkan/vulkan.hpp"
+#include <vulkan/vulkan_handles.hpp>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
@@ -30,24 +31,19 @@ struct Vertex
 {
   glm::vec2 pos;
   glm::vec3 color;
+  glm::vec2 texCoord;
 
   static vk::VertexInputBindingDescription GetBindingDescription()
   {
     return {.binding = 0, .stride = sizeof(Vertex), .inputRate = vk::VertexInputRate::eVertex};
   }
 
-  static std::array<vk::VertexInputAttributeDescription, 2> GetAttributeDescriptions()
+  static std::array<vk::VertexInputAttributeDescription, 3> GetAttributeDescriptions()
   {
-    std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
-    attributeDescriptions[0].binding  = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format   = vk::Format::eR32G32Sfloat;
-    attributeDescriptions[0].offset   = offsetof(Vertex, pos);
-    attributeDescriptions[1].binding  = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format   = vk::Format::eR32G32B32Sfloat;
-    attributeDescriptions[1].offset   = offsetof(Vertex, color);
-    return attributeDescriptions;
+    using VIAD = vk::VertexInputAttributeDescription;
+    return {VIAD{.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
+            VIAD{.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)},
+            VIAD{.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, texCoord)}};
   }
 };
 
@@ -161,14 +157,27 @@ private:
   [[nodiscard]] bool CreateIndexBuffers();
   [[nodiscard]] bool CreateUniformBuffers();
 
-  void               CreateBuffer(vk::DeviceSize          size,
-                                  vk::BufferUsageFlags    usage,
-                                  vk::MemoryPropertyFlags properties,
-                                  vk::Buffer&             buffer,
-                                  vk::DeviceMemory&       bufferMemory);
+  /**
+   * Creates a buffer and allocates memory for it.
+   * exeption on failure
+   * @param size
+   * @param usage
+   * @param properties
+   * @param buffer ref to buffer that will be created
+   * @param bufferMemory ref to memory that will be allocated
+   */
+  void CreateBuffer(vk::DeviceSize          size,
+                    vk::BufferUsageFlags    usage,
+                    vk::MemoryPropertyFlags properties,
+                    vk::Buffer&             buffer,
+                    vk::DeviceMemory&       bufferMemory);
+
   [[nodiscard]] bool CreateDescriptorPool();
   [[nodiscard]] bool CreateDescriptorSets();
   [[nodiscard]] bool CreateTextureImage();
+  [[nodiscard]] bool CreateTextureImageView();
+  [[nodiscard]] bool CreateTextureSampler();
+
 
   /**
    * Creates an image and allocates memory for it.
@@ -179,7 +188,8 @@ private:
    * @param tiling
    * @param usage
    * @param properties
-   * @return std::tuple<vk::Image, vk::DeviceMemory>
+   * @param textureImage ref to image that will be created
+   * @param textureImageMemory ref to memory that will be allocated
    */
   void CreateImage(uint32_t                width,
                    uint32_t                height,
@@ -224,6 +234,8 @@ private:
   [[nodiscard]] uint32_t RateDeviceSuitability(const vk::PhysicalDevice& device) const;
   [[nodiscard]] uint32_t FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const;
 
+  [[nodiscard]] vk::ImageView CreateImageView(vk::Image image, vk::Format format) const;
+
 private:
   Window<GlfwWindow>&            m_Window;
   vk::Instance                   m_Instance;
@@ -255,18 +267,20 @@ private:
   vk::DeviceMemory               m_VertexBufferMemory;
   vk::Buffer                     m_IndexBuffer;
   vk::DeviceMemory               m_IndexBufferMemory;
-  const std::vector<Vertex>      vertices{{{-0.5f, -0.5f}, {1.0f, 0.3f, 1.0f}},
-                                          {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                          {{0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}},
-                                          {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
-  const std::vector<uint16_t>    indices{0, 1, 2, 2, 3, 0};
-  vk::DescriptorSetLayout        m_DescriptorSetLayout;
-  std::vector<vk::Buffer>        m_UniformBuffers;
-  std::vector<vk::DeviceMemory>  m_UniformBuffersMemory;
-  std::vector<void*>             m_UniformBuffersMapped;
-  vk::DescriptorPool             m_DescriptorPool;
+  const std::vector<Vertex>     vertices{{.pos = {-0.5F, -0.5F}, .color = {1.0F, 0.3F, 1.0F}, .texCoord = {1.0F, 0.0F}},
+                                         {.pos = {0.5F, -0.5F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
+                                         {.pos = {0.5F, 0.5F}, .color = {1.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
+                                         {.pos = {-0.5F, 0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}}};
+  const std::vector<uint16_t>   indices{0, 1, 2, 2, 3, 0};
+  vk::DescriptorSetLayout       m_DescriptorSetLayout;
+  std::vector<vk::Buffer>       m_UniformBuffers;
+  std::vector<vk::DeviceMemory> m_UniformBuffersMemory;
+  std::vector<void*>            m_UniformBuffersMapped;
+  vk::DescriptorPool            m_DescriptorPool;
   std::vector<vk::DescriptorSet> m_DescriptorSets;
   vk::Image                      m_TextureImage;
   vk::DeviceMemory               m_TextureImageMemory;
+  vk::ImageView                  m_TextureImageView;
+  vk::Sampler                    m_TextureSampler;
 };
 } // namespace four
