@@ -81,6 +81,7 @@ void Engine::OnResize(uint32_t width, uint32_t height)
 //====================================================================================================
 void Engine::Shutdown()
 {
+  sm_Instance.reset();
 }
 
 } // namespace four

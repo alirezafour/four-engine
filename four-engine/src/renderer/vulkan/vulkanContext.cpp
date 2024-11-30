@@ -9,6 +9,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 #include <fstream>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_structs.hpp>
 
@@ -697,50 +698,62 @@ bool VulkanContext::CreateGraphicsPipeline()
   const auto vertShaderModule = CreateShaderModule(verShaderCode);
   const auto fragShaderModule = CreateShaderModule(fragShaderCode);
 
-  const vk::PipelineShaderStageCreateInfo vertShaderStageInfo{.stage  = vk::ShaderStageFlagBits::eVertex,
-                                                              .module = vertShaderModule,
-                                                              .pName  = "main"};
-  const vk::PipelineShaderStageCreateInfo fragShaderStageInfo{.stage  = vk::ShaderStageFlagBits::eFragment,
-                                                              .module = fragShaderModule,
-                                                              .pName  = "main"};
-  const std::array                        shaderStages          = {vertShaderStageInfo, fragShaderStageInfo};
-  const auto                              bindingDescription    = Vertex::GetBindingDescription();
-  const auto                              attributeDescriptions = Vertex::GetAttributeDescriptions();
-  const vk::PipelineVertexInputStateCreateInfo
-                                                 vertexInputInfo{.vertexBindingDescriptionCount = 1,
-                                                                 .pVertexBindingDescriptions    = &bindingDescription,
-                                                                 .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-                                                                 .pVertexAttributeDescriptions = attributeDescriptions.data()};
-  const vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{.topology = vk::PrimitiveTopology::eTriangleList,
-                                                                   .primitiveRestartEnable = VK_FALSE};
+  const vk::PipelineShaderStageCreateInfo      vertShaderStageInfo{.stage  = vk::ShaderStageFlagBits::eVertex,
+                                                                   .module = vertShaderModule,
+                                                                   .pName  = "main"};
+  const vk::PipelineShaderStageCreateInfo      fragShaderStageInfo{.stage  = vk::ShaderStageFlagBits::eFragment,
+                                                                   .module = fragShaderModule,
+                                                                   .pName  = "main"};
+  const std::array                             shaderStages          = {vertShaderStageInfo, fragShaderStageInfo};
+  const auto                                   bindingDescription    = Vertex::GetBindingDescription();
+  const auto                                   attributeDescriptions = Vertex::GetAttributeDescriptions();
+  const vk::PipelineVertexInputStateCreateInfo vertexInputInfo{
+    .vertexBindingDescriptionCount   = 1,
+    .pVertexBindingDescriptions      = &bindingDescription,
+    .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+    .pVertexAttributeDescriptions    = attributeDescriptions.data(),
+  };
+  const vk::PipelineInputAssemblyStateCreateInfo inputAssemblyInfo{
+    .topology               = vk::PrimitiveTopology::eTriangleList,
+    .primitiveRestartEnable = VK_FALSE,
+  };
 
   const vk::PipelineViewportStateCreateInfo viewportStateInfo{.viewportCount = 1, .scissorCount = 1};
 
-  const vk::PipelineRasterizationStateCreateInfo
-    rasterizerInfo{.depthClampEnable        = VK_FALSE,
-                   .rasterizerDiscardEnable = VK_FALSE,
-                   .polygonMode             = vk::PolygonMode::eFill,
-                   .cullMode                = vk::CullModeFlagBits::eBack,
-                   .frontFace               = vk::FrontFace::eClockwise,
-                   .depthBiasEnable         = VK_FALSE,
-                   .depthBiasSlopeFactor    = 1.0F};
+  const vk::PipelineRasterizationStateCreateInfo rasterizerInfo{
+    .depthClampEnable        = VK_FALSE,
+    .rasterizerDiscardEnable = VK_FALSE,
+    .polygonMode             = vk::PolygonMode::eFill,
+    .cullMode                = vk::CullModeFlagBits::eBack,
+    .frontFace               = vk::FrontFace::eCounterClockwise,
+    .depthBiasEnable         = VK_FALSE,
+    .lineWidth               = 1.0F,
+  };
 
-  const vk::PipelineMultisampleStateCreateInfo multisamplingInfo{.rasterizationSamples = vk::SampleCountFlagBits::e1,
-                                                                 .sampleShadingEnable  = VK_FALSE};
+  const vk::PipelineMultisampleStateCreateInfo multisamplingInfo{
+    .rasterizationSamples = vk::SampleCountFlagBits::e1,
+    .sampleShadingEnable  = VK_FALSE,
+  };
 
-  vk::PipelineColorBlendAttachmentState
-    colorBlendAttachment{.blendEnable    = VK_FALSE,
-                         .colorWriteMask = (vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-                                            vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)};
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment{
+    .blendEnable    = VK_FALSE,
+    .colorWriteMask = (vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                       vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA),
+  };
 
   const vk::PipelineColorBlendStateCreateInfo colorBlendingInfo{.logicOpEnable   = VK_FALSE,
                                                                 .logicOp         = vk::LogicOp::eCopy,
                                                                 .attachmentCount = 1,
                                                                 .pAttachments    = &colorBlendAttachment,
                                                                 .blendConstants  = {{0.0F, 0.0F, 0.0F, 0.0F}}};
-  const std::vector                           dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
-  const vk::PipelineDynamicStateCreateInfo dynamicStateInfo{.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-                                                            .pDynamicStates = dynamicStates.data()};
+  const std::vector                           dynamicStates = {
+    vk::DynamicState::eViewport,
+    vk::DynamicState::eScissor,
+  };
+  const vk::PipelineDynamicStateCreateInfo dynamicStateInfo{
+    .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+    .pDynamicStates    = dynamicStates.data(),
+  };
   const vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 1, .pSetLayouts = &m_DescriptorSetLayout};
   if (m_Device.createPipelineLayout(&pipelineLayoutInfo, nullptr, &m_PipelineLayout) != vk::Result::eSuccess)
   {
@@ -748,20 +761,21 @@ bool VulkanContext::CreateGraphicsPipeline()
     return false;
   }
 
-  const vk::GraphicsPipelineCreateInfo
-    pipelineInfo{.stageCount          = 2,
-                 .pStages             = shaderStages.data(),
-                 .pVertexInputState   = &vertexInputInfo,
-                 .pInputAssemblyState = &inputAssemblyInfo,
-                 .pViewportState      = &viewportStateInfo,
-                 .pRasterizationState = &rasterizerInfo,
-                 .pMultisampleState   = &multisamplingInfo,
-                 .pColorBlendState    = &colorBlendingInfo,
-                 .pDynamicState       = &dynamicStateInfo,
-                 .layout              = m_PipelineLayout,
-                 .renderPass          = m_RenderPass,
-                 .subpass             = 0,
-                 .basePipelineHandle  = VK_NULL_HANDLE};
+  const vk::GraphicsPipelineCreateInfo pipelineInfo{
+    .stageCount          = 2,
+    .pStages             = shaderStages.data(),
+    .pVertexInputState   = &vertexInputInfo,
+    .pInputAssemblyState = &inputAssemblyInfo,
+    .pViewportState      = &viewportStateInfo,
+    .pRasterizationState = &rasterizerInfo,
+    .pMultisampleState   = &multisamplingInfo,
+    .pColorBlendState    = &colorBlendingInfo,
+    .pDynamicState       = &dynamicStateInfo,
+    .layout              = m_PipelineLayout,
+    .renderPass          = m_RenderPass,
+    .subpass             = 0,
+    .basePipelineHandle  = VK_NULL_HANDLE,
+  };
 
   if (m_Device.createGraphicsPipelines(VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != vk::Result::eSuccess)
   {
@@ -1422,8 +1436,8 @@ void VulkanContext::UpdateUniformBuffer(uint32_t currentImage) const
 {
   static auto startTime = std::chrono::high_resolution_clock::now();
 
-  auto  currentTime = std::chrono::high_resolution_clock::now();
-  float time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+  const auto  currentTime = std::chrono::high_resolution_clock::now();
+  const float time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
   UniformBufferObject
     ubo{.model = glm::rotate(glm::mat4(1.0F), time * glm::radians(90.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
@@ -1432,6 +1446,7 @@ void VulkanContext::UpdateUniformBuffer(uint32_t currentImage) const
                                  static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height),
                                  0.1F,
                                  10.0F)};
+  ubo.proj[1][1] *= -1;
   memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 

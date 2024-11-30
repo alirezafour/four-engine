@@ -10,7 +10,10 @@ m_Engine(Engine::Init(title, width, height))
 {
 }
 
-Application::~Application() = default;
+Application::~Application()
+{
+  m_Engine->Shutdown();
+}
 
 void Application::Run()
 {

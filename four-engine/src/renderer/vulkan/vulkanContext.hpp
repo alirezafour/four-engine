@@ -267,9 +267,9 @@ private:
   vk::DeviceMemory               m_VertexBufferMemory;
   vk::Buffer                     m_IndexBuffer;
   vk::DeviceMemory               m_IndexBufferMemory;
-  const std::vector<Vertex>     vertices{{.pos = {-0.5F, -0.5F}, .color = {1.0F, 0.3F, 1.0F}, .texCoord = {1.0F, 0.0F}},
+  const std::vector<Vertex>     vertices{{.pos = {-0.5F, -0.5F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
                                          {.pos = {0.5F, -0.5F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
-                                         {.pos = {0.5F, 0.5F}, .color = {1.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
+                                         {.pos = {0.5F, 0.5F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
                                          {.pos = {-0.5F, 0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}}};
   const std::vector<uint16_t>   indices{0, 1, 2, 2, 3, 0};
   vk::DescriptorSetLayout       m_DescriptorSetLayout;
