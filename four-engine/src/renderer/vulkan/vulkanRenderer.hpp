@@ -9,8 +9,10 @@
 #include "window/glfw/glfwWindow.hpp"
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 // export module vkContext;
 // export
@@ -23,11 +25,11 @@ constexpr bool EnableValidationLayers = true;
 constexpr bool EnableValidationLayers = false;
 #endif
 
-const std::array<const char*, 1> ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
+constexpr std::array<const char*, 1> ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
 
 struct Vertex
 {
-  glm::vec2 pos;
+  glm::vec3 pos;
   glm::vec3 color;
   glm::vec2 texCoord;
 
@@ -39,7 +41,7 @@ struct Vertex
   static std::array<vk::VertexInputAttributeDescription, 3> GetAttributeDescriptions()
   {
     using VIAD = vk::VertexInputAttributeDescription;
-    return {VIAD{.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
+    return {VIAD{.location = 0, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, pos)},
             VIAD{.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)},
             VIAD{.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, texCoord)}};
   }
@@ -143,6 +145,8 @@ private:
   [[nodiscard]] bool             CreateGraphicsPipeline();
   [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
   [[nodiscard]] vk::Format       FindDepthFormat() const;
+  [[nodiscard]] bool             HasStencilComponent(vk::Format format) const;
+
 
   [[nodiscard]] bool CreateFramebuffers();
   [[nodiscard]] bool CreateCommandPool();
@@ -173,6 +177,7 @@ private:
 
   [[nodiscard]] bool CreateDescriptorPool();
   [[nodiscard]] bool CreateDescriptorSets();
+  [[nodiscard]] bool CreateDepthResources();
   [[nodiscard]] bool CreateTextureImage();
   [[nodiscard]] bool CreateTextureImageView();
   [[nodiscard]] bool CreateTextureSampler();
@@ -233,7 +238,7 @@ private:
   [[nodiscard]] uint32_t RateDeviceSuitability(const vk::PhysicalDevice& device) const;
   [[nodiscard]] uint32_t FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const;
 
-  [[nodiscard]] vk::ImageView CreateImageView(vk::Image image, vk::Format format) const;
+  [[nodiscard]] vk::ImageView CreateImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect) const;
 
 private:
   WindowType&                    m_Window;
@@ -266,21 +271,31 @@ private:
   vk::DeviceMemory               m_VertexBufferMemory;
   vk::Buffer                     m_IndexBuffer;
   vk::DeviceMemory               m_IndexBufferMemory;
-  const std::vector<Vertex>     vertices{{.pos = {-0.5F, -0.5F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
-                                         {.pos = {0.5F, -0.5F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
-                                         {.pos = {0.5F, 0.5F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
-                                         {.pos = {-0.5F, 0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}}};
-  const std::vector<uint16_t>   indices{0, 1, 2, 2, 3, 0};
-  vk::DescriptorSetLayout       m_DescriptorSetLayout;
-  std::vector<vk::Buffer>       m_UniformBuffers;
-  std::vector<vk::DeviceMemory> m_UniformBuffersMemory;
-  std::vector<void*>            m_UniformBuffersMapped;
-  vk::DescriptorPool            m_DescriptorPool;
+  const std::vector<Vertex>      vertices{
+         {.pos = {-0.5F, -0.5F, 0.0F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
+         {.pos = {0.5F, -0.5F, 0.0F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
+         {.pos = {0.5F, 0.5F, 0.0F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
+         {.pos = {-0.5F, 0.5F, 0.0F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
+    //
+         {.pos = {-0.5F, -0.5F, -0.5F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
+         {.pos = {0.5F, -0.5F, -0.5F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
+         {.pos = {0.5F, 0.5F, -0.5F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
+         {.pos = {-0.5F, 0.5F, -0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
+  };
+  const std::vector<uint16_t>    indices{0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+  vk::DescriptorSetLayout        m_DescriptorSetLayout;
+  std::vector<vk::Buffer>        m_UniformBuffers;
+  std::vector<vk::DeviceMemory>  m_UniformBuffersMemory;
+  std::vector<void*>             m_UniformBuffersMapped;
+  vk::DescriptorPool             m_DescriptorPool;
   std::vector<vk::DescriptorSet> m_DescriptorSets;
   vk::Image                      m_TextureImage;
   vk::DeviceMemory               m_TextureImageMemory;
   vk::ImageView                  m_TextureImageView;
   vk::Sampler                    m_TextureSampler;
+  vk::Image                      m_DepthImage;
+  vk::DeviceMemory               m_DepthImageMemory;
+  vk::ImageView                  m_DepthImageView;
 };
 using RendererType = VulkanRenderer;
 } // namespace four

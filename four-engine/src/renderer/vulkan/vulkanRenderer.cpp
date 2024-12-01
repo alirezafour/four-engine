@@ -123,8 +123,9 @@ bool VulkanRenderer::InitVulkan()
            CreateRenderPass() &&          //
            CreateDescriptorSetLayout() && //
            CreateGraphicsPipeline() &&    //
-           CreateFramebuffers() &&        //
            CreateCommandPool() &&         //
+           CreateDepthResources() &&      //
+           CreateFramebuffers() &&        //
            CreateTextureImage() &&        //
            CreateTextureImageView() &&    //
            CreateTextureSampler() &&      //
@@ -452,11 +453,11 @@ vk::Format VulkanRenderer::FindSupportedFormat(const std::vector<vk::Format>& ca
   for (const auto& format : candidates)
   {
     const vk::FormatProperties props = m_PhysicalDevice.getFormatProperties(format);
-    if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures == features))
+    if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
     {
       return format;
     }
-    if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures == features))
+    if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
     {
       return format;
     }
@@ -527,7 +528,7 @@ bool VulkanRenderer::CreateImageViews()
 
     for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
     {
-      m_SwapChainImageViews[i] = CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat);
+      m_SwapChainImageViews[i] = CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat, vk::ImageAspectFlagBits::eColor);
     }
     return true;
   } catch (const std::exception& e)
@@ -631,30 +632,61 @@ vk::PresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<vk::P
 //===============================================================================
 bool VulkanRenderer::CreateRenderPass()
 {
-  const vk::AttachmentDescription colorAttachment{.format         = m_SwapChainImageFormat,
-                                                  .samples        = vk::SampleCountFlagBits::e1,
-                                                  .loadOp         = vk::AttachmentLoadOp::eClear,
-                                                  .storeOp        = vk::AttachmentStoreOp::eStore,
-                                                  .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,
-                                                  .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-                                                  .initialLayout  = vk::ImageLayout::eUndefined,
-                                                  .finalLayout    = vk::ImageLayout::ePresentSrcKHR};
-  const vk::AttachmentReference colorAttachmentRef{.attachment = 0, .layout = vk::ImageLayout::eColorAttachmentOptimal};
-  const vk::SubpassDescription  subpass{.pipelineBindPoint    = vk::PipelineBindPoint::eGraphics,
-                                        .colorAttachmentCount = 1,
-                                        .pColorAttachments    = &colorAttachmentRef};
-  const vk::SubpassDependency   dependency{.srcSubpass    = vk::SubpassExternal,
-                                           .dstSubpass    = 0,
-                                           .srcStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                                           .dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-                                           .srcAccessMask = vk::AccessFlagBits::eNone,
-                                           .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite};
-  const vk::RenderPassCreateInfo renderPassInfo{.attachmentCount = 1,
-                                                .pAttachments    = &colorAttachment,
-                                                .subpassCount    = 1,
-                                                .pSubpasses      = &subpass,
-                                                .dependencyCount = 1,
-                                                .pDependencies   = &dependency};
+  const vk::AttachmentDescription colorAttachment{
+    .format         = m_SwapChainImageFormat,
+    .samples        = vk::SampleCountFlagBits::e1,
+    .loadOp         = vk::AttachmentLoadOp::eClear,
+    .storeOp        = vk::AttachmentStoreOp::eStore,
+    .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,
+    .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+    .initialLayout  = vk::ImageLayout::eUndefined,
+    .finalLayout    = vk::ImageLayout::ePresentSrcKHR,
+  };
+  //depth
+  const vk::AttachmentDescription depthAttachment{
+    .format         = FindDepthFormat(),
+    .samples        = vk::SampleCountFlagBits::e1,
+    .loadOp         = vk::AttachmentLoadOp::eClear,
+    .storeOp        = vk::AttachmentStoreOp::eDontCare,
+    .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,
+    .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+    .initialLayout  = vk::ImageLayout::eUndefined,
+    .finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+  };
+  const vk::AttachmentReference colorAttachmentRef{
+    .attachment = 0,
+    .layout     = vk::ImageLayout::eColorAttachmentOptimal,
+  };
+  const vk::AttachmentReference depthAttachmentRef{
+    .attachment = 1,
+    .layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+  };
+  const vk::SubpassDescription subpass{
+    .pipelineBindPoint       = vk::PipelineBindPoint::eGraphics,
+    .colorAttachmentCount    = 1,
+    .pColorAttachments       = &colorAttachmentRef,
+    .pDepthStencilAttachment = &depthAttachmentRef,
+  };
+  const vk::SubpassDependency dependency{
+    .srcSubpass    = vk::SubpassExternal,
+    .dstSubpass    = 0,
+    .srcStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
+    .dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
+    .srcAccessMask = {},
+    .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+  };
+
+
+  const std::array attachments = {colorAttachment, depthAttachment};
+
+  const vk::RenderPassCreateInfo renderPassInfo{
+    .attachmentCount = static_cast<uint32_t>(attachments.size()),
+    .pAttachments    = attachments.data(),
+    .subpassCount    = 1,
+    .pSubpasses      = &subpass,
+    .dependencyCount = 1,
+    .pDependencies   = &dependency,
+  };
   if (auto result = m_Device.createRenderPass(&renderPassInfo, nullptr, &m_RenderPass); result != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to create render pass!");
@@ -759,6 +791,18 @@ bool VulkanRenderer::CreateGraphicsPipeline()
     return false;
   }
 
+  const vk::PipelineDepthStencilStateCreateInfo depthStencilInfo{
+    .depthTestEnable       = VK_TRUE,
+    .depthWriteEnable      = VK_TRUE,
+    .depthCompareOp        = vk::CompareOp::eLess,
+    .depthBoundsTestEnable = VK_FALSE,
+    .stencilTestEnable     = VK_FALSE,
+    // .front                 = {},
+    // .back                  = {},
+    // .minDepthBounds        = 0.0F,
+    // .maxDepthBounds        = 1.0F,
+  };
+
   const vk::GraphicsPipelineCreateInfo pipelineInfo{
     .stageCount          = 2,
     .pStages             = shaderStages.data(),
@@ -767,6 +811,7 @@ bool VulkanRenderer::CreateGraphicsPipeline()
     .pViewportState      = &viewportStateInfo,
     .pRasterizationState = &rasterizerInfo,
     .pMultisampleState   = &multisamplingInfo,
+    .pDepthStencilState  = &depthStencilInfo,
     .pColorBlendState    = &colorBlendingInfo,
     .pDynamicState       = &dynamicStateInfo,
     .layout              = m_PipelineLayout,
@@ -802,15 +847,21 @@ vk::Format VulkanRenderer::FindDepthFormat() const
 }
 
 //===============================================================================
+bool VulkanRenderer::HasStencilComponent(vk::Format format) const
+{
+  return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
+}
+
+//===============================================================================
 bool VulkanRenderer::CreateFramebuffers()
 {
   const auto& extent = GetExtent();
   m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
   for (size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
   {
-    const std::array                attachments = {m_SwapChainImageViews[i]};
+    const std::array                attachments = {m_SwapChainImageViews[i], m_DepthImageView};
     const vk::FramebufferCreateInfo framebufferInfo{.renderPass      = m_RenderPass,
-                                                    .attachmentCount = 1,
+                                                    .attachmentCount = static_cast<uint32_t>(attachments.size()),
                                                     .pAttachments    = attachments.data(),
                                                     .width           = extent.width,
                                                     .height          = extent.height,
@@ -1004,7 +1055,7 @@ void VulkanRenderer::ReCreateSwapChain()
   LOG_CORE_INFO("rocord Render time: {0} us", renderTimeDuration.count());
   m_Device.waitIdle();
   CleanupSwapChain();
-  if (CreateSwapChain() && CreateImageViews() && CreateFramebuffers())
+  if (CreateSwapChain() && CreateImageViews() && CreateDepthResources() && CreateFramebuffers())
   {
     // success
     return;
@@ -1016,6 +1067,10 @@ void VulkanRenderer::ReCreateSwapChain()
 //===============================================================================
 void VulkanRenderer::CleanupSwapChain()
 {
+  m_Device.destroyImageView(m_DepthImageView);
+  m_Device.destroyImage(m_DepthImage);
+  m_Device.freeMemory(m_DepthImageMemory);
+
   for (auto& framebuffer : m_SwapChainFramebuffers)
   {
     m_Device.destroyFramebuffer(framebuffer);
@@ -1035,28 +1090,34 @@ void VulkanRenderer::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer,
   const vk::CommandBufferBeginInfo beginInfo{};
   commandBuffer.begin(beginInfo);
 
-  const vk::ClearValue clearColor{.color = {vk::ClearColorValue{.float32 = {{0.02F, 0.02F, 0.02F, 1.0F}}}}};
+  const std::array clearValues{
+    vk::ClearValue{.color = vk::ClearColorValue{.float32 = {{0.0F, 0.0F, 0.0F, 1.0F}}}},
+    vk::ClearValue{.depthStencil = {.depth = 1.0F, .stencil = 0}},
+  };
 
   //begin render pass
-  const vk::RenderPassBeginInfo
-    renderPassInfo{.renderPass      = m_RenderPass,
-                   .framebuffer     = m_SwapChainFramebuffers[imageIndex],
-                   .renderArea      = vk::Rect2D{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent},
-                   .clearValueCount = 1,
-                   .pClearValues    = &clearColor};
+  const vk::RenderPassBeginInfo renderPassInfo{
+    .renderPass      = m_RenderPass,
+    .framebuffer     = m_SwapChainFramebuffers[imageIndex],
+    .renderArea      = vk::Rect2D{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent},
+    .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+    .pClearValues    = clearValues.data(),
+  };
   commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
   // basic draw
   commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
-  std::array<vk::Buffer, 1>     vertexBuffers = {m_VertexBuffer};
-  std::array<vk::DeviceSize, 1> offsets       = {0};
+  std::array vertexBuffers = {m_VertexBuffer};
+  std::array offsets       = {vk::DeviceSize{0}};
 
-  vk::Viewport viewport{.x        = 0.0F,
-                        .y        = 0.0F,
-                        .width    = static_cast<float>(extent.width),
-                        .height   = static_cast<float>(extent.height),
-                        .minDepth = 0.0F,
-                        .maxDepth = 1.0F};
+  vk::Viewport viewport{
+    .x        = 0.0F,
+    .y        = 0.0F,
+    .width    = static_cast<float>(extent.width),
+    .height   = static_cast<float>(extent.height),
+    .minDepth = 0.0F,
+    .maxDepth = 1.0F,
+  };
   commandBuffer.setViewport(0, 1, &viewport);
 
   vk::Rect2D scissor{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent};
@@ -1264,6 +1325,29 @@ bool VulkanRenderer::CreateDescriptorSets()
 }
 
 //===============================================================================
+bool VulkanRenderer::CreateDepthResources()
+{
+  try
+  {
+    const vk::Format depthFormat = FindDepthFormat();
+    CreateImage(m_SwapChainExtent.width,
+                m_SwapChainExtent.height,
+                depthFormat,
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                vk::MemoryPropertyFlagBits::eDeviceLocal,
+                m_DepthImage,
+                m_DepthImageMemory);
+    m_DepthImageView = CreateImageView(m_DepthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to create depth resources!");
+  }
+  return false;
+}
+
+//===============================================================================
 bool VulkanRenderer::CreateTextureImage()
 {
   try
@@ -1327,7 +1411,7 @@ bool VulkanRenderer::CreateTextureImageView()
 {
   try
   {
-    m_TextureImageView = CreateImageView(m_TextureImage, vk::Format::eR8G8B8A8Srgb);
+    m_TextureImageView = CreateImageView(m_TextureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
     return true;
   } catch (const std::exception& e)
   {
@@ -1482,6 +1566,14 @@ void VulkanRenderer::TransitionImageLayout(vk::Image image, vk::Format format, v
     sourceStage      = vk::PipelineStageFlagBits::eTransfer;
     destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
   }
+  else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eStencilAttachmentOptimal)
+  {
+    barrier.srcAccessMask = {};
+    barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
+    sourceStage      = vk::PipelineStageFlagBits::eTopOfPipe;
+    destinationStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+  }
   else
   {
     LOG_CORE_ERROR("unsupported layout transition!");
@@ -1513,7 +1605,7 @@ void VulkanRenderer::CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint3
 }
 
 //========================================================================
-vk::ImageView VulkanRenderer::CreateImageView(vk::Image image, vk::Format format) const
+vk::ImageView VulkanRenderer::CreateImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect) const
 {
   return m_Device.createImageView({
     .image    = image,
@@ -1521,7 +1613,7 @@ vk::ImageView VulkanRenderer::CreateImageView(vk::Image image, vk::Format format
     .format   = format,
     .subresourceRange =
       {
-        .aspectMask     = vk::ImageAspectFlagBits::eColor,
+        .aspectMask     = aspect,
         .baseMipLevel   = 0,
         .levelCount     = 1,
         .baseArrayLayer = 0,
