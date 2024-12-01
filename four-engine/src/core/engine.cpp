@@ -3,8 +3,6 @@
 #include "core/engine.hpp"
 #include "core/application.hpp"
 
-#include "window/glfw/glfwWindow.hpp"
-
 namespace four
 {
 
@@ -12,7 +10,7 @@ std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 
 //====================================================================================================
 Engine::Engine(std::string_view title, uint32_t width, uint32_t height) :
-m_Window{title, width, height},
+m_Window{WindowType::CreateWindow(title, width, height)},
 m_Renderer{m_Window},
 m_Application{nullptr}
 {
@@ -37,7 +35,7 @@ void Engine::Run()
       m_Window.OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(static_cast<float>(frameDuration.count()) / 1000.0f);
+        m_Application->OnUpdate(static_cast<float>(frameDuration.count()) / 1000.0F);
       }
 
       const auto renderTime = std::chrono::high_resolution_clock::now();
@@ -52,7 +50,7 @@ void Engine::Run()
 
       if (FrameCapEnabled)
       {
-        if (const auto sleepTime = TargetFrameTime - static_cast<float>(realTime); sleepTime > 0.0f)
+        if (const auto sleepTime = TargetFrameTime - static_cast<float>(realTime); sleepTime > 0.0F)
         {
           std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleepTime)));
         }

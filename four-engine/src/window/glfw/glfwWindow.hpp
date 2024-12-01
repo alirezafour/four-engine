@@ -149,7 +149,7 @@ private:
   double      m_LastTime           = 0.0;
   int         m_Frames             = 0;
 };
-
+using WindowType = GlfwWindow;
 } // namespace four
 
 /**

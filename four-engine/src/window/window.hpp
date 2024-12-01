@@ -28,6 +28,7 @@ struct WindowExtent
 template <typename Derived>
 class FOUR_ENGINE_API Window
 {
+  friend Derived;
   using PossibleEvents = std::variant<WindowCloseEvent, WindowResizeEvent>;
 
 public:
@@ -43,20 +44,17 @@ public:
     * @param width window width
     * @param height window height
     */
-  [[nodiscard]] static std::unique_ptr<Derived> CreateWindow(std::string_view title, uint32_t width, uint32_t height) noexcept
+  [[nodiscard]] static Derived CreateWindow(std::string_view title, uint32_t width, uint32_t height) noexcept
   {
     static_assert(std::derived_from<Derived, Window<Derived>>, "your window class is not derived form Window<>.");
     static_assert(std::constructible_from<Derived, std::string_view, uint32_t, uint32_t>,
                   "Constrcutor with (std::string_view, uint32_t, uint32_t) parameter is not exist in derived class.");
-
-    auto window = std::make_unique<Derived>(title, width, height);
-    FOUR_ASSERT(window != nullptr);
-    return std::move(window);
+    return Derived{title, width, height};
   }
 
   [[nodiscard]] auto GetHandle() const noexcept
   {
-    return GetConstDerived()->GetHandleImpl();
+    return GetDerived()->GetHandleImpl();
   }
 
   /**
@@ -72,18 +70,18 @@ public:
    * @brief get width of the window
    * @return width of the window
    */
-  [[nodiscard]] inline uint32_t GetWidth() const noexcept
+  [[nodiscard]] uint32_t GetWidth() const noexcept
   {
-    return GetConstDerived()->GetWidthImpl();
+    return GetDerived()->GetWidthImpl();
   }
 
   /**
    * @brief get height of the window
    * @return height of the window
    */
-  [[nodiscard]] inline uint32_t GetHeight() const noexcept
+  [[nodiscard]] uint32_t GetHeight() const noexcept
   {
-    return GetConstDerived()->GetHeightImpl();
+    return GetDerived()->GetHeightImpl();
   }
 
   /**
@@ -119,7 +117,7 @@ public:
    */
   [[nodiscard]] bool ShouldClose() const noexcept
   {
-    return GetConstDerived()->ShouldCloseImpl();
+    return GetDerived()->ShouldCloseImpl();
   }
 
   /**
@@ -128,7 +126,7 @@ public:
    */
   [[nodiscard]] bool WasWindowResized() const noexcept
   {
-    return GetConstDerived()->WasWindowResizedImpl();
+    return GetDerived()->WasWindowResizedImpl();
   }
 
   /**
@@ -149,7 +147,7 @@ public:
 
   std::vector<const char*> GetVulkanRequiredExtensions()
   {
-    return GetConstDerived()->GetVulkanRequiredExtensionsImpl();
+    return GetDerived()->GetVulkanRequiredExtensionsImpl();
   }
 
 
@@ -169,13 +167,11 @@ private:
    * @brief cast and return derived object pointer as const
    * @return const pointer to derived class
    */
-  const Derived* GetConstDerived() const
+  const Derived* GetDerived() const
   {
     return static_cast<const Derived*>(this);
   }
 
-  friend Derived;
   std::vector<PossibleEvents> m_WindowEvents;
 };
-
 } // namespace four

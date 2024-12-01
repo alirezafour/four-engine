@@ -1,38 +1,58 @@
 #pragma once
-
-#include "renderer/vulkan/vulkanContext.hpp"
-// #include "renderer/vulkan/vulkanRenderer.hpp"
-// #include "renderer/vulkan/vulkanPipeline.hpp"
+#include "core/core.hpp"
 
 namespace four
 {
 
-class GlfwWindow;
 template <typename T>
-class Window;
+concept RendererConcept = requires(T t) {
+  { t.DrawFrame() } -> std::same_as<void>;
+  { t.StopRenderImpl() } -> std::same_as<void>;
+};
 
-class Renderer
+template <typename Derived>
+// requires RendererConcept<Derived>
+class FOUR_ENGINE_API Renderer
 {
+  friend Derived;
+
 public:
-  explicit Renderer(Window<GlfwWindow>& window);
-  ~Renderer();
+  virtual ~Renderer() = default;
 
   Renderer(const Renderer&)                = delete;
   Renderer& operator=(const Renderer&)     = delete;
   Renderer(Renderer&&) noexcept            = delete;
   Renderer& operator=(Renderer&&) noexcept = delete;
 
-  void Render();
-  void StopRender();
+
+  void Render()
+  {
+    GetDerived()->DrawFrame();
+  }
+
+  void StopRender()
+  {
+    GetDerived()->StopRenderImpl();
+  }
 
 private:
-  [[nodiscard]] bool Init();
-  void               Shutdown();
+  explicit Renderer() = default;
+  /**
+   * @brief cast and return derived object pointer
+   * @return non-const pointer to derived class
+   */
+  Derived* GetDerived()
+  {
+    return static_cast<Derived*>(this);
+  }
 
-private:
-  Window<GlfwWindow>& m_Window;
-  VulkanContext       m_VulkanContext;
-  // VulkanRenderer      m_VulkanRenderer;
-  // VulkanPipeline      m_VulkanPipeline;
+  /**
+   * @brief cast and return derived object pointer as const
+   * @return const pointer to derived class
+   */
+  const Derived* GetDerived() const
+  {
+    return static_cast<const Derived*>(this);
+  }
 };
 } // namespace four

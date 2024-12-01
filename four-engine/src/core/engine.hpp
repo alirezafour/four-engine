@@ -6,18 +6,16 @@
 #include "core/layerStack.hpp"
 
 // renderer
-#include "renderer/renderer.hpp"
+#include "renderer/vulkan/vulkanRenderer.hpp"
 
-// setup using window glfw
 #include "window/glfw/glfwWindow.hpp"
-using UsingWindow = four::GlfwWindow;
 
 namespace four
 {
 
 constexpr bool     FrameCapEnabled = true;
 constexpr uint32_t TargetFPS       = 60;
-constexpr float    TargetFrameTime = 1000.0f / static_cast<float>(TargetFPS);
+constexpr float    TargetFrameTime = 1000.0F / static_cast<float>(TargetFPS);
 
 class Application;
 
@@ -140,10 +138,10 @@ private:
   static std::unique_ptr<Engine> sm_Instance;
 
   /** main window of the Engine */
-  UsingWindow m_Window;
+  WindowType m_Window;
 
   /** renderer */
-  Renderer m_Renderer;
+  RendererType m_Renderer;
 
   /** imgui layer stacks for UI */
   LayerStack<ImGuiLayer> m_ImGuiLayer;
