@@ -55,12 +55,11 @@
 
 #include <source_location>
 #include <format>
-#include <iostream>
 
 #define FOUR_ASSERT(eval)                                                                                                     \
   if (!(eval))                                                                                                                \
   {                                                                                                                           \
-    std::source_location src = std::source_location::current();                                                               \
+    const std::source_location src = std::source_location::current();                                                         \
     LOG_CORE_ERROR("assertion failed in {}, file {}, {}:{}", src.function_name(), src.file_name(), src.line(), src.column()); \
     FOUR_BREAK;                                                                                                               \
   }

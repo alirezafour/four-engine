@@ -1,7 +1,7 @@
 #pragma once
 
-#include "renderer/vulkan/vulkModel.hpp"
-
+#include "glm/glm.hpp"
+#include <cmath>
 namespace four
 {
 
@@ -9,9 +9,9 @@ struct Transform2DComponent
 {
   glm::vec2 translation{};
   glm::vec2 scale{1.0F, 1.0F};
-  float     rotation;
+  float     rotation{};
 
-  glm::mat2 mat2()
+  [[nodiscard]] glm::mat2 mat2() const
   {
     const float sin_ = std::sin(rotation);
     const float cos_ = std::cos(rotation);
@@ -83,9 +83,9 @@ private:
   }
 
 private:
-  id_t                       m_Id;
-  std::shared_ptr<VulkModel> m_Model;
+  id_t                       m_Id{0};
+  std::shared_ptr<VulkModel> m_Model{};
   glm::vec3                  m_Color = {0.0F, 0.0F, 0.0F};
-  Transform2DComponent       m_Transform2D;
+  Transform2DComponent       m_Transform2D{};
 };
 } // namespace four
