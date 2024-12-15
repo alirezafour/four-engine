@@ -13,9 +13,9 @@
 namespace four
 {
 
-constexpr bool     FrameCapEnabled = true;
-constexpr uint32_t TargetFPS       = 60;
-constexpr float    TargetFrameTime = 1000.0F / static_cast<float>(TargetFPS);
+constexpr bool FrameCapEnabled = true;
+constexpr u32  TargetFPS       = 60;
+constexpr f32  TargetFrameTime = 1000.0F / static_cast<f32>(TargetFPS);
 
 class Application;
 
@@ -37,7 +37,7 @@ public:
    * @param height value for height of the window
    * @return reference to created Engine ( doesn't reqired to handle lifetime )
    */
-  static Engine* Init(std::string_view title, uint32_t width, uint32_t height)
+  static Engine* Init(std::string_view title, u32 width, u32 height)
   {
     if (sm_Instance)
     {
@@ -51,7 +51,7 @@ public:
   /**
    * @brief Return reference to instance of the Engine 
    * Engine shoud be initialized before using this
-   * @see Init(std::string_view,uint32_t,uint32_t)
+   * @see Init(std::string_view,u32,u32)
    * @return Reference to instace of the Engine ( doesn't required to handle lifetime )
    */
   static Engine* Get()
@@ -98,7 +98,7 @@ private:
    * @param width value to use for width of window
    * @param height value to use for height of the window
    */
-  explicit Engine(std::string_view title, uint32_t width, uint32_t height);
+  explicit Engine(std::string_view title, u32 width, u32 height);
 
   /**
    * @brief Initialize window for Engine
@@ -108,7 +108,7 @@ private:
    * @param height value to use for height of the window
    * @return true if successfuly iniliazie
    */
-  [[nodiscard]] bool InitWindow(std::string_view title, uint32_t width, uint32_t height);
+  [[nodiscard]] bool InitWindow(std::string_view title, u32 width, u32 height);
 
 
   /**
@@ -131,7 +131,7 @@ private:
    * @param width value of new width
    * @param height value of new height
    */
-  void OnResize(uint32_t width, uint32_t height);
+  void OnResize(u32 width, u32 height);
 
 private:
   /** singletone instance of Engine */

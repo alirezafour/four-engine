@@ -9,7 +9,7 @@ namespace four
 std::unique_ptr<Engine> Engine::sm_Instance = nullptr;
 
 //====================================================================================================
-Engine::Engine(std::string_view title, uint32_t width, uint32_t height) :
+Engine::Engine(std::string_view title, u32 width, u32 height) :
 m_Window{WindowType::CreateWindow(title, width, height)},
 m_Renderer{m_Window},
 m_Application{nullptr}
@@ -24,8 +24,8 @@ void Engine::Run()
 {
   try
   {
-    auto     lastFrameTimePoint = std::chrono::high_resolution_clock::now();
-    uint32_t fps                = 0;
+    auto lastFrameTimePoint = std::chrono::high_resolution_clock::now();
+    u32  fps                = 0;
     while (!m_Window.ShouldClose())
     {
       const auto startTime     = std::chrono::high_resolution_clock::now();
@@ -35,7 +35,7 @@ void Engine::Run()
       m_Window.OnUpdate();
       if (m_Application != nullptr)
       {
-        m_Application->OnUpdate(static_cast<float>(frameDuration.count()) / 1000.0F);
+        m_Application->OnUpdate(static_cast<f32>(frameDuration.count()) / 1000.0F);
       }
 
       const auto renderTime = std::chrono::high_resolution_clock::now();
@@ -50,12 +50,12 @@ void Engine::Run()
 
       if (FrameCapEnabled)
       {
-        if (const auto sleepTime = TargetFrameTime - static_cast<float>(realTime); sleepTime > 0.0F)
+        if (const auto sleepTime = TargetFrameTime - static_cast<f32>(realTime); sleepTime > 0.0F)
         {
-          std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleepTime)));
+          std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<i32>(sleepTime)));
         }
       }
-      fps = static_cast<uint32_t>(1000.0F / static_cast<float>(frameDuration.count()));
+      fps = static_cast<u32>(1000.0F / static_cast<float>(frameDuration.count()));
       LOG_CORE_INFO("FPS: {}, time: {}ms, realtime: {}ms, renderTime: {}us",
                     fps,
                     frameDuration.count(),
@@ -71,7 +71,7 @@ void Engine::Run()
 }
 
 //====================================================================================================
-void Engine::OnResize(uint32_t width, uint32_t height)
+void Engine::OnResize(u32 width, u32 height)
 {
   LOG_CORE_INFO("resize: w: {}, h {}", width, height);
 }
