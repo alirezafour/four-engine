@@ -43,6 +43,7 @@ add_subdirectory(vendor)
 file(GLOB IMGUI_TO_ADD "vendor/imgui/*.cpp" "vendor/imgui/backends/imgui_impl_glfw.cpp" "vendor/imgui/backends/imgui_impl_vulkan.cpp")
 list(APPEND SOURCES ${IMGUI_TO_ADD})
 
+# TODO: add setup shader compilation
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC vendor)
 
@@ -54,6 +55,13 @@ target_include_directories(four_engine INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/sr
 target_link_libraries(four_engine INTERFACE ${PROJECT_NAME})
 target_link_libraries(four_engine INTERFACE vendor)
 
+
+if(WIN32)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC FOUR_PLATFORM_WINDOWS)
+elseif(UNIX)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC FOUR_PLATFORM_LINUX)
+  # TODO: add support for macOS
+endif()
 
 # Test
 option(BUILD_TESTS "Build tests" OFF)
