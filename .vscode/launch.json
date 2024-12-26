@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "codelldb",
+      "request": "launch",
+      "name": "C++",
+      "stdio": [
+        "input.txt",
+        null
+      ],
+      "preLaunchTask": "Compile",
+      "postDebugTask": "Clean",
+      "expressions": "native",
+      "program": "${workspaceFolder}/build/${fileBasenameNoExtension}/${fileBasenameNoExtension}"
+    }
+  ]
+}

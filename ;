@@ -1,4 +1,3 @@
-#include "four-pch.hpp"
 
 #include "core/application.hpp"
 #include "core/engine.hpp"

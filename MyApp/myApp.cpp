@@ -1,7 +1,8 @@
 #include "myApp.hpp"
 #include "core/engine.hpp"
 
-MyApp::MyApp(const std::string& title, uint32_t width, uint32_t height) : four::Application{title, width, height}
+MyApp::MyApp(std::string_view title, std::uint32_t width, std::uint32_t height) :
+four::Application{title, width, height}
 {
   GetEngine()->AddApplicaiton(this);
 }

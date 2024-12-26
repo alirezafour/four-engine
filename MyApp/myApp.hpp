@@ -5,7 +5,7 @@
 class MyApp final : public four::Application
 {
 public:
-  MyApp(const std::string& title, uint32_t width, uint32_t height);
+  MyApp(std::string_view title, std::uint32_t width, std::uint32_t height);
   void Init() final;
   void OnUpdate(float deltaTime) final;
 

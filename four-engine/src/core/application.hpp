@@ -7,7 +7,7 @@ class Engine;
 class Application
 {
 public:
-  explicit Application(const std::string& title, uint32_t width, uint32_t height);
+  explicit Application(std::string_view title, std::uint32_t width, std::uint32_t height);
   virtual ~Application();
   Application(const Application&)            = delete;
   Application(Application&&)                 = delete;
