@@ -93,7 +93,9 @@ VKAPI_ATTR void VKAPI_CALL vkSubmitDebugUtilsMessageEXT(
 }
 
 //===============================================================================
-VulkanRenderer::VulkanRenderer(WindowType& window) : m_Window{window}
+VulkanRenderer::VulkanRenderer(WindowType& window) :
+m_Window{window},
+m_MainCamera{{0.0F, 0.0F, 0.0F}, 0.0F, 0.0F, {1.0F, 0.0F, 0.0F}}
 {
   const bool result = InitVulkan();
   if (!result)
@@ -177,9 +179,9 @@ void VulkanRenderer::ShutdownVulkan()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-      m_Device.destroySemaphore(m_ImageAvailableSemaphores[i]);
-      m_Device.destroySemaphore(m_RenderFinishedSemaphores[i]);
-      m_Device.destroyFence(m_InFlightFences[i]);
+      m_Device.destroySemaphore(m_FrameData[i].imageAvailableSemaphore);
+      m_Device.destroySemaphore(m_FrameData[i].renderFinishedSemaphore);
+      m_Device.destroyFence(m_FrameData[i].inFlightFence);
     }
 
     m_Device.destroyCommandPool(m_CommandPool);
@@ -911,17 +913,15 @@ bool VulkanRenderer::CreateCommandBuffers()
 //===============================================================================
 bool VulkanRenderer::CreateSyncObjects()
 {
-  m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  m_FrameData.resize(MAX_FRAMES_IN_FLIGHT);
 
   vk::SemaphoreCreateInfo semaphoreInfo{};
   vk::FenceCreateInfo     fenceInfo{.flags = vk::FenceCreateFlagBits::eSignaled};
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    if (m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != vk::Result::eSuccess ||
-        m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != vk::Result::eSuccess ||
-        m_Device.createFence(&fenceInfo, nullptr, &m_InFlightFences[i]) != vk::Result::eSuccess)
+    if (m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_FrameData[i].imageAvailableSemaphore) != vk::Result::eSuccess ||
+        m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_FrameData[i].renderFinishedSemaphore) != vk::Result::eSuccess ||
+        m_Device.createFence(&fenceInfo, nullptr, &m_FrameData[i].inFlightFence) != vk::Result::eSuccess)
     {
       LOG_CORE_ERROR("Failed to create synchronization objects for a frame");
       return false;
@@ -1164,13 +1164,15 @@ void VulkanRenderer::EndSingleTimeCommands(const vk::CommandBuffer& commandBuffe
 //===============================================================================
 void VulkanRenderer::DrawFrame()
 {
-  [[maybe_unused]] const auto
-    result = m_Device.waitForFences(1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+  [[maybe_unused]] const auto result = m_Device.waitForFences(1,
+                                                              &m_FrameData[m_CurrentFrame].inFlightFence,
+                                                              VK_TRUE,
+                                                              std::numeric_limits<uint64_t>::max());
 
   uint32_t imageIndex{};
   switch (const vk::Result result = m_Device.acquireNextImageKHR(m_SwapChain,
                                                                  std::numeric_limits<uint64_t>::max(),
-                                                                 m_ImageAvailableSemaphores[m_CurrentFrame],
+                                                                 m_FrameData[m_CurrentFrame].imageAvailableSemaphore,
                                                                  nullptr,
                                                                  &imageIndex);
           result)
@@ -1190,7 +1192,7 @@ void VulkanRenderer::DrawFrame()
 
   UpdateUniformBuffer(m_CurrentFrame);
 
-  if (m_Device.resetFences(1, &m_InFlightFences[m_CurrentFrame]) != vk::Result::eSuccess)
+  if (m_Device.resetFences(1, &m_FrameData[m_CurrentFrame].inFlightFence) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to reset fence!");
     return;
@@ -1200,9 +1202,9 @@ void VulkanRenderer::DrawFrame()
   RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
 
 
-  std::array                            waitSemaphores   = {m_ImageAvailableSemaphores[m_CurrentFrame]};
+  std::array                            waitSemaphores   = {m_FrameData[m_CurrentFrame].imageAvailableSemaphore};
   std::array<vk::PipelineStageFlags, 1> waitStages       = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  std::array                            signalSemaphores = {m_RenderFinishedSemaphores[m_CurrentFrame]};
+  std::array                            signalSemaphores = {m_FrameData[m_CurrentFrame].renderFinishedSemaphore};
 
   assert(m_CommandBuffers[m_CurrentFrame] && "Command buffer is null!");
   m_GraphicsQueue.submit(vk::SubmitInfo{.waitSemaphoreCount   = 1,
@@ -1212,7 +1214,7 @@ void VulkanRenderer::DrawFrame()
                                         .pCommandBuffers      = &m_CommandBuffers[m_CurrentFrame],
                                         .signalSemaphoreCount = 1,
                                         .pSignalSemaphores    = signalSemaphores.data()},
-                         m_InFlightFences[m_CurrentFrame]);
+                         m_FrameData[m_CurrentFrame].inFlightFence);
 
   std::array swapChains = {m_SwapChain};
   if (const vk::Result result = m_PresentQueue.presentKHR(

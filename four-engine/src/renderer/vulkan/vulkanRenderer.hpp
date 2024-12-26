@@ -8,6 +8,8 @@
 
 #include "window/glfw/glfwWindow.hpp"
 
+#include "camera/camera.hpp"
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
@@ -79,6 +81,14 @@ public:
     std::vector<vk::SurfaceFormatKHR> formats;
     std::vector<vk::PresentModeKHR>   presentModes;
   };
+
+  struct FrameData
+  {
+    vk::Fence     inFlightFence;
+    vk::Semaphore imageAvailableSemaphore;
+    vk::Semaphore renderFinishedSemaphore;
+  };
+
   explicit VulkanRenderer(WindowType& window);
   ~VulkanRenderer() final;
 
@@ -263,9 +273,7 @@ private:
   std::vector<vk::Framebuffer>   m_SwapChainFramebuffers;
   vk::CommandPool                m_CommandPool;
   std::vector<vk::CommandBuffer> m_CommandBuffers;
-  std::vector<vk::Semaphore>     m_ImageAvailableSemaphores;
-  std::vector<vk::Semaphore>     m_RenderFinishedSemaphores;
-  std::vector<vk::Fence>         m_InFlightFences;
+  std::vector<FrameData>         m_FrameData;
   uint32_t                       m_CurrentFrame{0};
   vk::Buffer                     m_VertexBuffer;
   vk::DeviceMemory               m_VertexBufferMemory;
@@ -296,6 +304,8 @@ private:
   vk::Image                      m_DepthImage;
   vk::DeviceMemory               m_DepthImageMemory;
   vk::ImageView                  m_DepthImageView;
+
+  Camera m_MainCamera;
 };
 using RendererType = VulkanRenderer;
 } // namespace four
