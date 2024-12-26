@@ -11,7 +11,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # if on windows
-if(WIN32)
 file(GLOB SOURCES
      "src/*.cpp"
      "src/core/*.cpp"
@@ -19,21 +18,8 @@ file(GLOB SOURCES
      "src/renderer/*.cpp"
      "src/renderer/vulkan/*.cpp"
      "src/window/glfw/*.cpp"
+     "src/camera/*.cpp"
 )
-endif(WIN32)
-
-# if on linux
-if(UNIX)
-file(GLOB SOURCES
-     "src/*.cpp"
-     "src/core/*.cpp"
-     "src/core/imgui/*.cpp"
-     "src/renderer/*.cpp"
-     "src/renderer/vulkan/*.cpp"
-     "src/window/glfw/*.cpp"
-)
-endif(UNIX)
-
 
 include_directories(src)
 
