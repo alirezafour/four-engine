@@ -20,3 +20,6 @@
 [submodule "four-engine/vendor/stb"]
 	path = four-engine/vendor/stb
 	url = https://github.com/nothings/stb.git
+[submodule "four-engine/vendor/VulkanMemoryAllocator"]
+	path = four-engine/vendor/VulkanMemoryAllocator
+	url = git@github.com:GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

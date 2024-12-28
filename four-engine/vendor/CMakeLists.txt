@@ -46,3 +46,6 @@ target_compile_definitions( VulkanHppModule PUBLIC
 target_compile_features( VulkanHppModule PUBLIC cxx_std_20 )
 target_link_libraries( VulkanHppModule PUBLIC Vulkan::Vulkan )
 target_link_libraries( vendor INTERFACE VulkanHppModule )
+
+add_subdirectory(VulkanMemoryAllocator)
+target_link_libraries(vendor INTERFACE VulkanMemoryAllocator)
