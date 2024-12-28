@@ -28,7 +28,12 @@ m_Height(height)
   m_Window = glfwCreateWindow(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), m_Title.data(), nullptr, nullptr);
   glfwSetWindowUserPointer(m_Window, this);
   glfwSetFramebufferSizeCallback(m_Window, FrameBufferResizedCallback);
-  glfwSetKeyCallback(m_Window, &GlfwWindow::KeyCallback);
+  glfwSetKeyCallback(m_Window,
+                     [](GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods)
+                     {
+                       static_cast<GlfwWindow*>(glfwGetWindowUserPointer(window))
+                         ->KeyCallback(window, key, scancode, action, mods);
+                     });
 
   LOG_CORE_INFO("Init glfw Window");
 }
@@ -57,6 +62,21 @@ void GlfwWindow::FrameBufferResizedCallback(GLFWwindow* window, int32_t width, i
 //----------------------------------------------------------------------------------------
 void GlfwWindow::KeyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods)
 {
+  if (window != m_Window)
+  {
+    return;
+  }
+  for (auto& event : m_KeyEvents)
+  {
+    if (action == GLFW_PRESS)
+    {
+      event.Notify(static_cast<KeyEventValue>(key), EventType::KeyPressed);
+    }
+    else if (action == GLFW_RELEASE)
+    {
+      event.Notify(static_cast<KeyEventValue>(key), EventType::KeyReleased);
+    }
+  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -102,54 +122,6 @@ void GlfwWindow::OnUpdateImpl()
   }
   ++m_Frames;
   glfwPollEvents();
-  if (const int state = glfwGetKey(m_Window, GLFW_KEY_W); state == GLFW_PRESS)
-  {
-    LOG_CORE_INFO("W");
-    for (auto& event : m_KeyEvents)
-    {
-      event.Notify(1);
-    }
-  }
-  if (const int state = glfwGetKey(m_Window, GLFW_KEY_S); state == GLFW_PRESS)
-  {
-    LOG_CORE_INFO("S");
-    for (auto& event : m_KeyEvents)
-    {
-      event.Notify(2);
-    }
-  }
-  if (const int state = glfwGetKey(m_Window, GLFW_KEY_A); state == GLFW_PRESS)
-  {
-    LOG_CORE_INFO("A");
-    for (auto& event : m_KeyEvents)
-    {
-      event.Notify(3);
-    }
-  }
-  if (const int state = glfwGetKey(m_Window, GLFW_KEY_D); state == GLFW_PRESS)
-  {
-    LOG_CORE_INFO("D");
-    for (auto& event : m_KeyEvents)
-    {
-      event.Notify(4);
-    }
-  }
-  if (const int state = glfwGetKey(m_Window, GLFW_KEY_Y); state == GLFW_PRESS)
-  {
-    LOG_CORE_INFO("Y");
-    for (auto& event : m_KeyEvents)
-    {
-      event.Notify(5);
-    }
-  }
-  if (const int state = glfwGetKey(m_Window, GLFW_KEY_Y); state == GLFW_RELEASE)
-  {
-    LOG_CORE_INFO("Y released");
-    for (auto& event : m_KeyEvents)
-    {
-      event.Notify(6);
-    }
-  }
   static float mouseLastX{0.0F};
   static float mouseLastY{0.0F};
   double       getMouseX{0.0F};

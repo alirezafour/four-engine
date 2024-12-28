@@ -18,7 +18,7 @@ class FOUR_ENGINE_API GlfwWindow : public Window<GlfwWindow>
 public:
   using WindowEventVariant = std::variant<Event<WindowCloseEvent>,
                                           Event<WindowResizeEvent, uint32_t, uint32_t>,
-                                          Event<KeyPressedEvent, u32>,
+                                          Event<KeyEvent, KeyEventValue, EventType>,
                                           Event<MouseMovement, f32, f32>>;
 
   /**
@@ -128,12 +128,12 @@ private:
   void WaitEventsImpl() const;
 
   template <typename T>
-  void RegisterEventImpl(T&& event)
+  void RegisterEventImpl(T&& /*unused*/)
   {
     static_assert(false, "Unsupported event type");
   }
   template <>
-  void RegisterEventImpl(KeyPressedEvent&& event)
+  void RegisterEventImpl(KeyEvent&& event)
   {
     LOG_CORE_INFO("Register key event");
     m_KeyEvents.emplace_back(std::move(event));
@@ -161,7 +161,7 @@ private:
 
   static void FrameBufferResizedCallback(GLFWwindow* window, int32_t width, int32_t height);
 
-  static void KeyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods);
+  void KeyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods);
 
 private:
   GLFWwindow* m_Window;
@@ -173,8 +173,8 @@ private:
   double      m_LastTime           = 0.0;
   int         m_Frames             = 0;
 
-  std::vector<KeyPressedEvent> m_KeyEvents;
-  std::vector<MouseMovement>   m_MouseEvents;
+  std::vector<KeyEvent>      m_KeyEvents;
+  std::vector<MouseMovement> m_MouseEvents;
 };
 using WindowType = GlfwWindow;
 } // namespace four

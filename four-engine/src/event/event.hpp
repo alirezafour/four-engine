@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GLFW/glfw3.h"
 #include "core/core.hpp"
 
 namespace four
@@ -9,7 +10,7 @@ namespace four
  * @brief enum to represent event type 
  * types are Window, App, Key, Mouse and base on action.
  */
-enum class EventType : uint8_t
+enum class EventType : u8
 {
   None = 0,
   WindowClose,
@@ -32,11 +33,42 @@ enum class EventType : uint8_t
   MouseScrolled,
 };
 
+enum class KeyEventValue : u8
+{
+  None = 0,
+  KeyA = GLFW_KEY_A,
+  KeyB = GLFW_KEY_B,
+  KeyC = GLFW_KEY_C,
+  KeyD = GLFW_KEY_D,
+  KeyE = GLFW_KEY_E,
+  KeyF = GLFW_KEY_F,
+  KeyG = GLFW_KEY_G,
+  KeyH = GLFW_KEY_H,
+  KeyI = GLFW_KEY_I,
+  KeyJ = GLFW_KEY_J,
+  KeyK = GLFW_KEY_K,
+  KeyL = GLFW_KEY_L,
+  KeyM = GLFW_KEY_M,
+  KeyN = GLFW_KEY_N,
+  KeyO = GLFW_KEY_O,
+  KeyP = GLFW_KEY_P,
+  KeyQ = GLFW_KEY_Q,
+  KeyR = GLFW_KEY_R,
+  KeyS = GLFW_KEY_S,
+  KeyT = GLFW_KEY_T,
+  KeyU = GLFW_KEY_U,
+  KeyV = GLFW_KEY_V,
+  KeyW = GLFW_KEY_W,
+  KeyX = GLFW_KEY_X,
+  KeyY = GLFW_KEY_Y,
+  KeyZ = GLFW_KEY_Z,
+};
+
 /**
  * @brief represent Category whitch this event belong to
  * seperating App, Input, Key, Mouse movement, Mouse buttons
  */
-enum class EventCategory : uint8_t
+enum class EventCategory : u8
 {
   None                     = 0U,
   EventCategoryApplication = 1U,

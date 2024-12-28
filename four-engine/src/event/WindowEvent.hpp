@@ -46,7 +46,7 @@ public:
   }
 };
 
-class KeyPressedEvent : public Event<KeyPressedEvent, std::uint32_t>
+class KeyEvent : public Event<KeyEvent, KeyEventValue, EventType>
 {
 public:
   /** CRTP overrited Get event type */

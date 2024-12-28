@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/core.hpp"
+#include "event/event.hpp"
 #include "glm/glm.hpp"
-#include "window/glfw/glfwWindow.hpp"
 
 namespace four
 {
@@ -24,11 +24,9 @@ public:
   [[nodiscard]] glm::mat4 GetViewMatrix() const;
   [[nodiscard]] glm::mat4 GetRotationMatrix() const;
 
-  void SetupEvents(WindowType& window);
-
-  void OnEvent(u32 key);
+  void OnEvent(KeyEventValue key, EventType type);
   void OnMouseMove(f32 xPos, f32 yPos);
-  void Update(f32 detaTime);
+  void Update(f32 deltaTime);
 
   [[nodiscard]] glm::vec3 GetPosition() const
   {

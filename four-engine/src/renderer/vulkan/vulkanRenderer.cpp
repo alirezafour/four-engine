@@ -102,7 +102,14 @@ m_MainCamera{{1.0F, 2.0F, 3.5F}, -135.5F, -34.0F, {0.0F, 0.0F, 0.0F}}
 {
   LOG_CORE_INFO("Initializing Vulkan context.");
   const bool result = InitVulkan();
-  m_MainCamera.SetupEvents(m_Window);
+
+  KeyEvent key;
+  key.SetupCallBack([&](KeyEventValue key, EventType type) { m_MainCamera.OnEvent(key, type); });
+  window.RegisterEvent(std::move(key));
+
+  MouseMovement mouseMove;
+  mouseMove.SetupCallBack([&](f32 x, f32 y) { m_MainCamera.OnMouseMove(x, y); });
+  window.RegisterEvent(std::move(mouseMove));
 
   if (!result)
   {
@@ -1593,11 +1600,11 @@ uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, const vk::MemoryPro
 void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage)
 {
   static auto startTime = std::chrono::high_resolution_clock::now();
-  m_MainCamera.Update(0.0F);
 
   const auto  currentTime = std::chrono::high_resolution_clock::now();
   const float time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-  glm::mat4   view        = m_MainCamera.GetViewMatrix();
+  m_MainCamera.Update(0.2F);
+  glm::mat4 view = m_MainCamera.GetViewMatrix();
 
   UniformBufferObject
     ubo{.model = glm::rotate(glm::mat4(1.0F), time * glm::radians(90.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
