@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+#include <map>
 #include <memory>
 #include <algorithm>
 #include <cassert>
@@ -19,3 +20,5 @@
 #include <variant>
 #include <ranges>
 #include <optional>
+#include <expected>
+#include <deque>
