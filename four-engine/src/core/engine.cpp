@@ -2,6 +2,7 @@
 
 #include "core/engine.hpp"
 #include "core/application.hpp"
+#include "imgui.h"
 
 namespace four
 {
@@ -42,7 +43,6 @@ void Engine::Run()
       m_Renderer.Render();
       const auto renderTimeDuration = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::high_resolution_clock::now() - renderTime);
-      m_ImGuiLayer.OnUpdate();
 
       const auto realTime = std::chrono::duration_cast<std::chrono::milliseconds>(
                               std::chrono::high_resolution_clock::now() - startTime)
@@ -56,11 +56,11 @@ void Engine::Run()
         }
       }
       fps = static_cast<u32>(1000.0F / static_cast<float>(frameDuration.count()));
-      LOG_CORE_INFO("FPS: {}, time: {}ms, realtime: {}ms, renderTime: {}us",
-                    fps,
-                    frameDuration.count(),
-                    realTime,
-                    renderTimeDuration.count());
+      // LOG_CORE_INFO("FPS: {}, time: {}ms, realtime: {}ms, renderTime: {}us",
+      //               fps,
+      //               frameDuration.count(),
+      //               realTime,
+      //               renderTimeDuration.count());
     }
     m_Renderer.StopRender();
     Shutdown();

@@ -9,6 +9,7 @@
 #include "window/glfw/glfwWindow.hpp"
 
 #include "camera/camera.hpp"
+#include <vulkan/vulkan_handles.hpp>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -82,11 +83,35 @@ public:
     std::vector<vk::PresentModeKHR>   presentModes;
   };
 
+  struct DeletionQueue
+  {
+    std::deque<std::function<void()>> deletors;
+
+    void push_function(std::function<void()>&& function)
+    {
+      deletors.emplace_back(std::move(function));
+    }
+
+    void flush()
+    {
+      for (auto it = deletors.rbegin(); it != deletors.rend(); ++it)
+      {
+        auto& function = *it;
+        function();
+        deletors.clear();
+      }
+    }
+  };
   struct FrameData
   {
     vk::Fence     inFlightFence;
     vk::Semaphore imageAvailableSemaphore;
     vk::Semaphore renderFinishedSemaphore;
+
+    vk::CommandPool   commandPool;
+    vk::CommandBuffer commandBuffer;
+
+    DeletionQueue deletionQueue;
   };
 
   explicit VulkanRenderer(WindowType& window);
@@ -99,6 +124,7 @@ public:
 
 protected:
   void DrawFrame();
+  void DrawImGui(vk::CommandBuffer cmd, vk::ImageView targetImageView) const;
   void StopRenderImpl();
 
   [[nodiscard]] static SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& device,
@@ -135,6 +161,7 @@ protected:
                                                vk::ImageTiling                tiling,
                                                vk::FormatFeatureFlags         features) const;
 
+  void ImmediateSubmit(std::function<void(vk::CommandBuffer commandBuffer)>&& function);
 
 private:
   [[nodiscard]] bool InitVulkan();
@@ -222,10 +249,15 @@ private:
 
   void EndSingleTimeCommands(const vk::CommandBuffer& commandBuffer) const;
 
-  void UpdateUniformBuffer(uint32_t currentImage) const;
+  void UpdateUniformBuffer(uint32_t currentImage);
 
   void TransitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) const;
   void CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) const;
+  void CopyImageToImage(vk::CommandBuffer cmd,
+                        vk::Image         srcImage,
+                        vk::Image         dstImage,
+                        vk::Extent2D      drawExtent,
+                        vk::Extent2D      swapExtent) const;
 
   [[nodiscard]] static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
   [[nodiscard]] static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
@@ -249,6 +281,13 @@ private:
   [[nodiscard]] uint32_t FindMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags& properties) const;
 
   [[nodiscard]] vk::ImageView CreateImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect) const;
+
+  [[nodiscard]] FrameData GetCurrentFrameData() const
+  {
+    return m_FrameData[m_CurrentFrame];
+  }
+
+  [[nodiscard]] bool InitImGui();
 
 private:
   WindowType&                    m_Window;
@@ -274,21 +313,26 @@ private:
   vk::CommandPool                m_CommandPool;
   std::vector<vk::CommandBuffer> m_CommandBuffers;
   std::vector<FrameData>         m_FrameData;
-  uint32_t                       m_CurrentFrame{0};
-  vk::Buffer                     m_VertexBuffer;
-  vk::DeviceMemory               m_VertexBufferMemory;
-  vk::Buffer                     m_IndexBuffer;
-  vk::DeviceMemory               m_IndexBufferMemory;
-  const std::vector<Vertex>      vertices{
-         {.pos = {-0.5F, -0.5F, 0.0F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
-         {.pos = {0.5F, -0.5F, 0.0F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
-         {.pos = {0.5F, 0.5F, 0.0F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
-         {.pos = {-0.5F, 0.5F, 0.0F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
+  DeletionQueue                  m_MainDeletionQueue;
+  // Immediate commands
+  vk::Fence                 m_ImmediateFence;
+  vk::CommandPool           m_ImmediateCommandPool;
+  vk::CommandBuffer         m_ImmediateCommandBuffer;
+  uint32_t                  m_CurrentFrame{0};
+  vk::Buffer                m_VertexBuffer;
+  vk::DeviceMemory          m_VertexBufferMemory;
+  vk::Buffer                m_IndexBuffer;
+  vk::DeviceMemory          m_IndexBufferMemory;
+  const std::vector<Vertex> vertices{
+    {.pos = {-0.5F, -0.5F, 0.0F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
+    {.pos = {0.5F, -0.5F, 0.0F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
+    {.pos = {0.5F, 0.5F, 0.0F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
+    {.pos = {-0.5F, 0.5F, 0.0F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
     //
-         {.pos = {-0.5F, -0.5F, -0.5F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
-         {.pos = {0.5F, -0.5F, -0.5F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
-         {.pos = {0.5F, 0.5F, -0.5F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
-         {.pos = {-0.5F, 0.5F, -0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
+    {.pos = {-0.5F, -0.5F, -0.5F}, .color = {1.0F, 0.0F, 0.0F}, .texCoord = {1.0F, 0.0F}},
+    {.pos = {0.5F, -0.5F, -0.5F}, .color = {0.0F, 1.0F, 0.0F}, .texCoord = {0.0F, 0.0F}},
+    {.pos = {0.5F, 0.5F, -0.5F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
+    {.pos = {-0.5F, 0.5F, -0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
   };
   const std::vector<uint16_t>    indices{0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
   vk::DescriptorSetLayout        m_DescriptorSetLayout;
@@ -305,7 +349,8 @@ private:
   vk::DeviceMemory               m_DepthImageMemory;
   vk::ImageView                  m_DepthImageView;
 
-  Camera m_MainCamera;
+  UniformBufferObject sceneUBO;
+  Camera              m_MainCamera;
 };
 using RendererType = VulkanRenderer;
 } // namespace four

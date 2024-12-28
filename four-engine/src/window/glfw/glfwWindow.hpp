@@ -16,7 +16,10 @@ class FOUR_ENGINE_API GlfwWindow : public Window<GlfwWindow>
   friend class Window<GlfwWindow>;
 
 public:
-  using WindowEventVariant = std::variant<Event<WindowCloseEvent>, Event<WindowResizeEvent, uint32_t, uint32_t>>;
+  using WindowEventVariant = std::variant<Event<WindowCloseEvent>,
+                                          Event<WindowResizeEvent, uint32_t, uint32_t>,
+                                          Event<KeyPressedEvent, u32>,
+                                          Event<MouseMovement, f32, f32>>;
 
   /**
    * @brief Construct window
@@ -110,6 +113,7 @@ private:
     return m_FrameBufferResized;
   }
 
+
   /**
    * @brief Reset window resize flag
    */
@@ -122,6 +126,24 @@ private:
    * @brief Wait for events implementation
    */
   void WaitEventsImpl() const;
+
+  template <typename T>
+  void RegisterEventImpl(T&& event)
+  {
+    static_assert(false, "Unsupported event type");
+  }
+  template <>
+  void RegisterEventImpl(KeyPressedEvent&& event)
+  {
+    LOG_CORE_INFO("Register key event");
+    m_KeyEvents.emplace_back(std::move(event));
+  }
+  template <>
+  void RegisterEventImpl(MouseMovement&& event)
+  {
+    LOG_CORE_INFO("Register mouse event");
+    m_MouseEvents.emplace_back(std::move(event));
+  }
 
   /**
    * @brief Get required extensions for glfw
@@ -139,6 +161,8 @@ private:
 
   static void FrameBufferResizedCallback(GLFWwindow* window, int32_t width, int32_t height);
 
+  static void KeyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods);
+
 private:
   GLFWwindow* m_Window;
   std::string m_Title;
@@ -148,6 +172,9 @@ private:
   double      m_CurrentTime        = 0.0;
   double      m_LastTime           = 0.0;
   int         m_Frames             = 0;
+
+  std::vector<KeyPressedEvent> m_KeyEvents;
+  std::vector<MouseMovement>   m_MouseEvents;
 };
 using WindowType = GlfwWindow;
 } // namespace four

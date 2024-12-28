@@ -1,3 +1,5 @@
+#include "event/WindowEvent.hpp"
+#include "event/event.hpp"
 #include "four-pch.hpp"
 
 #include "window/glfw/glfwWindow.hpp"
@@ -26,6 +28,7 @@ m_Height(height)
   m_Window = glfwCreateWindow(static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), m_Title.data(), nullptr, nullptr);
   glfwSetWindowUserPointer(m_Window, this);
   glfwSetFramebufferSizeCallback(m_Window, FrameBufferResizedCallback);
+  glfwSetKeyCallback(m_Window, &GlfwWindow::KeyCallback);
 
   LOG_CORE_INFO("Init glfw Window");
 }
@@ -49,6 +52,11 @@ void GlfwWindow::FrameBufferResizedCallback(GLFWwindow* window, int32_t width, i
   self->m_FrameBufferResized = true;
   self->m_Width              = static_cast<uint32_t>(width);
   self->m_Height             = static_cast<uint32_t>(height);
+}
+
+//----------------------------------------------------------------------------------------
+void GlfwWindow::KeyCallback(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods)
+{
 }
 
 //----------------------------------------------------------------------------------------
@@ -94,6 +102,68 @@ void GlfwWindow::OnUpdateImpl()
   }
   ++m_Frames;
   glfwPollEvents();
+  if (const int state = glfwGetKey(m_Window, GLFW_KEY_W); state == GLFW_PRESS)
+  {
+    LOG_CORE_INFO("W");
+    for (auto& event : m_KeyEvents)
+    {
+      event.Notify(1);
+    }
+  }
+  if (const int state = glfwGetKey(m_Window, GLFW_KEY_S); state == GLFW_PRESS)
+  {
+    LOG_CORE_INFO("S");
+    for (auto& event : m_KeyEvents)
+    {
+      event.Notify(2);
+    }
+  }
+  if (const int state = glfwGetKey(m_Window, GLFW_KEY_A); state == GLFW_PRESS)
+  {
+    LOG_CORE_INFO("A");
+    for (auto& event : m_KeyEvents)
+    {
+      event.Notify(3);
+    }
+  }
+  if (const int state = glfwGetKey(m_Window, GLFW_KEY_D); state == GLFW_PRESS)
+  {
+    LOG_CORE_INFO("D");
+    for (auto& event : m_KeyEvents)
+    {
+      event.Notify(4);
+    }
+  }
+  if (const int state = glfwGetKey(m_Window, GLFW_KEY_Y); state == GLFW_PRESS)
+  {
+    LOG_CORE_INFO("Y");
+    for (auto& event : m_KeyEvents)
+    {
+      event.Notify(5);
+    }
+  }
+  if (const int state = glfwGetKey(m_Window, GLFW_KEY_Y); state == GLFW_RELEASE)
+  {
+    LOG_CORE_INFO("Y released");
+    for (auto& event : m_KeyEvents)
+    {
+      event.Notify(6);
+    }
+  }
+  static float mouseLastX{0.0F};
+  static float mouseLastY{0.0F};
+  double       getMouseX{0.0F};
+  double       getMouseY{0.0F};
+  glfwGetCursorPos(m_Window, &getMouseX, &getMouseY);
+  if (mouseLastX != static_cast<float>(getMouseX) || mouseLastY != static_cast<float>(getMouseY))
+  {
+    for (auto& event : m_MouseEvents)
+    {
+      event.Notify(mouseLastX - static_cast<float>(getMouseX), mouseLastY - static_cast<float>(getMouseY));
+    }
+    mouseLastX = static_cast<float>(getMouseX);
+    mouseLastY = static_cast<float>(getMouseY);
+  }
 }
 
 //----------------------------------------------------------------------------------------
@@ -108,9 +178,11 @@ uint32_t GlfwWindow::GetHeightImpl() const noexcept
   return m_Height;
 }
 
+//----------------------------------------------------------------------------------------
 void GlfwWindow::WaitEventsImpl() const
 {
   glfwWaitEvents();
 }
 
+//----------------------------------------------------------------------------------------
 } //namespace four

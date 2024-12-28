@@ -11,34 +11,33 @@ namespace four
 {
 bool ImGuiLayer::Init()
 {
-  assert(false && "not yet implemented");
-
   LOG_CORE_INFO("On ImGuiLayer Init.");
 
+  // TODO: it's implemented in vulkanRenderer for now
+
   // // Setup Dear ImGui context
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-  // Setup Dear ImGui style
-  ImGui::StyleColorsDark();
-
-  if (!ImGui_ImplGlfw_InitForVulkan(Engine::Get()->GetWindow()->GetHandle(), false))
-  {
-    LOG_CORE_ERROR("ImGui_ImplGlfw_InitForVulkan failed.");
-    return false;
-  }
-
-
-  io.BackendRendererName = "imgui_impl_vulkan";
-  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
-
-  //TODO: vulkan fix
-  ImGui_ImplVulkan_InitInfo init_info = {};
-  // Engine::Get()->GetRenderer()->GetInstance();
+  // IMGUI_CHECKVERSION();
+  // ImGui::CreateContext();
+  // ImGuiIO& io = ImGui::GetIO();
+  // (void)io;
+  // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+  //
+  // // Setup Dear ImGui style
+  // ImGui::StyleColorsDark();
+  //
+  // if (!ImGui_ImplGlfw_InitForVulkan(Engine::Get()->GetWindow()->GetHandle(), false))
+  // {
+  //   LOG_CORE_ERROR("ImGui_ImplGlfw_InitForVulkan failed.");
+  //   return false;
+  // }
+  //
+  //
+  // io.BackendRendererName = "imgui_impl_vulkan";
+  // io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+  //
+  // ImGui_ImplVulkan_InitInfo init_info = {};
+  // // Engine::Get()->GetRenderer()->GetInstance();
   return true;
 }
 
@@ -84,9 +83,9 @@ void ImGuiLayer::OnUpdate()
 void ImGuiLayer::Shutdown()
 {
   LOG_CORE_INFO("On ImGuiLayer Shutdown.");
-  ImGui_ImplVulkan_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
+  // ImGui_ImplVulkan_Shutdown();
+  // ImGui_ImplGlfw_Shutdown();
+  // ImGui::DestroyContext();
 }
 
 

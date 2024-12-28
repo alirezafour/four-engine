@@ -2,6 +2,7 @@
 
 #include "core/core.hpp"
 #include "glm/glm.hpp"
+#include "window/glfw/glfwWindow.hpp"
 
 namespace four
 {
@@ -23,6 +24,10 @@ public:
   [[nodiscard]] glm::mat4 GetViewMatrix() const;
   [[nodiscard]] glm::mat4 GetRotationMatrix() const;
 
+  void SetupEvents(WindowType& window);
+
+  void OnEvent(u32 key);
+  void OnMouseMove(f32 xPos, f32 yPos);
   void Update(f32 detaTime);
 
   [[nodiscard]] glm::vec3 GetPosition() const
@@ -65,6 +70,7 @@ private:
   glm::vec3 m_Position;
   f32       m_Yaw{0.0F};
   f32       m_Pitch{0.0F};
+  bool      m_ShouldRotate{false};
 };
 
 } // namespace four

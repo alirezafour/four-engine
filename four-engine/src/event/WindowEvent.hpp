@@ -46,4 +46,35 @@ public:
   }
 };
 
+class KeyPressedEvent : public Event<KeyPressedEvent, std::uint32_t>
+{
+public:
+  /** CRTP overrited Get event type */
+  [[nodiscard]] inline static EventType GetEventType()
+  {
+    return EventType::KeyPressed;
+  }
+
+  /** CRTP overrited Get event category */
+  [[nodiscard]] inline static EventCategory GetEventCategory()
+  {
+    return EventCategory::EventCategoryKeyboard;
+  }
+};
+
+class MouseMovement : public Event<MouseMovement, float, float>
+{
+public:
+  /** CRTP overrited Get event type */
+  [[nodiscard]] inline static EventType GetEventType()
+  {
+    return EventType::MouseMoved;
+  }
+
+  /** CRTP overrited Get event category */
+  [[nodiscard]] inline static EventCategory GetEventCategory()
+  {
+    return EventCategory::EventCategoryMouse;
+  }
+};
 } // namespace four

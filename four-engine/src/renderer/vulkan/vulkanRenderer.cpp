@@ -3,6 +3,9 @@
 
 #include "renderer/vulkan/vulkanRenderer.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
 #include "window/glfw/glfwWindow.hpp"
 #include "GLFW/glfw3.h"
 
@@ -95,9 +98,12 @@ VKAPI_ATTR void VKAPI_CALL vkSubmitDebugUtilsMessageEXT(
 //===============================================================================
 VulkanRenderer::VulkanRenderer(WindowType& window) :
 m_Window{window},
-m_MainCamera{{0.0F, 0.0F, 0.0F}, 0.0F, 0.0F, {1.0F, 0.0F, 0.0F}}
+m_MainCamera{{1.0F, 2.0F, 3.5F}, -135.5F, -34.0F, {0.0F, 0.0F, 0.0F}}
 {
+  LOG_CORE_INFO("Initializing Vulkan context.");
   const bool result = InitVulkan();
+  m_MainCamera.SetupEvents(m_Window);
+
   if (!result)
   {
     LOG_CORE_ERROR("Failed to initialize Vulkan context.");
@@ -137,7 +143,8 @@ bool VulkanRenderer::InitVulkan()
            CreateDescriptorPool() &&      //
            CreateDescriptorSets() &&      //
            CreateCommandBuffers() &&      //
-           CreateSyncObjects();
+           CreateSyncObjects() &&         //
+           InitImGui();
   } catch (const std::exception& e)
   {
     LOG_CORE_ERROR("exception caught: {}", e.what());
@@ -179,9 +186,13 @@ void VulkanRenderer::ShutdownVulkan()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
+      m_Device.destroyFence(m_FrameData[i].inFlightFence);
       m_Device.destroySemaphore(m_FrameData[i].imageAvailableSemaphore);
       m_Device.destroySemaphore(m_FrameData[i].renderFinishedSemaphore);
-      m_Device.destroyFence(m_FrameData[i].inFlightFence);
+    }
+    for (auto& frameData : m_FrameData)
+    {
+      frameData.deletionQueue.flush();
     }
 
     m_Device.destroyCommandPool(m_CommandPool);
@@ -193,6 +204,21 @@ void VulkanRenderer::ShutdownVulkan()
     m_Instance.destroySurfaceKHR(m_Surface);
     m_Instance.destroy();
   }
+}
+
+//===============================================================================
+void VulkanRenderer::ImmediateSubmit(std::function<void(vk::CommandBuffer commandBuffer)>&& function)
+{
+  m_Device.resetFences(m_ImmediateFence);
+  m_ImmediateCommandBuffer.reset();
+  vk::CommandBuffer cmd = m_ImmediateCommandBuffer;
+  cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  function(cmd);
+  cmd.end();
+  vk::CommandBufferSubmitInfo cmdSubmitInfo{.commandBuffer = cmd};
+  vk::SubmitInfo2             submitInfo{.commandBufferInfoCount = 1, .pCommandBufferInfos = &cmdSubmitInfo};
+  const auto                  result = m_GraphicsQueue.submit2(1, &submitInfo, m_ImmediateFence);
+  [[maybe_unused]] const auto result2 = m_Device.waitForFences(m_ImmediateFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 }
 
 //===============================================================================
@@ -891,6 +917,14 @@ bool VulkanRenderer::CreateCommandPool()
     LOG_CORE_ERROR("Failed to create command pool");
     return false;
   }
+  if (m_Device.createCommandPool(&poolInfo, nullptr, &m_ImmediateCommandPool) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("Failed to create immediate command pool");
+    return false;
+  }
+
+  // INFO: temperory here
+  m_MainDeletionQueue.push_function([this] { m_Device.destroyCommandPool(m_ImmediateCommandPool); });
   return true;
 }
 
@@ -901,12 +935,25 @@ bool VulkanRenderer::CreateCommandBuffers()
   const vk::CommandBufferAllocateInfo allocInfo{.commandPool        = m_CommandPool,
                                                 .level              = vk::CommandBufferLevel::ePrimary,
                                                 .commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size())};
+  const vk::CommandBufferAllocateInfo immediateallocInfo{.commandPool        = m_ImmediateCommandPool,
+                                                         .level              = vk::CommandBufferLevel::ePrimary,
+                                                         .commandBufferCount = 1};
 
   if (m_Device.allocateCommandBuffers(&allocInfo, m_CommandBuffers.data()) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("Failed to allocate command buffers");
     return false;
   }
+  // INFO: temperory here
+  if (m_Device.allocateCommandBuffers(&immediateallocInfo, &m_ImmediateCommandBuffer) != vk::Result::eSuccess)
+  {
+    LOG_CORE_ERROR("Failed to allocate immediate command buffers");
+    return false;
+  }
+  // INFO: temperory here
+  m_MainDeletionQueue.push_function(
+    [this] { m_Device.freeCommandBuffers(m_ImmediateCommandPool, 1, &m_ImmediateCommandBuffer); });
+
   return true;
 }
 
@@ -926,6 +973,13 @@ bool VulkanRenderer::CreateSyncObjects()
       LOG_CORE_ERROR("Failed to create synchronization objects for a frame");
       return false;
     }
+    if (m_Device.createFence(&fenceInfo, nullptr, &m_ImmediateFence) != vk::Result::eSuccess)
+    {
+      LOG_CORE_ERROR("Failed to create immediate fence");
+      return false;
+    }
+    // INFO: temperory here
+    m_MainDeletionQueue.push_function([this] { m_Device.destroyFence(m_ImmediateFence); });
   }
   return true;
 }
@@ -1130,8 +1184,12 @@ void VulkanRenderer::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer,
 
   commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 
+  // draw ImGui
+  // DrawImGui(commandBuffer, m_SwapChainImageViews[imageIndex]);
+
   //end render pass
   commandBuffer.endRenderPass();
+
 
   commandBuffer.end();
 }
@@ -1168,6 +1226,8 @@ void VulkanRenderer::DrawFrame()
                                                               &m_FrameData[m_CurrentFrame].inFlightFence,
                                                               VK_TRUE,
                                                               std::numeric_limits<uint64_t>::max());
+
+  GetCurrentFrameData().deletionQueue.flush();
 
   uint32_t imageIndex{};
   switch (const vk::Result result = m_Device.acquireNextImageKHR(m_SwapChain,
@@ -1234,6 +1294,20 @@ void VulkanRenderer::DrawFrame()
   }
 
   m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+//===============================================================================
+void VulkanRenderer::DrawImGui(vk::CommandBuffer cmd, vk::ImageView targetImageView) const
+{
+  vk::RenderingAttachmentInfo colorAttachment{.imageView   = targetImageView,
+                                              .imageLayout = vk::ImageLayout::eColorAttachmentOptimal};
+  cmd.beginRendering({
+    .layerCount           = 1,               //
+    .colorAttachmentCount = 1,               //
+    .pColorAttachments    = &colorAttachment //
+  });
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+  cmd.endRendering();
 }
 
 //===============================================================================
@@ -1516,20 +1590,22 @@ uint32_t VulkanRenderer::FindMemoryType(uint32_t typeFilter, const vk::MemoryPro
 }
 
 //===============================================================================
-void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
+void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage)
 {
   static auto startTime = std::chrono::high_resolution_clock::now();
+  m_MainCamera.Update(0.0F);
 
   const auto  currentTime = std::chrono::high_resolution_clock::now();
   const float time        = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+  glm::mat4   view        = m_MainCamera.GetViewMatrix();
 
   UniformBufferObject
     ubo{.model = glm::rotate(glm::mat4(1.0F), time * glm::radians(90.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
-        .view  = glm::lookAt(glm::vec3(2.0F, 2.0F, 2.0F), glm::vec3(0.0F, 0.0F, 0.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
-        .proj  = glm::perspective(glm::radians(45.0F),
+        .view = m_MainCamera.GetViewMatrix(), //glm::lookAt(glm::vec3(2.0F, 2.0F, 2.0F), glm::vec3(0.0F, 0.0F, 0.0F), glm::vec3(0.0F, 0.0F, 1.0F)),
+        .proj = glm::perspective(glm::radians(45.0F),
                                  static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height),
                                  0.1F,
-                                 10.0F)};
+                                 10.F)};
   ubo.proj[1][1] *= -1;
   memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
@@ -1607,6 +1683,45 @@ void VulkanRenderer::CopyBufferToImage(vk::Buffer buffer, vk::Image image, uint3
 }
 
 //========================================================================
+void VulkanRenderer::CopyImageToImage(vk::CommandBuffer cmd,
+                                      vk::Image         srcImage,
+                                      vk::Image         dstImage,
+                                      vk::Extent2D      srcSize,
+                                      vk::Extent2D      dstSize) const
+{
+  vk::ImageBlit2 blitRegion{.sType = vk::StructureType::eImageBlit2, .pNext = nullptr};
+
+  blitRegion.srcOffsets[1].x = srcSize.width;
+  blitRegion.srcOffsets[1].y = srcSize.height;
+  blitRegion.srcOffsets[1].z = 1;
+
+  blitRegion.dstOffsets[1].x = dstSize.width;
+  blitRegion.dstOffsets[1].y = dstSize.height;
+  blitRegion.dstOffsets[1].z = 1;
+
+  blitRegion.srcSubresource.aspectMask     = vk::ImageAspectFlagBits::eColor;
+  blitRegion.srcSubresource.baseArrayLayer = 0;
+  blitRegion.srcSubresource.layerCount     = 1;
+  blitRegion.srcSubresource.mipLevel       = 0;
+
+  blitRegion.dstSubresource.aspectMask     = vk::ImageAspectFlagBits::eColor;
+  blitRegion.dstSubresource.baseArrayLayer = 0;
+  blitRegion.dstSubresource.layerCount     = 1;
+  blitRegion.dstSubresource.mipLevel       = 0;
+
+  vk::BlitImageInfo2 blitInfo{.sType = vk::StructureType::eBlitImageInfo2, .pNext = nullptr};
+  blitInfo.dstImage       = dstImage;
+  blitInfo.dstImageLayout = vk::ImageLayout::eTransferDstOptimal;
+  blitInfo.srcImage       = srcImage;
+  blitInfo.srcImageLayout = vk::ImageLayout::eTransferSrcOptimal;
+  blitInfo.filter         = vk::Filter::eLinear;
+  blitInfo.regionCount    = 1;
+  blitInfo.pRegions       = &blitRegion;
+
+  cmd.blitImage2(&blitInfo);
+}
+
+//========================================================================
 vk::ImageView VulkanRenderer::CreateImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect) const
 {
   return m_Device.createImageView({
@@ -1622,6 +1737,83 @@ vk::ImageView VulkanRenderer::CreateImageView(vk::Image image, vk::Format format
         .layerCount     = 1,
       },
   });
+}
+bool VulkanRenderer::InitImGui()
+{
+  try
+  {
+    // 1: create descriptor pool for IMGUI
+    //  the size of the pool is very oversize, but it's copied from imgui demo
+    //  itself.
+    std::array<vk::DescriptorPoolSize, 11> pool_sizes =
+      {vk::DescriptorPoolSize{.type = vk::DescriptorType::eSampler, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eSampledImage, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eStorageImage, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eUniformTexelBuffer, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eStorageTexelBuffer, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eUniformBufferDynamic, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eStorageBufferDynamic, .descriptorCount = 1000},
+       {.type = vk::DescriptorType::eInputAttachment, .descriptorCount = 1000}};
+
+    vk::DescriptorPoolCreateInfo pool_info = {.flags         = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+                                              .maxSets       = 1000,
+                                              .poolSizeCount = static_cast<u32>(std::size(pool_sizes)),
+                                              .pPoolSizes    = pool_sizes.data()};
+
+    vk::DescriptorPool imguiPool = m_Device.createDescriptorPool(pool_info);
+
+    // 2: initialize imgui library
+
+    // this initializes the core structures of imgui
+    ImGui::CreateContext();
+
+    // this initializes imgui for SDL
+    if (!ImGui_ImplGlfw_InitForVulkan(m_Window.GetHandle(), false))
+    {
+      LOG_CORE_ERROR("ImGui_ImplGlfw_InitForVulkan failed.");
+      return false;
+    }
+
+    // this initializes imgui for Vulkan
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance                  = m_Instance;
+    init_info.PhysicalDevice            = m_PhysicalDevice;
+    init_info.Device                    = m_Device;
+    init_info.Queue                     = m_GraphicsQueue;
+    init_info.DescriptorPool            = imguiPool;
+    init_info.MinImageCount             = 3;
+    init_info.ImageCount                = 3;
+    init_info.UseDynamicRendering       = true;
+
+    //dynamic rendering parameters for imgui to use
+    const auto swapChainImageFormat       = (VkFormat)m_SwapChainImageFormat;
+    init_info.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+    init_info.PipelineRenderingCreateInfo.colorAttachmentCount    = 1;
+    init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &swapChainImageFormat;
+
+
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+    ImGui_ImplVulkan_Init(&init_info);
+
+    ImGui_ImplVulkan_CreateFontsTexture();
+
+    // add the destroy the imgui created structures
+    m_MainDeletionQueue.push_function(
+      [imguiPool, this]()
+      {
+        ImGui_ImplVulkan_Shutdown();
+        m_Device.destroyDescriptorPool(imguiPool);
+      });
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to initialize imgui. exception: {}", e.what());
+  }
+  return false;
 }
 //========================================================================
 } // namespace four

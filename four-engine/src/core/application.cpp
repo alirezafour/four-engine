@@ -8,6 +8,7 @@ namespace four
 Application::Application(std::string_view title, std::uint32_t width, std::uint32_t height) :
 m_Engine(Engine::Init(title, width, height))
 {
+  m_Engine->AddImGuiLayer(std::make_unique<ImGuiLayer>());
 }
 
 Application::~Application()

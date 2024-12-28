@@ -94,6 +94,16 @@ public:
   }
 
   /**
+   * @brief register key event
+   * @param event key event to register
+   */
+  template <typename T>
+  void RegisterEvent(T&& event)
+  {
+    GetDerived()->RegisterEventImpl(std::forward<T>(event));
+  }
+
+  /**
    * @brief bool operator for window
    * @return true if window is not null
    */
