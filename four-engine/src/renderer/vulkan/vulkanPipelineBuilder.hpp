@@ -27,14 +27,14 @@ public:
 
   void clear();
 
-  vk::Pipeline build_pipeline(vk::Device device);
+  vk::Pipeline BuildPipeline(vk::Device device);
 
   void SetShaders(vk::ShaderModule vertexShader, vk::ShaderModule fragmentShader);
   void SetInputTopology(vk::PrimitiveTopology topology);
   void SetPolygonMode(vk::PolygonMode mode);
   void SetCullMode(vk::CullModeFlagBits cullMode, vk::FrontFace frontFace);
   void SetMultiSamplingNone();
-  void DisableBlenging();
+  void DisableBlending();
   void SetColorAttachmentFormat(vk::Format format);
   void SetDepthFormat(vk::Format format);
   void DisableDepthTest();

@@ -20,7 +20,7 @@ void VulkanPipelineBuilder::clear()
 }
 
 //==============================================================================
-vk::Pipeline VulkanPipelineBuilder::build_pipeline(vk::Device device)
+vk::Pipeline VulkanPipelineBuilder::BuildPipeline(vk::Device device)
 {
   // make viewport state from our stored viewport and scissor.
   // at the moment we wont support multiple viewports or scissors
@@ -123,7 +123,7 @@ void VulkanPipelineBuilder::SetMultiSamplingNone()
   multisampling.alphaToOneEnable      = VK_FALSE;
 }
 //==============================================================================
-void VulkanPipelineBuilder::DisableBlenging()
+void VulkanPipelineBuilder::DisableBlending()
 {
   // defaults write mask
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
