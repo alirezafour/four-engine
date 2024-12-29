@@ -7,9 +7,9 @@
 #include "vulkan/vulkan.hpp"
 
 #include "window/glfw/glfwWindow.hpp"
-
 #include "camera/camera.hpp"
-#include <vulkan/vulkan_handles.hpp>
+#include "renderer/vulkan/vulkanPipelineBuilder.hpp"
+#include <vk_mem_alloc.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -108,10 +108,16 @@ public:
     vk::Semaphore imageAvailableSemaphore;
     vk::Semaphore renderFinishedSemaphore;
 
-    vk::CommandPool   commandPool;
     vk::CommandBuffer commandBuffer;
 
     DeletionQueue deletionQueue;
+  };
+
+  struct AllocatedImage
+  {
+    vk::Image        image;
+    vk::DeviceMemory imageMemory;
+    vk::ImageView    ImageView;
   };
 
   explicit VulkanRenderer(WindowType& window);
@@ -124,7 +130,9 @@ public:
 
 protected:
   void DrawFrame();
+  void DrawBackground(vk::CommandBuffer cmd) const;
   void DrawImGui(vk::CommandBuffer cmd, vk::ImageView targetImageView) const;
+  void DrawGeometry(vk::CommandBuffer cmd) const;
   void StopRenderImpl();
 
   [[nodiscard]] static SwapChainSupportDetails QuerySwapChainSupport(const vk::PhysicalDevice& device,
@@ -177,12 +185,11 @@ private:
   [[nodiscard]] bool CreateImageViews();
 
   // graphic pipeline
-  [[nodiscard]] bool             CreateRenderPass();
-  [[nodiscard]] bool             CreateDescriptorSetLayout();
-  [[nodiscard]] bool             CreateGraphicsPipeline();
-  [[nodiscard]] vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
-  [[nodiscard]] vk::Format       FindDepthFormat() const;
-  [[nodiscard]] bool             HasStencilComponent(vk::Format format) const;
+  [[nodiscard]] bool       CreateRenderPass();
+  [[nodiscard]] bool       CreateDescriptorSetLayout();
+  [[nodiscard]] bool       CreateGraphicsPipeline();
+  [[nodiscard]] vk::Format FindDepthFormat() const;
+  [[nodiscard]] bool       HasStencilComponent(vk::Format format) const;
 
 
   [[nodiscard]] bool CreateFramebuffers();
@@ -243,11 +250,11 @@ private:
 
   void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) const;
 
-  void RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const;
+  void RecordCommandBuffer(const vk::CommandBuffer& cmd, uint32_t imageIndex) const;
 
   [[nodiscard]] vk::CommandBuffer BeginSingleTimeCommands() const;
 
-  void EndSingleTimeCommands(const vk::CommandBuffer& commandBuffer) const;
+  void EndSingleTimeCommands(vk::CommandBuffer cmd) const;
 
   void UpdateUniformBuffer(uint32_t currentImage);
 
@@ -284,41 +291,47 @@ private:
 
   [[nodiscard]] FrameData GetCurrentFrameData() const
   {
-    return m_FrameData[m_CurrentFrame];
+    return m_Frames[m_CurrentFrame];
   }
 
   [[nodiscard]] bool InitImGui();
 
+  /** using pipline for render test triangle
+  */
+  [[nodiscard]] bool InitTestTriangle();
+
+
 private:
-  WindowType&                    m_Window;
-  vk::Instance                   m_Instance;
-  vk::DebugUtilsMessengerEXT     m_DebugMessenger;
-  vk::SurfaceKHR                 m_Surface;
-  vk::PhysicalDevice             m_PhysicalDevice;
-  vk::Device                     m_Device;
-  vk::Queue                      m_GraphicsQueue;
-  vk::Queue                      m_PresentQueue;
-  std::vector<const char*>       m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  vk::Extent2D                   m_SwapChainExtent;
-  vk::SwapchainKHR               m_SwapChain;
-  std::vector<vk::Image>         m_SwapChainImages;
-  vk::Format                     m_SwapChainImageFormat{};
-  std::vector<vk::ImageView>     m_SwapChainImageViews;
-  vk::RenderPass                 m_RenderPass;
-  vk::Pipeline                   m_GraphicsPipeline;
-  vk::ShaderModule               m_VertexShaderModule;
-  vk::ShaderModule               m_FragmentShaderModule;
-  vk::PipelineLayout             m_PipelineLayout;
-  std::vector<vk::Framebuffer>   m_SwapChainFramebuffers;
-  vk::CommandPool                m_CommandPool;
-  std::vector<vk::CommandBuffer> m_CommandBuffers;
-  std::vector<FrameData>         m_FrameData;
-  DeletionQueue                  m_MainDeletionQueue;
+  WindowType&                m_Window;
+  vk::Instance               m_Instance;
+  vk::DebugUtilsMessengerEXT m_DebugMessenger;
+  vk::SurfaceKHR             m_Surface;
+  vk::PhysicalDevice         m_PhysicalDevice;
+  vk::Device                 m_Device;
+  vk::Queue                  m_GraphicsQueue;
+  vk::Queue                  m_PresentQueue;
+  std::vector<const char*>   m_DeviceExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+  vk::Extent2D               m_SwapChainExtent;
+  vk::SwapchainKHR           m_SwapChain;
+  std::vector<vk::Image>     m_SwapChainImages;
+  vk::Format                 m_SwapChainImageFormat{};
+  std::vector<vk::ImageView> m_SwapChainImageViews;
+
+  vk::RenderPass               m_RenderPass;
+  vk::Pipeline                 m_GraphicsPipeline;
+  vk::PipelineLayout           m_PipelineLayout;
+  std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
+  std::vector<FrameData>       m_Frames;
+  vk::CommandPool              m_CommandPool;
+  DeletionQueue                m_MainDeletionQueue;
+
   // Immediate commands
-  vk::Fence                 m_ImmediateFence;
-  vk::CommandPool           m_ImmediateCommandPool;
-  vk::CommandBuffer         m_ImmediateCommandBuffer;
-  uint32_t                  m_CurrentFrame{0};
+  vk::Fence         m_ImmediateFence;
+  vk::CommandPool   m_ImmediateCommandPool;
+  vk::CommandBuffer m_ImmediateCommandBuffer;
+
+  u32                       m_CurrentFrame{0};
   vk::Buffer                m_VertexBuffer;
   vk::DeviceMemory          m_VertexBufferMemory;
   vk::Buffer                m_IndexBuffer;
@@ -334,23 +347,23 @@ private:
     {.pos = {0.5F, 0.5F, -0.5F}, .color = {0.0F, 0.0F, 1.0F}, .texCoord = {0.0F, 1.0F}},
     {.pos = {-0.5F, 0.5F, -0.5F}, .color = {1.0F, 1.0F, 1.0F}, .texCoord = {1.0F, 1.0F}},
   };
-  const std::vector<uint16_t>    indices{0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-  vk::DescriptorSetLayout        m_DescriptorSetLayout;
-  std::vector<vk::Buffer>        m_UniformBuffers;
-  std::vector<vk::DeviceMemory>  m_UniformBuffersMemory;
-  std::vector<void*>             m_UniformBuffersMapped;
+  const std::vector<uint16_t>   indices{0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+  vk::DescriptorSetLayout       m_DescriptorSetLayout;
+  std::vector<vk::Buffer>       m_UniformBuffers;
+  std::vector<vk::DeviceMemory> m_UniformBuffersMemory;
+  std::vector<void*>            m_UniformBuffersMapped;
+
   vk::DescriptorPool             m_DescriptorPool;
   std::vector<vk::DescriptorSet> m_DescriptorSets;
-  vk::Image                      m_TextureImage;
-  vk::DeviceMemory               m_TextureImageMemory;
-  vk::ImageView                  m_TextureImageView;
-  vk::Sampler                    m_TextureSampler;
-  vk::Image                      m_DepthImage;
-  vk::DeviceMemory               m_DepthImageMemory;
-  vk::ImageView                  m_DepthImageView;
 
-  UniformBufferObject sceneUBO;
-  Camera              m_MainCamera;
+  AllocatedImage m_TextureImage;
+  vk::Sampler    m_TextureSampler;
+  AllocatedImage m_DepthImage;
+
+  Camera m_MainCamera;
+
+  vk::PipelineLayout m_TestTrianglePipelineLayout;
+  vk::Pipeline       m_TestTrianglePipeline;
 };
 using RendererType = VulkanRenderer;
 } // namespace four

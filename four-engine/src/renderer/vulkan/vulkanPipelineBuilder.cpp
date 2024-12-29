@@ -79,39 +79,43 @@ vk::Pipeline VulkanPipelineBuilder::BuildPipeline(vk::Device device)
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::SetShaders(vk::ShaderModule vertexShader, vk::ShaderModule fragmentShader)
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetShaders(vk::ShaderModule vertexShader, vk::ShaderModule fragmentShader)
 {
   shaderStages.clear();
 
   shaderStages.push_back({.stage = vk::ShaderStageFlagBits::eVertex, .module = vertexShader, .pName = "main"});
   shaderStages.push_back({.stage = vk::ShaderStageFlagBits::eFragment, .module = fragmentShader, .pName = "main"});
+  return *this;
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::SetInputTopology(vk::PrimitiveTopology topology)
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetInputTopology(vk::PrimitiveTopology topology)
 {
   inputAssembly.topology = topology;
 
   // we are not going to use primitive restart on the entire tutorial so leave
   // it on false
   inputAssembly.primitiveRestartEnable = VK_FALSE;
+  return *this;
 }
 //==============================================================================
-void VulkanPipelineBuilder::SetPolygonMode(vk::PolygonMode mode)
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetPolygonMode(vk::PolygonMode mode)
 {
   rasterizer.polygonMode = mode;
   rasterizer.lineWidth   = 1.0F;
+  return *this;
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::SetCullMode(vk::CullModeFlagBits cullMode, vk::FrontFace frontFace)
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetCullMode(vk::CullModeFlagBits cullMode, vk::FrontFace frontFace)
 {
   rasterizer.cullMode  = cullMode;
   rasterizer.frontFace = frontFace;
+  return *this;
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::SetMultiSamplingNone()
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetMultiSamplingNone()
 {
   multisampling.sampleShadingEnable = VK_FALSE;
   // multisampling defaulted to no multisampling (1 sample per pixel)
@@ -121,34 +125,38 @@ void VulkanPipelineBuilder::SetMultiSamplingNone()
   // no alpha to convert either
   multisampling.alphaToCoverageEnable = VK_FALSE;
   multisampling.alphaToOneEnable      = VK_FALSE;
+  return *this;
 }
 //==============================================================================
-void VulkanPipelineBuilder::DisableBlending()
+VulkanPipelineBuilder& VulkanPipelineBuilder::DisableBlending()
 {
   // defaults write mask
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
                                         vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   // no blending
   colorBlendAttachment.blendEnable = VK_FALSE;
+  return *this;
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::SetColorAttachmentFormat(vk::Format format)
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetColorAttachmentFormat(vk::Format format)
 {
   colorAttachmentformat = format;
   // connect the format to the renderInfo struct
   renderInfo.colorAttachmentCount    = 1;
   renderInfo.pColorAttachmentFormats = &colorAttachmentformat;
+  return *this;
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::SetDepthFormat(vk::Format format)
+VulkanPipelineBuilder& VulkanPipelineBuilder::SetDepthFormat(vk::Format format)
 {
   renderInfo.depthAttachmentFormat = format;
+  return *this;
 }
 
 //==============================================================================
-void VulkanPipelineBuilder::DisableDepthTest()
+VulkanPipelineBuilder& VulkanPipelineBuilder::DisableDepthTest()
 {
   depthStencil.depthWriteEnable      = VK_FALSE;
   depthStencil.depthTestEnable       = VK_FALSE;
@@ -159,6 +167,7 @@ void VulkanPipelineBuilder::DisableDepthTest()
   depthStencil.back                  = {};
   depthStencil.minDepthBounds        = 0.0F;
   depthStencil.maxDepthBounds        = 1.0F;
+  return *this;
 }
 //==============================================================================
 

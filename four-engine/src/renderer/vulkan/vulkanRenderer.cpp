@@ -3,15 +3,16 @@
 
 #include "renderer/vulkan/vulkanRenderer.hpp"
 
+#include "renderer/vulkan/VKHelpers.hpp"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+#include "renderer/vulkan/vulkanPipelineBuilder.hpp"
 #include "window/glfw/glfwWindow.hpp"
 #include "GLFW/glfw3.h"
 
 #include "glm/gtc/matrix_transform.hpp"
-
-#include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -19,21 +20,6 @@
 namespace four
 {
 
-//===============================================================================
-static std::vector<char> ReadFile(const std::string& filename)
-{
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-  if (!file.is_open())
-  {
-    throw std::runtime_error("failed to open file!");
-  }
-  const size_t      fileSize = (size_t)file.tellg();
-  std::vector<char> buffer(fileSize);
-  file.seekg(0);
-  file.read(buffer.data(), static_cast<long long>(fileSize));
-  file.close();
-  return buffer;
-}
 
 //===============================================================================
 std::unordered_map<VkInstance, PFN_vkCreateDebugUtilsMessengerEXT>  CreateDebugUtilsMessengerEXTDispatchTable;
@@ -151,7 +137,9 @@ bool VulkanRenderer::InitVulkan()
            CreateDescriptorSets() &&      //
            CreateCommandBuffers() &&      //
            CreateSyncObjects() &&         //
-           InitImGui();
+           InitImGui() &&                 //
+           InitTestTriangle();
+
   } catch (const std::exception& e)
   {
     LOG_CORE_ERROR("exception caught: {}", e.what());
@@ -167,10 +155,10 @@ void VulkanRenderer::ShutdownVulkan()
     CleanupSwapChain();
 
     m_Device.destroySampler(m_TextureSampler);
-    m_Device.destroyImageView(m_TextureImageView);
+    m_Device.destroyImageView(m_TextureImage.ImageView);
 
-    m_Device.destroyImage(m_TextureImage);
-    m_Device.freeMemory(m_TextureImageMemory);
+    m_Device.destroyImage(m_TextureImage.image);
+    m_Device.freeMemory(m_TextureImage.imageMemory);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -191,18 +179,16 @@ void VulkanRenderer::ShutdownVulkan()
 
     m_Device.destroyRenderPass(m_RenderPass);
 
+    m_Device.destroyCommandPool(m_CommandPool);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-      m_Device.destroyFence(m_FrameData[i].inFlightFence);
-      m_Device.destroySemaphore(m_FrameData[i].imageAvailableSemaphore);
-      m_Device.destroySemaphore(m_FrameData[i].renderFinishedSemaphore);
-    }
-    for (auto& frameData : m_FrameData)
-    {
-      frameData.deletionQueue.flush();
-    }
 
-    m_Device.destroyCommandPool(m_CommandPool);
+      m_Device.destroyFence(m_Frames[i].inFlightFence);
+      m_Device.destroySemaphore(m_Frames[i].imageAvailableSemaphore);
+      m_Device.destroySemaphore(m_Frames[i].renderFinishedSemaphore);
+
+      m_Frames[i].deletionQueue.flush();
+    }
 
     m_Device.destroy();
   }
@@ -218,7 +204,7 @@ void VulkanRenderer::ImmediateSubmit(std::function<void(vk::CommandBuffer comman
 {
   m_Device.resetFences(m_ImmediateFence);
   m_ImmediateCommandBuffer.reset();
-  vk::CommandBuffer cmd = m_ImmediateCommandBuffer;
+  auto cmd = m_ImmediateCommandBuffer;
   cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   function(cmd);
   cmd.end();
@@ -757,11 +743,8 @@ bool VulkanRenderer::CreateDescriptorSetLayout()
 //===============================================================================
 bool VulkanRenderer::CreateGraphicsPipeline()
 {
-  const auto verShaderCode  = ReadFile("shaders/simpleShader.vert.spv");
-  const auto fragShaderCode = ReadFile("shaders/simpleShader.frag.spv");
-
-  const auto vertShaderModule = CreateShaderModule(verShaderCode);
-  const auto fragShaderModule = CreateShaderModule(fragShaderCode);
+  const auto vertShaderModule = vkUtils::CreateShaderModule("shaders/simpleShader.vert.spv", m_Device);
+  const auto fragShaderModule = vkUtils::CreateShaderModule("shaders/simpleShader.frag.spv", m_Device);
 
   const vk::PipelineShaderStageCreateInfo      vertShaderStageInfo{.stage  = vk::ShaderStageFlagBits::eVertex,
                                                                    .module = vertShaderModule,
@@ -868,12 +851,6 @@ bool VulkanRenderer::CreateGraphicsPipeline()
 }
 
 //===============================================================================
-vk::ShaderModule VulkanRenderer::CreateShaderModule(const std::vector<char>& code)
-{
-  return m_Device.createShaderModule({.codeSize = code.size(), .pCode = reinterpret_cast<const uint32_t*>(code.data())});
-}
-
-//===============================================================================
 vk::Format VulkanRenderer::FindDepthFormat() const
 {
   return FindSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -894,7 +871,7 @@ bool VulkanRenderer::CreateFramebuffers()
   m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
   for (size_t i = 0; i < m_SwapChainImageViews.size(); ++i)
   {
-    const std::array                attachments = {m_SwapChainImageViews[i], m_DepthImageView};
+    const std::array                attachments = {m_SwapChainImageViews[i], m_DepthImage.ImageView};
     const vk::FramebufferCreateInfo framebufferInfo{.renderPass      = m_RenderPass,
                                                     .attachmentCount = static_cast<uint32_t>(attachments.size()),
                                                     .pAttachments    = attachments.data(),
@@ -918,7 +895,6 @@ bool VulkanRenderer::CreateCommandPool()
 
   const vk::CommandPoolCreateInfo poolInfo{.flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
                                            .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value()};
-
   if (m_Device.createCommandPool(&poolInfo, nullptr, &m_CommandPool) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("Failed to create command pool");
@@ -938,19 +914,33 @@ bool VulkanRenderer::CreateCommandPool()
 //===============================================================================
 bool VulkanRenderer::CreateCommandBuffers()
 {
-  m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  const vk::CommandBufferAllocateInfo allocInfo{.commandPool        = m_CommandPool,
-                                                .level              = vk::CommandBufferLevel::ePrimary,
-                                                .commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size())};
-  const vk::CommandBufferAllocateInfo immediateallocInfo{.commandPool        = m_ImmediateCommandPool,
-                                                         .level              = vk::CommandBufferLevel::ePrimary,
-                                                         .commandBufferCount = 1};
+  m_Frames.resize(MAX_FRAMES_IN_FLIGHT);
+  const vk::CommandBufferAllocateInfo allocInfo{
+    .commandPool        = m_CommandPool,
+    .level              = vk::CommandBufferLevel::ePrimary,
+    .commandBufferCount = static_cast<uint32_t>(m_Frames.size()),
+  };
+  const vk::CommandBufferAllocateInfo immediateallocInfo{
+    .commandPool        = m_ImmediateCommandPool,
+    .level              = vk::CommandBufferLevel::ePrimary,
+    .commandBufferCount = 1,
+  };
 
-  if (m_Device.allocateCommandBuffers(&allocInfo, m_CommandBuffers.data()) != vk::Result::eSuccess)
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    LOG_CORE_ERROR("Failed to allocate command buffers");
-    return false;
+    if (m_Device.allocateCommandBuffers(&allocInfo, &m_Frames[i].commandBuffer) != vk::Result::eSuccess)
+    {
+      LOG_CORE_ERROR("Failed to allocate command buffers");
+      return false;
+    }
   }
+  // if (m_Device.allocateCommandBuffers(&allocInfo, m_CommandBuffers.data()) != vk::Result::eSuccess)
+  // {
+  //   LOG_CORE_ERROR("Failed to allocate command buffers");
+  //   return false;
+  // }
+
+  //immediate command buffer
   // INFO: temperory here
   if (m_Device.allocateCommandBuffers(&immediateallocInfo, &m_ImmediateCommandBuffer) != vk::Result::eSuccess)
   {
@@ -967,15 +957,15 @@ bool VulkanRenderer::CreateCommandBuffers()
 //===============================================================================
 bool VulkanRenderer::CreateSyncObjects()
 {
-  m_FrameData.resize(MAX_FRAMES_IN_FLIGHT);
+  m_Frames.resize(MAX_FRAMES_IN_FLIGHT);
 
   vk::SemaphoreCreateInfo semaphoreInfo{};
   vk::FenceCreateInfo     fenceInfo{.flags = vk::FenceCreateFlagBits::eSignaled};
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    if (m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_FrameData[i].imageAvailableSemaphore) != vk::Result::eSuccess ||
-        m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_FrameData[i].renderFinishedSemaphore) != vk::Result::eSuccess ||
-        m_Device.createFence(&fenceInfo, nullptr, &m_FrameData[i].inFlightFence) != vk::Result::eSuccess)
+    if (m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_Frames[i].imageAvailableSemaphore) != vk::Result::eSuccess ||
+        m_Device.createSemaphore(&semaphoreInfo, nullptr, &m_Frames[i].renderFinishedSemaphore) != vk::Result::eSuccess ||
+        m_Device.createFence(&fenceInfo, nullptr, &m_Frames[i].inFlightFence) != vk::Result::eSuccess)
     {
       LOG_CORE_ERROR("Failed to create synchronization objects for a frame");
       return false;
@@ -1128,9 +1118,9 @@ void VulkanRenderer::ReCreateSwapChain()
 //===============================================================================
 void VulkanRenderer::CleanupSwapChain()
 {
-  m_Device.destroyImageView(m_DepthImageView);
-  m_Device.destroyImage(m_DepthImage);
-  m_Device.freeMemory(m_DepthImageMemory);
+  m_Device.destroyImageView(m_DepthImage.ImageView);
+  m_Device.destroyImage(m_DepthImage.image);
+  m_Device.freeMemory(m_DepthImage.imageMemory);
 
   for (auto& framebuffer : m_SwapChainFramebuffers)
   {
@@ -1145,11 +1135,11 @@ void VulkanRenderer::CleanupSwapChain()
 }
 
 //===============================================================================
-void VulkanRenderer::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer, uint32_t imageIndex) const
+void VulkanRenderer::RecordCommandBuffer(const vk::CommandBuffer& cmd, uint32_t imageIndex) const
 {
   const auto&                      extent = GetExtent();
   const vk::CommandBufferBeginInfo beginInfo{};
-  commandBuffer.begin(beginInfo);
+  cmd.begin(beginInfo);
 
   const std::array clearValues{
     vk::ClearValue{.color = vk::ClearColorValue{.float32 = {{0.0F, 0.0F, 0.0F, 1.0F}}}},
@@ -1164,10 +1154,10 @@ void VulkanRenderer::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer,
     .clearValueCount = static_cast<uint32_t>(clearValues.size()),
     .pClearValues    = clearValues.data(),
   };
-  commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+  cmd.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
   // basic draw
-  commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
   std::array vertexBuffers = {m_VertexBuffer};
   std::array offsets       = {vk::DeviceSize{0}};
 
@@ -1179,26 +1169,25 @@ void VulkanRenderer::RecordCommandBuffer(const vk::CommandBuffer& commandBuffer,
     .minDepth = 0.0F,
     .maxDepth = 1.0F,
   };
-  commandBuffer.setViewport(0, 1, &viewport);
+  cmd.setViewport(0, 1, &viewport);
 
   vk::Rect2D scissor{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = extent};
-  commandBuffer.setScissor(0, 1, &scissor);
+  cmd.setScissor(0, 1, &scissor);
 
-  commandBuffer.bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-  commandBuffer.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
-  commandBuffer
-    .bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
+  cmd.bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+  cmd.bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
 
-  commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
+  cmd.drawIndexed(indices.size(), 1, 0, 0, 0);
 
   // draw ImGui
   // DrawImGui(commandBuffer, m_SwapChainImageViews[imageIndex]);
 
   //end render pass
-  commandBuffer.endRenderPass();
+  cmd.endRenderPass();
 
 
-  commandBuffer.end();
+  cmd.end();
 }
 
 //===============================================================================
@@ -1218,7 +1207,7 @@ vk::CommandBuffer VulkanRenderer::BeginSingleTimeCommands() const
 }
 
 //===============================================================================
-void VulkanRenderer::EndSingleTimeCommands(const vk::CommandBuffer& commandBuffer) const
+void VulkanRenderer::EndSingleTimeCommands(vk::CommandBuffer commandBuffer) const
 {
   commandBuffer.end();
   m_GraphicsQueue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer});
@@ -1230,16 +1219,16 @@ void VulkanRenderer::EndSingleTimeCommands(const vk::CommandBuffer& commandBuffe
 void VulkanRenderer::DrawFrame()
 {
   [[maybe_unused]] const auto result = m_Device.waitForFences(1,
-                                                              &m_FrameData[m_CurrentFrame].inFlightFence,
+                                                              &m_Frames[m_CurrentFrame].inFlightFence,
                                                               VK_TRUE,
                                                               std::numeric_limits<uint64_t>::max());
 
-  GetCurrentFrameData().deletionQueue.flush();
+  m_Frames[m_CurrentFrame].deletionQueue.flush();
 
   uint32_t imageIndex{};
   switch (const vk::Result result = m_Device.acquireNextImageKHR(m_SwapChain,
                                                                  std::numeric_limits<uint64_t>::max(),
-                                                                 m_FrameData[m_CurrentFrame].imageAvailableSemaphore,
+                                                                 m_Frames[m_CurrentFrame].imageAvailableSemaphore,
                                                                  nullptr,
                                                                  &imageIndex);
           result)
@@ -1259,29 +1248,30 @@ void VulkanRenderer::DrawFrame()
 
   UpdateUniformBuffer(m_CurrentFrame);
 
-  if (m_Device.resetFences(1, &m_FrameData[m_CurrentFrame].inFlightFence) != vk::Result::eSuccess)
+  if (m_Device.resetFences(1, &m_Frames[m_CurrentFrame].inFlightFence) != vk::Result::eSuccess)
   {
     LOG_CORE_ERROR("failed to reset fence!");
     return;
   }
 
-  m_CommandBuffers[m_CurrentFrame].reset();
-  RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
+  auto cmd = m_Frames[m_CurrentFrame].commandBuffer;
+  cmd.reset();
+  RecordCommandBuffer(cmd, imageIndex);
 
 
-  std::array                            waitSemaphores   = {m_FrameData[m_CurrentFrame].imageAvailableSemaphore};
+  std::array                            waitSemaphores   = {GetCurrentFrameData().imageAvailableSemaphore};
   std::array<vk::PipelineStageFlags, 1> waitStages       = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  std::array                            signalSemaphores = {m_FrameData[m_CurrentFrame].renderFinishedSemaphore};
+  std::array                            signalSemaphores = {GetCurrentFrameData().renderFinishedSemaphore};
 
-  assert(m_CommandBuffers[m_CurrentFrame] && "Command buffer is null!");
+  assert(cmd && "Command buffer is null!");
   m_GraphicsQueue.submit(vk::SubmitInfo{.waitSemaphoreCount   = 1,
                                         .pWaitSemaphores      = waitSemaphores.data(),
                                         .pWaitDstStageMask    = waitStages.data(),
                                         .commandBufferCount   = 1,
-                                        .pCommandBuffers      = &m_CommandBuffers[m_CurrentFrame],
+                                        .pCommandBuffers      = &cmd,
                                         .signalSemaphoreCount = 1,
                                         .pSignalSemaphores    = signalSemaphores.data()},
-                         m_FrameData[m_CurrentFrame].inFlightFence);
+                         GetCurrentFrameData().inFlightFence);
 
   std::array swapChains = {m_SwapChain};
   if (const vk::Result result = m_PresentQueue.presentKHR(
@@ -1381,7 +1371,7 @@ bool VulkanRenderer::CreateDescriptorSets()
     };
     const vk::DescriptorImageInfo imageInfo{
       .sampler     = m_TextureSampler,
-      .imageView   = m_TextureImageView,
+      .imageView   = m_TextureImage.ImageView,
       .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
     };
     const std::array<vk::WriteDescriptorSet, 2> writeDescriptorSets{{
@@ -1419,9 +1409,9 @@ bool VulkanRenderer::CreateDepthResources()
                 vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eDepthStencilAttachment,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                m_DepthImage,
-                m_DepthImageMemory);
-    m_DepthImageView = CreateImageView(m_DepthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+                m_DepthImage.image,
+                m_DepthImage.imageMemory);
+    m_DepthImage.ImageView = CreateImageView(m_DepthImage.image, depthFormat, vk::ImageAspectFlagBits::eDepth);
     return true;
   } catch (const std::exception& e)
   {
@@ -1439,7 +1429,7 @@ bool VulkanRenderer::CreateTextureImage()
     int   texHeight{0};
     int   texChannels{0};
     auto* pixels = stbi_load("assets/statue.jpg", &texWidth, &texHeight, &texChannels, 4); // load image and read pixels
-    vk::DeviceSize imageSize = texWidth * texHeight * 4;
+    vk::DeviceSize imageSize = static_cast<long>(texWidth * texHeight) * 4;
 
     if (pixels == nullptr)
     {
@@ -1465,14 +1455,14 @@ bool VulkanRenderer::CreateTextureImage()
                 vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                m_TextureImage,
-                m_TextureImageMemory);
-    TransitionImageLayout(m_TextureImage,
+                m_TextureImage.image,
+                m_TextureImage.imageMemory);
+    TransitionImageLayout(m_TextureImage.image,
                           vk::Format::eR8G8B8A8Srgb,
                           vk::ImageLayout::eUndefined,
                           vk::ImageLayout::eTransferDstOptimal);
-    CopyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    TransitionImageLayout(m_TextureImage,
+    CopyBufferToImage(stagingBuffer, m_TextureImage.image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    TransitionImageLayout(m_TextureImage.image,
                           vk::Format::eR8G8B8A8Srgb,
                           vk::ImageLayout::eTransferDstOptimal,
                           vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -1494,7 +1484,7 @@ bool VulkanRenderer::CreateTextureImageView()
 {
   try
   {
-    m_TextureImageView = CreateImageView(m_TextureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
+    m_TextureImage.ImageView = CreateImageView(m_TextureImage.image, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
     return true;
   } catch (const std::exception& e)
   {
@@ -1822,5 +1812,103 @@ bool VulkanRenderer::InitImGui()
   }
   return false;
 }
+
+//========================================================================
+bool VulkanRenderer::InitTestTriangle()
+{
+  try
+  {
+    const auto vertShader = vkUtils::CreateShaderModule("shaders/coloredTriangle.vert.spv", m_Device);
+    const auto fragShader = vkUtils::CreateShaderModule("shaders/coloredTriangle.frag.spv", m_Device);
+
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo{
+      .setLayoutCount         = 0,
+      .pushConstantRangeCount = 0,
+    };
+
+    m_TestTrianglePipelineLayout = m_Device.createPipelineLayout(pipelineLayoutInfo);
+
+    VulkanPipelineBuilder pipelineBuilder;
+    pipelineBuilder.pipelineLayout = m_TestTrianglePipelineLayout;
+    m_TestTrianglePipeline         = pipelineBuilder.SetShaders(vertShader, fragShader)
+                               .SetInputTopology(vk::PrimitiveTopology::eTriangleList)
+                               .SetPolygonMode(vk::PolygonMode::eFill)
+                               .SetCullMode(vk::CullModeFlagBits::eBack, vk::FrontFace::eClockwise)
+                               .SetMultiSamplingNone()
+                               .DisableBlending()
+                               .DisableDepthTest()
+                               .SetColorAttachmentFormat(m_SwapChainImageFormat)
+                               .SetDepthFormat(vk::Format::eUndefined)
+                               .BuildPipeline(m_Device);
+
+    m_Device.destroyShaderModule(vertShader);
+    m_Device.destroyShaderModule(fragShader);
+
+    m_MainDeletionQueue.push_function(
+      [this]()
+      {
+        m_Device.destroyPipelineLayout(m_TestTrianglePipelineLayout);
+        m_Device.destroyPipeline(m_TestTrianglePipeline);
+      });
+
+    return true;
+  } catch (const std::exception& e)
+  {
+    LOG_CORE_ERROR("failed to initialize Test tirangle. exception: {}", e.what());
+  }
+  return false;
+}
+
+//========================================================================
+void VulkanRenderer::DrawGeometry(vk::CommandBuffer cmd) const
+{
+  //begin a render pass  connected to our draw image
+  const vk::RenderingAttachmentInfo colorAttachment{
+    // should be draw image not the swap chain image
+    .imageView   = m_SwapChainImageViews[m_CurrentFrame], // WARN: not sure if this currect
+    .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+  };
+
+
+  // vk::RenderingInfo renderInfo = vkinit::rendering_info(_drawExtent, &colorAttachment, nullptr);
+  cmd.beginRendering({
+    // WARN: renderArea is need to be set
+    // should be draw image not the swap chain image
+    .renderArea        = vk::Rect2D{.offset = vk::Offset2D{.x = 0, .y = 0}, .extent = GetExtent()},
+    .pColorAttachments = &colorAttachment,
+  });
+
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_TestTrianglePipeline);
+
+  //set dynamic viewport and scissor
+  const vk::Viewport viewport = {
+    .x = 0,
+    .y = 0,
+    // should be draw image not the swap chain image
+    .width    = static_cast<float>(m_SwapChainExtent.width),  // WARN: not sure if this currect
+    .height   = static_cast<float>(m_SwapChainExtent.height), // WARN: not sure if this currect
+    .minDepth = 0.F,
+    .maxDepth = 1.F,
+  };
+
+  cmd.setViewport(0, 1, &viewport);
+
+  const vk::Rect2D scissor{
+    .offset = {.x = 0, .y = 0},
+    // should be draw image not the swap chain image
+    .extent = m_SwapChainExtent, // WARN: not sure if this currect
+  };
+  cmd.setScissor(0, 1, &scissor);
+
+  //launch a draw command to draw 3 vertices
+  cmd.draw(3, 1, 0, 0);
+  cmd.endRendering();
+}
+
+//========================================================================
+void VulkanRenderer::DrawBackground(vk::CommandBuffer cmd) const
+{
+}
+
 //========================================================================
 } // namespace four

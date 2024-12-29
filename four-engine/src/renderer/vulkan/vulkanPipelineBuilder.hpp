@@ -29,15 +29,15 @@ public:
 
   vk::Pipeline BuildPipeline(vk::Device device);
 
-  void SetShaders(vk::ShaderModule vertexShader, vk::ShaderModule fragmentShader);
-  void SetInputTopology(vk::PrimitiveTopology topology);
-  void SetPolygonMode(vk::PolygonMode mode);
-  void SetCullMode(vk::CullModeFlagBits cullMode, vk::FrontFace frontFace);
-  void SetMultiSamplingNone();
-  void DisableBlending();
-  void SetColorAttachmentFormat(vk::Format format);
-  void SetDepthFormat(vk::Format format);
-  void DisableDepthTest();
+  VulkanPipelineBuilder& SetShaders(vk::ShaderModule vertexShader, vk::ShaderModule fragmentShader);
+  VulkanPipelineBuilder& SetInputTopology(vk::PrimitiveTopology topology);
+  VulkanPipelineBuilder& SetPolygonMode(vk::PolygonMode mode);
+  VulkanPipelineBuilder& SetCullMode(vk::CullModeFlagBits cullMode, vk::FrontFace frontFace);
+  VulkanPipelineBuilder& SetMultiSamplingNone();
+  VulkanPipelineBuilder& DisableBlending();
+  VulkanPipelineBuilder& SetColorAttachmentFormat(vk::Format format);
+  VulkanPipelineBuilder& SetDepthFormat(vk::Format format);
+  VulkanPipelineBuilder& DisableDepthTest();
 };
 
 } // namespace four
